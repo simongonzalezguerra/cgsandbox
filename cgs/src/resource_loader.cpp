@@ -1,7 +1,7 @@
-#include "glsandbox/resource_loader.hpp"
+#include "cgs/resource_loader.hpp"
 #include "glm/gtc/type_ptr.hpp"
 #include "assimp/postprocess.h"
-#include "glsandbox/log.hpp"
+#include "cgs/log.hpp"
 #include "assimp/cimport.h"
 #include "assimp/scene.h"
 #include "glm/glm.hpp"
@@ -20,7 +20,7 @@
 #define CURRENT_DIR     ""
 #endif
 
-namespace glsandbox
+namespace cgs
 {
   namespace
   {
@@ -433,4 +433,4 @@ namespace glsandbox
 
     return root;
   }
-} // namespace glsandbox
+} // namespace cgs

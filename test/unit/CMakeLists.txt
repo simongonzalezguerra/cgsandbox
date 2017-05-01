@@ -1,2 +1,2 @@
 add_subdirectory (json)
-add_subdirectory (glsandbox)
+add_subdirectory (cgs)

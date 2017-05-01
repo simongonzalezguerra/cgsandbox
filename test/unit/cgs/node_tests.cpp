@@ -1,5 +1,5 @@
 #include "glm/gtc/matrix_transform.hpp"
-#include "glsandbox/scenegraph.hpp"
+#include "cgs/scenegraph.hpp"
 #include "glm/gtc/type_ptr.hpp"
 #include "test/test_utils.hpp"
 #include "gtest/gtest.h"
@@ -7,7 +7,7 @@
 
 #include <cstddef> // for size_t
 
-using namespace glsandbox;
+using namespace cgs;
 
 class nodes_test : public ::testing::Test
 {

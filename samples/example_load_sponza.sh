@@ -5,5 +5,5 @@ RESOURCE_PATH="../resources/"
 FILE="sponza/sponza.obj"
 
 ${LOADER_BIN} ${RESOURCE_PATH}${FILE}
-echo "Logs appended to glsandbox.log"
+echo "Logs appended to cgs.log"
 

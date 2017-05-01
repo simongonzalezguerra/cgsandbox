@@ -1,12 +1,12 @@
 #ifndef RENDERER_HPP
 #define RENDERER_HPP
 
-#include "glsandbox/scenegraph.hpp"
+#include "cgs/scenegraph.hpp"
 
 #include <cstddef>  // for std::size_t
 #include <vector>
 
-namespace glsandbox
+namespace cgs
 {
   //-----------------------------------------------------------------------------------------------
   // Types
@@ -169,6 +169,6 @@ namespace glsandbox
   void render(view_id view);
   std::vector<event> poll_events();
   float get_time();
-} // namespace glsandbox
+} // namespace cgs
 
 #endif // RENDERER_HPP

@@ -1,12 +1,12 @@
-#include "glsandbox/resource_database.hpp"
+#include "cgs/resource_database.hpp"
 #include "glm/gtc/type_ptr.hpp"
-#include "glsandbox/log.hpp"
+#include "cgs/log.hpp"
 #include "glm/glm.hpp"
 
 #include <algorithm>
 #include <vector>
 
-namespace glsandbox
+namespace cgs
 {
   namespace
   {
@@ -288,4 +288,4 @@ namespace glsandbox
 
     return resources[r].mnext_sibling;
   }
-} // namespace glsandbox
+} // namespace cgs

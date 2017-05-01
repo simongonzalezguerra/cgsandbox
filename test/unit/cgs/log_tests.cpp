@@ -1,4 +1,4 @@
-#include "glsandbox/log.hpp"
+#include "cgs/log.hpp"
 #include "gtest/gtest.h"
 
 #include <algorithm>
@@ -11,7 +11,7 @@
 
 const char* DUDE_1 = "That rug really tied the room together";
 
-using namespace glsandbox;
+using namespace cgs;
 
 class log_test : public ::testing::Test
 {

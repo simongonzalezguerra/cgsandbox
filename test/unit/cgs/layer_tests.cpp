@@ -1,7 +1,7 @@
-#include "glsandbox/scenegraph.hpp"
+#include "cgs/scenegraph.hpp"
 #include "gtest/gtest.h"
 
-using namespace glsandbox;
+using namespace cgs;
 
 class layers_test : public ::testing::Test
 {

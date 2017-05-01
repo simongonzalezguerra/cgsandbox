@@ -1,4 +1,4 @@
-#include "glsandbox/resource_database.hpp"
+#include "cgs/resource_database.hpp"
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include "gtest/gtest.h"
@@ -6,7 +6,7 @@
 
 #include <cstddef> // for size_t
 
-using namespace glsandbox;
+using namespace cgs;
 
 class resources_test : public ::testing::Test
 {

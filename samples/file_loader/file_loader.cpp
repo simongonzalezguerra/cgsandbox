@@ -1,10 +1,10 @@
-#include "glsandbox/resource_database.hpp"
-#include "glsandbox/resource_loader.hpp"
-#include "glsandbox/log.hpp"
+#include "cgs/resource_database.hpp"
+#include "cgs/resource_loader.hpp"
+#include "cgs/log.hpp"
 
 #include <iostream>
 
-using namespace glsandbox;
+using namespace cgs;
 
 int main(int argc, char** argv)
 {

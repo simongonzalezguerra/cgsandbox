@@ -4,7 +4,7 @@
 #include <cstddef>
 #include <string>
 
-namespace glsandbox
+namespace cgs
 {
   //-----------------------------------------------------------------------------------------------
   // Types
@@ -15,7 +15,7 @@ namespace glsandbox
   //-----------------------------------------------------------------------------------------------
   // Constants
   //-----------------------------------------------------------------------------------------------
-  constexpr const char* const DEFAULT_LOGSTREAM_FILENAME = "glsandbox.log";
+  constexpr const char* const DEFAULT_LOGSTREAM_FILENAME = "cgs.log";
   constexpr std::size_t MAX_MESSAGE_LENGTH = 2048;
   constexpr log_level LOG_LEVEL_DEBUG = 0;
   constexpr log_level LOG_LEVEL_ERROR = 1;
@@ -115,6 +115,6 @@ namespace glsandbox
   //! @param message The message to log.
   //----------------------------------------------------------------------------------------------
   void default_logstream_stdout_callback(log_level level, const char* message);
-} // namespace glsandbox
+} // namespace cgs
 
 #endif // LOG_HPP

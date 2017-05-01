@@ -1,11 +1,11 @@
-#include "glsandbox/log.hpp"
+#include "cgs/log.hpp"
 
 #include <iostream>
 #include <fstream>
 #include <cstring>
 #include <set>
 
-namespace glsandbox
+namespace cgs
 {
   namespace
   {
@@ -128,4 +128,4 @@ namespace glsandbox
   {
     std::cout << message << "\n";
   }
-} // namespace glsandbox
+} // namespace cgs

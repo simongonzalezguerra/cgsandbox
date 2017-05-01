@@ -1,10 +1,10 @@
-#include "glsandbox/resource_database.hpp"
+#include "cgs/resource_database.hpp"
 #include "gtest/gtest.h"
 
 #include <cstddef> // for size_t
 #include <vector>
 
-using namespace glsandbox;
+using namespace cgs;
 
 class materials_test : public ::testing::Test
 {
