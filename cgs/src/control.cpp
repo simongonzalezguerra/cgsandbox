@@ -1,14 +1,14 @@
 #include "glm/gtc/matrix_transform.hpp"
-#include "glsandbox/control.hpp"
+#include "cgs/control.hpp"
 #include "glm/gtx/transform.hpp"
-#include "glsandbox/utils.hpp"
-#include "glsandbox/log.hpp"
+#include "cgs/utils.hpp"
+#include "cgs/log.hpp"
 #include "glm/glm.hpp"
 
 #include <iomanip>
 #include <sstream>
 
-namespace glsandbox
+namespace cgs
 {
   //-----------------------------------------------------------------------------------------------
   // fps_camera_controller
@@ -20,7 +20,7 @@ namespace glsandbox
   {
   public:
     fps_camera_controller_impl() :
-      m_layer(glsandbox::nlayer),
+      m_layer(cgs::nlayer),
       m_position{0.0f},
       m_yaw(0.0f),
       m_pitch(0.0f),
@@ -36,10 +36,10 @@ namespace glsandbox
       std::ostringstream oss;
       oss << "fps_camera_controller: updated position, position: " << std::fixed << std::setprecision(2)
           << m_position.x << ", " << m_position.y << ", " << m_position.z;
-      glsandbox::log(glsandbox::LOG_LEVEL_DEBUG, oss.str());
+      cgs::log(cgs::LOG_LEVEL_DEBUG, oss.str());
     }
 
-    glsandbox:: layer_id    m_layer;
+    cgs:: layer_id    m_layer;
     glm::vec3               m_position;
     float                   m_yaw;
     float                   m_pitch;
@@ -56,7 +56,7 @@ namespace glsandbox
 
   fps_camera_controller::~fps_camera_controller() {}
 
-  void fps_camera_controller::set_layer(glsandbox::layer_id layer)
+  void fps_camera_controller::set_layer(cgs::layer_id layer)
   {
     m_impl->m_layer = layer;
   }
@@ -86,7 +86,7 @@ namespace glsandbox
     m_impl->m_mouse_speed = m_mouse_speed;
   }
 
-  glsandbox::layer_id fps_camera_controller::get_layer()
+  cgs::layer_id fps_camera_controller::get_layer()
   {
     return m_impl->m_layer;
   }
@@ -116,11 +116,11 @@ namespace glsandbox
     return m_impl->m_mouse_speed;
   }
 
-  void fps_camera_controller::process(float dt, const std::vector<glsandbox::event>& events)
+  void fps_camera_controller::process(float dt, const std::vector<cgs::event>& events)
   {
     // Process events
     for (auto it = events.cbegin(); it != events.cend(); it++) {
-      if (it->type == glsandbox::EVENT_MOUSE_MOVE) {
+      if (it->type == cgs::EVENT_MOUSE_MOVE) {
         // Compute new orientation
         // Yaw rotates the camera around the Y axis counter-clockwise. Mouse X coordinates increase
         // to the right, so we use mouse motion to substract from yaw.
@@ -132,28 +132,28 @@ namespace glsandbox
         std::ostringstream oss;
         oss << "fps_camera_controller: updated angles, "<< std::fixed << std::setprecision(2)
             << " yaw: " << m_impl->m_yaw << ", pitch: " << m_impl->m_pitch;
-        glsandbox::log(glsandbox::LOG_LEVEL_DEBUG, oss.str());
+        cgs::log(cgs::LOG_LEVEL_DEBUG, oss.str());
       }
 
-      if (it->type == glsandbox::EVENT_KEY_PRESS) {
-        if (it->value == glsandbox::KEY_W) {
+      if (it->type == cgs::EVENT_KEY_PRESS) {
+        if (it->value == cgs::KEY_W) {
           m_impl->m_moving_forward = true;
           m_impl->m_moving_backward = false;
-        } else if (it->value == glsandbox::KEY_S) {
+        } else if (it->value == cgs::KEY_S) {
           m_impl->m_moving_forward = false;
           m_impl->m_moving_backward = true;
-        } else if (it->value == glsandbox::KEY_D) {
+        } else if (it->value == cgs::KEY_D) {
           m_impl->m_moving_right = true;
           m_impl->m_moving_left = false;
-        } else if (it->value == glsandbox::KEY_A) {
+        } else if (it->value == cgs::KEY_A) {
           m_impl->m_moving_right = false;
           m_impl->m_moving_left = true;
         }
-      } else if (it->type == glsandbox::EVENT_KEY_RELEASE) {
-        if (it->value == glsandbox::KEY_W || it->value == glsandbox::KEY_S) {
+      } else if (it->type == cgs::EVENT_KEY_RELEASE) {
+        if (it->value == cgs::KEY_W || it->value == cgs::KEY_S) {
           m_impl->m_moving_forward = false;
           m_impl->m_moving_backward = false;
-        } else if (it->value == glsandbox::KEY_D || it->value == glsandbox::KEY_A) {
+        } else if (it->value == cgs::KEY_D || it->value == cgs::KEY_A) {
           m_impl->m_moving_right = false;
           m_impl->m_moving_left = false;
         }
@@ -194,7 +194,7 @@ namespace glsandbox
       m_impl->log_position();
     }
 
-    glsandbox::set_layer_view_transform(m_impl->m_layer, glm::lookAt(m_impl->m_position, m_impl->m_position + direction, up));
+    cgs::set_layer_view_transform(m_impl->m_layer, glm::lookAt(m_impl->m_position, m_impl->m_position + direction, up));
   }
 
   //-----------------------------------------------------------------------------------------------
@@ -222,23 +222,23 @@ namespace glsandbox
       std::ostringstream oss;
       oss << std::fixed << std::setprecision(2);
       oss << "perspective_controller, fov: " << m_fov
-          << ", fovy: " << glsandbox::fov_to_fovy(m_fov, m_window_width, m_window_height);
-      glsandbox::log(glsandbox::LOG_LEVEL_DEBUG, oss.str());
+          << ", fovy: " << cgs::fov_to_fovy(m_fov, m_window_width, m_window_height);
+      cgs::log(cgs::LOG_LEVEL_DEBUG, oss.str());
     }
 
-    void process(float dt, const std::vector<glsandbox::event>& events)
+    void process(float dt, const std::vector<cgs::event>& events)
     {
       for (auto it = events.cbegin(); it != events.cend(); it++) {
-        if (it->type == glsandbox::EVENT_KEY_PRESS) {
-          if (it->value == glsandbox::KEY_9) {
+        if (it->type == cgs::EVENT_KEY_PRESS) {
+          if (it->value == cgs::KEY_9) {
             m_increasing_fov = false;
             m_decreasing_fov = true;
-          } else if (it->value == glsandbox::KEY_0) {
+          } else if (it->value == cgs::KEY_0) {
             m_increasing_fov = true;
             m_decreasing_fov = false;
           }
-        } else if (it->type == glsandbox::EVENT_KEY_RELEASE) {
-          if (it->value == glsandbox::KEY_9 || it->value == glsandbox::KEY_0) {
+        } else if (it->type == cgs::EVENT_KEY_RELEASE) {
+          if (it->value == cgs::KEY_9 || it->value == cgs::KEY_0) {
             m_increasing_fov = false;
             m_decreasing_fov = false; 
           }
@@ -255,13 +255,13 @@ namespace glsandbox
       // they usually use 45 is that 90.0 would look weird. 90 would be ok for horizontal fov, not
       // vertical
       // https://www.opengl.org/discussion_boards/showthread.php/171227-glm-perspective-fovy-question
-      float fovy = glsandbox::fov_to_fovy(m_fov, m_window_width, m_window_height);
+      float fovy = cgs::fov_to_fovy(m_fov, m_window_width, m_window_height);
       glm::mat4 projection_transform = glm::perspective(fovy, m_window_width / m_window_height, 0.1f, 100.0f);
-      glsandbox::set_layer_projection_transform(m_layer, projection_transform);
+      cgs::set_layer_projection_transform(m_layer, projection_transform);
     }
 
     // Member variables
-    glsandbox::layer_id   m_layer;
+    cgs::layer_id   m_layer;
     float                 m_window_width;
     float                 m_window_height;
     bool                  m_increasing_fov;
@@ -275,7 +275,7 @@ namespace glsandbox
 
   perspective_controller::~perspective_controller() {}
 
-  void perspective_controller::set_layer(glsandbox::layer_id layer)
+  void perspective_controller::set_layer(cgs::layer_id layer)
   {
     m_impl->m_layer = layer;
   }
@@ -310,7 +310,7 @@ namespace glsandbox
     return m_impl->m_fov;
   }
 
-  glsandbox::layer_id perspective_controller::get_layer()
+  cgs::layer_id perspective_controller::get_layer()
   {
     return m_impl->m_layer;
   }
@@ -325,7 +325,7 @@ namespace glsandbox
     return m_impl->m_window_height;
   }
 
-  void perspective_controller::process(float dt, const std::vector<glsandbox::event>& events)
+  void perspective_controller::process(float dt, const std::vector<cgs::event>& events)
   {
     m_impl->process(dt, events);
   }
@@ -395,10 +395,10 @@ namespace glsandbox
         << "min: " << m_impl->m_minimum_framerate
         << ", max: " << m_impl->m_maximum_framerate
         << ", avg: " << m_impl->m_average_framerate;
-    glsandbox::log(glsandbox::LOG_LEVEL_DEBUG, oss.str());
+    cgs::log(cgs::LOG_LEVEL_DEBUG, oss.str());
   }
   
-  void framerate_controller::process(float dt, const std::vector<glsandbox::event>&)
+  void framerate_controller::process(float dt, const std::vector<cgs::event>&)
   {
     m_impl->process(dt);
   }

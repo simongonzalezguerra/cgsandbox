@@ -1,13 +1,13 @@
-#include "glsandbox/scenegraph.hpp"
+#include "cgs/scenegraph.hpp"
 #include "glm/gtc/type_ptr.hpp"
-#include "glsandbox/log.hpp"
+#include "cgs/log.hpp"
 #include "glm/glm.hpp"
 
 #include <algorithm>
 #include <vector>
 #include <queue>
 
-namespace glsandbox
+namespace cgs
 {
   namespace
   {
@@ -419,4 +419,4 @@ namespace glsandbox
 
     layers[l].mlight = *data;
   }
-} // namespace glsandbox
+} // namespace cgs

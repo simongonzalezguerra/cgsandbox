@@ -1,12 +1,12 @@
 #ifndef SCENE_GRAPH_HPP
 #define SCENE_GRAPH_HPP
 
-#include "glsandbox/resource_database.hpp"
+#include "cgs/resource_database.hpp"
 #include "glm/glm.hpp"
 
 #include <cstddef> // for size_t
 
-namespace glsandbox
+namespace cgs
 {
   //-----------------------------------------------------------------------------------------------
   // Types
@@ -263,6 +263,6 @@ namespace glsandbox
   //! @param data Address of an object containing light data to write.
   //-----------------------------------------------------------------------------------------------
   void set_light_data(layer_id layer, const light_data* data);
-} // namespace glsandbox
+} // namespace cgs
 
 #endif // SCENE_GRAPH_HPP

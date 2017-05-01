@@ -1,8 +1,8 @@
-#include "glsandbox/resource_database.hpp"
+#include "cgs/resource_database.hpp"
 #include "glm/gtc/matrix_transform.hpp"
-#include "glsandbox/renderer.hpp"
+#include "cgs/renderer.hpp"
 #include "glm/gtc/type_ptr.hpp"
-#include "glsandbox/log.hpp"
+#include "cgs/log.hpp"
 #include "glm/glm.hpp"
 #include "FreeImage.h"
 #include "GL/glew.h"
@@ -17,7 +17,7 @@
 #include <queue>
 #include <map>
 
-namespace glsandbox
+namespace cgs
 {
   namespace
   {
@@ -296,7 +296,7 @@ namespace glsandbox
         std::ostringstream oss;
         oss << "mouse_move_callback: new delta_mouse_x: " << std::fixed << std::setprecision(2)
             << e.delta_mouse_x << ", new delta_mouse_y: " << e.delta_mouse_y;
-        glsandbox::log(glsandbox::LOG_LEVEL_DEBUG, oss.str());
+        cgs::log(cgs::LOG_LEVEL_DEBUG, oss.str());
       }
     }
 
@@ -459,7 +459,7 @@ namespace glsandbox
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
     // Open a window and create its OpenGL context
-    window = glfwCreateWindow(width, height, "glsandbox", fullscreen? glfwGetPrimaryMonitor() : nullptr, nullptr);
+    window = glfwCreateWindow(width, height, "cgs", fullscreen? glfwGetPrimaryMonitor() : nullptr, nullptr);
     if(window == nullptr){
       log(LOG_LEVEL_ERROR, "open_window: failed to open GLFW window. If you have an Intel GPU prior to HD 4000, they are not OpenGL 3.3 compatible.");
       glfwTerminate();
@@ -683,7 +683,7 @@ namespace glsandbox
     glfwSwapBuffers(window);
   }
 
-  std::vector<glsandbox::event> poll_events()
+  std::vector<cgs::event> poll_events()
   {
     events.clear();
     glfwPollEvents();
@@ -695,4 +695,4 @@ namespace glsandbox
   {
     return (float) glfwGetTime();
   }
-} // namespace glsandbox
+} // namespace cgs

@@ -3,7 +3,7 @@
 
 #include <cstddef> // for size_t
 
-namespace glsandbox
+namespace cgs
 {
   //-----------------------------------------------------------------------------------------------
   // Types
@@ -273,6 +273,6 @@ namespace glsandbox
   //! @return Id of the next sibling, or nresource if there are no siblings.
   //-----------------------------------------------------------------------------------------------
   resource_id get_next_sibling_resource(resource_id resource);
-} // namespace glsandbox
+} // namespace cgs
 
 #endif // RESOURCE_DATABASE_HPP

@@ -6,4 +6,4 @@ MODEL_FILE="suzanne/suzanne.obj"
 TEXTURE_FILE="suzanne/uvmap.DDS"
 
 ${LOADER_BIN} ${RESOURCE_PATH}${MODEL_FILE} ${RESOURCE_PATH}${TEXTURE_FILE}
-echo "Logs appended to glsandbox.log
+echo "Logs appended to cgs.log

@@ -1,15 +1,15 @@
-#include "glsandbox/resource_database.hpp"
-#include "glsandbox/resource_loader.hpp"
+#include "cgs/resource_database.hpp"
+#include "cgs/resource_loader.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 #include "glm/gtc/type_ptr.hpp"
 #include "test/test_utils.hpp"
-#include "glsandbox/log.hpp"
+#include "cgs/log.hpp"
 #include "gtest/gtest.h"
 #include "glm/glm.hpp"
 
 #include <cstddef> // for size_t
 
-using namespace glsandbox;
+using namespace cgs;
 
 const std::string RESOURCES_PATH   = "../../../../resources/";
 const std::string SPONZA    = "sponza/sponza.obj";
@@ -49,7 +49,7 @@ TEST_F(resources_loader_test, load_resources_positive1) {
   std::size_t num_meshes_out = 0U;
   resource_id added_resource = load_resources(RESOURCES_PATH + SPONZA, &materials_out, &num_materials_out, &meshes_out, &num_meshes_out);
 
-  default_logstream_tail_dump(glsandbox::LOG_LEVEL_DEBUG);
+  default_logstream_tail_dump(cgs::LOG_LEVEL_DEBUG);
   ASSERT_EQ(num_materials_out, 13U);
   float color_diffuse[] = {0.0f, 0.0f, 0.0f};
   float color_spec[] = {0.0f, 0.0f, 0.0f};
@@ -125,7 +125,7 @@ TEST_F(resources_loader_test, load_resources_three_levels) {
   const mesh_id* meshes_out = nullptr;
   std::size_t num_meshes_out = 0U;
   load_resources(RESOURCES_PATH + THREE_LEVELS, &materials_out, &num_materials_out, &meshes_out, &num_meshes_out);
-  default_logstream_tail_dump(glsandbox::LOG_LEVEL_DEBUG);
+  default_logstream_tail_dump(cgs::LOG_LEVEL_DEBUG);
 
   // Ugly hack: the test assumes the resources are created with a breadth-first search, so the node in the
   // third level is the last one to be created, with id 166.
@@ -144,7 +144,7 @@ TEST_F(resources_loader_test, load_resources_no_texture_info) {
   const mesh_id* meshes_out = nullptr;
   std::size_t num_meshes_out = 0U;
   load_resources(RESOURCES_PATH + STANFORD_BUNNY, &materials_out, &num_materials_out, &meshes_out, &num_meshes_out);
-  default_logstream_tail_dump(glsandbox::LOG_LEVEL_DEBUG);
+  default_logstream_tail_dump(cgs::LOG_LEVEL_DEBUG);
 
   const float* vertex_base_out;
   std::size_t vertex_stride_out;
@@ -176,7 +176,7 @@ TEST_F(resources_loader_test, load_resources_billiard_table) {
   const mesh_id* meshes_out = nullptr;
   std::size_t num_meshes_out = 0U;
   load_resources(RESOURCES_PATH + BILLIARD_TABLE, &materials_out, &num_materials_out, &meshes_out, &num_meshes_out);
-  default_logstream_tail_dump(glsandbox::LOG_LEVEL_DEBUG);
+  default_logstream_tail_dump(cgs::LOG_LEVEL_DEBUG);
 }
 
 int main(int argc, char** argv)

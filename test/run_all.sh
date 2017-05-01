@@ -1,6 +1,6 @@
 #! /bin/bash
 
-cd ../build/test/unit/glsandbox/
+cd ../build/test/unit/cgs/
 ./layer_tests &&\
 ./log_tests &&\
 ./material_tests &&\

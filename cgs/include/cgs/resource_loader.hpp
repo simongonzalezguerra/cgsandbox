@@ -1,12 +1,12 @@
 #ifndef RESOURCE_LOADER_HPP
 #define RESOURCE_LOADER_HPP
 
-#include "glsandbox/resource_database.hpp"
+#include "cgs/resource_database.hpp"
 
 #include <cstddef> // for size_t
 #include <string>
 
-namespace glsandbox
+namespace cgs
 {
   //-----------------------------------------------------------------------------------------------
   //! @brief Loads resources from a file (materials, meshes and resource nodes).
@@ -30,6 +30,6 @@ namespace glsandbox
                              std::size_t* num_materials_out,
                              const mesh_id** meshes_out,
                              std::size_t* num_meshes_out);
-} // namespace glsandbox
+} // namespace cgs
 
 #endif // RESOURCE_LOADER_HPP

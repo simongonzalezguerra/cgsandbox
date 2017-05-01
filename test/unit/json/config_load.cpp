@@ -4,7 +4,7 @@
 #include <vector>
 
 #include "nlohmann/json.hpp"
-#include "glsandbox/log.hpp"
+#include "cgs/log.hpp"
 #include "gtest/gtest.h"
 
 struct video_mode
