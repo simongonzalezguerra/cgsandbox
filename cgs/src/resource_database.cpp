@@ -1,7 +1,6 @@
 #include "cgs/resource_database.hpp"
 #include "glm/gtc/type_ptr.hpp"
 #include "cgs/log.hpp"
-#include "glm/glm.hpp"
 
 #include <algorithm>
 #include <vector>
@@ -19,12 +18,12 @@ namespace cgs
         mcolor_diffuse({1.0f, 1.0f, 1.0f}),
         mcolor_spec({1.0f, 1.0f, 1.0f}),
         msmoothness(1.0f),
-        texture_path() {}
+        mtexture_path() {}
 
       glm::vec3 mcolor_diffuse;
       glm::vec3 mcolor_spec;
       float msmoothness;
-      std::string texture_path;
+      std::string mtexture_path;
     };
 
     typedef std::vector<material> material_vector;
@@ -98,38 +97,76 @@ namespace cgs
     return materials.size() - 1;
   }
 
-  void get_material_properties(mat_id m, float color_diffuse[3], float color_spec[3], float& smoothness, const char** texture_path)
+  void set_material_diffuse_color(mat_id m, glm::vec3 diffuse_color)
   {
     if (!(m < materials.size())) {
-      log(LOG_LEVEL_ERROR, "get_material_properties error: invalid material id"); return;
+      log(LOG_LEVEL_ERROR, "set_material_diffuse_color error: invalid material id"); return;
     }
 
-    color_diffuse[0] = materials[m].mcolor_diffuse.x;
-    color_diffuse[1] = materials[m].mcolor_diffuse.y;
-    color_diffuse[2] = materials[m].mcolor_diffuse.z;
-    color_spec[0] = materials[m].mcolor_spec.x;
-    color_spec[1] = materials[m].mcolor_spec.y;
-    color_spec[2] = materials[m].mcolor_spec.z;
-    smoothness = materials[m].msmoothness;
-    *texture_path = materials[m].texture_path.c_str();
+    materials[m].mcolor_diffuse = diffuse_color;
   }
 
-  void set_material_properties(mat_id m, float color_diffuse[3], float color_spec[3], float smoothness, const char* texture_path)
+  void set_material_specular_color(mat_id m, glm::vec3 specular_color)
   {
     if (!(m < materials.size())) {
-      log(LOG_LEVEL_ERROR, "set_material_properties error: invalid material id"); return;
+      log(LOG_LEVEL_ERROR, "set_material_specular_color error: invalid material id"); return;
     }
 
-    materials[m].mcolor_diffuse.x = color_diffuse[0];
-    materials[m].mcolor_diffuse.y = color_diffuse[1];
-    materials[m].mcolor_diffuse.z = color_diffuse[2];
-    materials[m].mcolor_spec.x = color_spec[0];
-    materials[m].mcolor_spec.y = color_spec[1];
-    materials[m].mcolor_spec.z = color_spec[2];
-    materials[m].msmoothness = smoothness;
-    if (texture_path) {
-      materials[m].texture_path = texture_path;
+    materials[m].mcolor_spec = specular_color;
+  }
+
+  void set_material_smoothness(mat_id m, float smoothness)
+  {
+    if (!(m < materials.size())) {
+      log(LOG_LEVEL_ERROR, "set_material_smoothness error: invalid material id"); return;
     }
+
+    materials[m].msmoothness = smoothness;
+  }
+
+  void set_material_texture_path(mat_id m, const std::string& texture_path)
+  {
+    if (!(m < materials.size())) {
+      log(LOG_LEVEL_ERROR, "set_material_texture_path error: invalid material id"); return;
+    }
+
+    materials[m].mtexture_path = texture_path;
+  }
+
+  glm::vec3 get_material_diffuse_color(mat_id m)
+  {
+    if (!(m < materials.size())) {
+      log(LOG_LEVEL_ERROR, "get_material_diffuse_color error: invalid material id"); return glm::vec3{1.0f};
+    }
+
+    return materials[m].mcolor_diffuse;    
+  }
+
+  glm::vec3 get_material_specular_color(mat_id m)
+  {
+    if (!(m < materials.size())) {
+      log(LOG_LEVEL_ERROR, "get_material_specular_color error: invalid material id"); return glm::vec3{1.0f};
+    }
+
+    return materials[m].mcolor_spec;
+  }
+
+  float get_material_smoothness(mat_id m)
+  {
+    if (!(m < materials.size())) {
+      log(LOG_LEVEL_ERROR, "get_material_smoothness error: invalid material id"); return 0.0f;
+    }
+
+    return materials[m].msmoothness;
+  }
+
+  std::string get_material_texture_path(mat_id m)
+  {
+    if (!(m < materials.size())) {
+      log(LOG_LEVEL_ERROR, "get_material_texture_path error: invalid material id"); return "";
+    }
+
+    return materials[m].mtexture_path;
   }
 
   mat_id get_first_material()

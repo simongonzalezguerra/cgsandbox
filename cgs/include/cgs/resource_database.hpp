@@ -1,7 +1,10 @@
 #ifndef RESOURCE_DATABASE_HPP
 #define RESOURCE_DATABASE_HPP
 
+#include "glm/glm.hpp"
+
 #include <cstddef> // for size_t
+#include <string>
 
 namespace cgs
 {
@@ -77,37 +80,14 @@ namespace cgs
   //-----------------------------------------------------------------------------------------------
   mat_id add_material();
 
-  //-----------------------------------------------------------------------------------------------
-  //! @brief Reads the properties of a material.
-  //! @param material Id of a material.
-  //! @param color_diffuse Object to store the color diffuse of the material.
-  //! @param color_spec Object to store the color specular of the material.
-  //! @param smoothness Object to store the smoothness parameter of the material.
-  //! @param texture_path Address of a pointer in which to store the address of a internal array
-  //!  containing the texture path of the material, as a null-terminated string. Can't be nullptr.
-  //! @remarks The value that this function stores in texture_path can be null if the material
-  //!   doesn't have a texture associated with it.
-  //-----------------------------------------------------------------------------------------------
-  void get_material_properties(mat_id material,
-                               float color_diffuse[3],
-                               float color_spec[3],
-                               float& smoothness,
-                               const char** texture_path);
-
-  //-----------------------------------------------------------------------------------------------
-  //! @brief Sets the properties of a material.
-  //! @param material Id of a material.
-  //! @param color_diffuse Color to set as diffuse color of the material.
-  //! @param color_spec Color to set as specular color of the material.
-  //! @param smoothness Value to set as smoothness parameter of the material.
-  //! @param texture_path The path of the texture associated to this material, if any.
-  //!  Can be nullptr to indicate there is no texture.
-  //-----------------------------------------------------------------------------------------------
-  void set_material_properties(mat_id material,
-                               float color_diffuse[3],
-                               float color_spec[3],
-                               float smoothness,
-                               const char* texture_path);
+  void set_material_diffuse_color(mat_id mat, glm::vec3 diffuse_color);
+  void set_material_specular_color(mat_id mat, glm::vec3 specular_color);
+  void set_material_smoothness(mat_id mat, float smoothness);
+  void set_material_texture_path(mat_id mat, const std::string& texture_path);
+  glm::vec3 get_material_diffuse_color(mat_id mat);
+  glm::vec3 get_material_specular_color(mat_id mat);
+  float get_material_smoothness(mat_id mat);
+  std::string get_material_texture_path(mat_id mat);
 
   //-----------------------------------------------------------------------------------------------
   //! @brief Returns the id of the first material in the sequence of existing materials.

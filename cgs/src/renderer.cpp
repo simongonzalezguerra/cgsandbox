@@ -553,14 +553,10 @@ namespace cgs
                           &normals,
                           &material);
 
-      float color_diffuse[] = {0.0f, 0.0f, 0.0f};
-      float color_spec[] = {0.0f, 0.0f, 0.0f};
-      float smoothness = 0.0f;
-      const char* texture_path = nullptr;
-      get_material_properties(material, color_diffuse, color_spec, smoothness, &texture_path);
+      std::string texture_path = get_material_texture_path(material);
 
       // Load the texture
-      GLuint texture_id = load_texture(texture_path);
+      GLuint texture_id = load_texture(texture_path.c_str());
       // Get a handle for our "myTextureSampler" uniform
       texture_sampler_id = glGetUniformLocation(program_id, "myTextureSampler");
 
@@ -654,8 +650,7 @@ namespace cgs
       get_layer_view_transform(l, &view_matrix);
 
       // Get light data for the layer (actually only the position is being used)
-      light_data ldata;
-      get_light_data(l, &ldata);
+      glm::vec3 light_position = get_light_position(l);
 
       struct context{ node_id nid; };
       std::queue<context> pending_nodes;
@@ -666,11 +661,10 @@ namespace cgs
         pending_nodes.pop();
 
         if (is_node_enabled(l, current.nid)) {
-          const float* local_transform = nullptr;
-          const float* accum_transform = nullptr;
+          glm::mat4 local_transform;
+          glm::mat4 accum_transform;
           get_node_transform(l, current.nid, &local_transform, &accum_transform);
-          glm::mat4 model_matrix = glm::make_mat4(accum_transform);
-          render_node(l, current.nid, glm::make_vec3(ldata.mposition), model_matrix, view_matrix, projection_matrix);
+          render_node(l, current.nid, light_position, accum_transform, view_matrix, projection_matrix);
 
           for (node_id child = get_first_child_node(l, current.nid); child != nnode; child = get_next_sibling_node(l, child)) {
             pending_nodes.push({child});

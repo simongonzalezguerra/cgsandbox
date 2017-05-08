@@ -47,13 +47,25 @@ namespace cgs
     typedef std::vector<node> node_vector;
     typedef node_vector::iterator node_iterator;
 
+    struct light
+    {
+      light() :
+        mposition{0.0f, 0.0f, 0.0f},
+        mcolor{1.0f, 1.0f, 1.0f},
+        mpower(1.0f) {}
+
+      glm::vec3 mposition;
+      glm::vec3 mcolor;
+      float     mpower;
+    };
+
     struct layer
     {
       layer() :
         mview(0),
         menabled(false),
         mnext_layer(nlayer),
-        mlight(light_data{}),
+        mlight(light{}),
         mview_transform{1.0f},
         mprojection_transform{1.0f} {}
 
@@ -61,7 +73,7 @@ namespace cgs
       bool menabled;                     //!< is this layer enabled?
       layer_id mnext_layer;              //!< id of the next layer in the view this layer belongs to
       node_vector mnodes;                //!< collection of all the nodes in this layer
-      light_data mlight;                 //!< light source (one for the whole layer)
+      light mlight;                      //!< light source (one for the whole layer)
       glm::mat4 mview_transform;         //!< the view transform used to render all objects in the layer
       glm::mat4 mprojection_transform;   //!< the projection transform used to render all objects in the layer
     };
@@ -260,7 +272,7 @@ namespace cgs
       get_resource_properties(current.rid, &meshes_out, &num_meshes_out, &local_transform_out);
 
       node_id n = add_node(l, current.parent);
-      set_node_transform(l, n, local_transform_out);
+      set_node_transform(l, n, glm::make_mat4(local_transform_out));
       set_node_meshes(l, n, meshes_out, num_meshes_out);
       set_node_enabled(l, n, true);
       if (ret == nnode) {
@@ -300,15 +312,13 @@ namespace cgs
     layers[l].mnodes[n].mused = false; // soft removal
   }
 
-  void set_node_transform(layer_id l, node_id n, const float* local_transform)
+  void set_node_transform(layer_id l, node_id n, const glm::mat4& local_transform)
   {
-    if (!(l < layers.size() && n < layers[l].mnodes.size() && layers[l].mnodes[n].mused && local_transform)) {
+    if (!(l < layers.size() && n < layers[l].mnodes.size() && layers[l].mnodes[n].mused)) {
       log(LOG_LEVEL_ERROR, "set_node_transform error: invalid parameters"); return;
     }
 
-    for (std::size_t i = 0; i < 16; i++) {
-      glm::value_ptr(layers[l].mnodes[n].mlocal_transform)[i] = local_transform[i];
-    }
+    layers[l].mnodes[n].mlocal_transform = local_transform;
 
     // Update the accummulated transforms of n and all its descendant nodes with a breadth-first search
     struct context{ node_id nid; bool intree; glm::mat4 prefix; };
@@ -327,14 +337,14 @@ namespace cgs
     }
   }
 
-  void get_node_transform(layer_id l, node_id n, const float** local_transform, const float** accum_transform)
+  void get_node_transform(layer_id l, node_id n, glm::mat4* local_transform, glm::mat4* accum_transform)
   {
     if (!(l < layers.size() && n < layers[l].mnodes.size() && layers[l].mnodes[n].mused && local_transform && accum_transform)) {
       log(LOG_LEVEL_ERROR, "get_node_transform error: invalid parameters"); return;
     }
 
-    *local_transform = glm::value_ptr(layers[l].mnodes[n].mlocal_transform);
-    *accum_transform = glm::value_ptr(layers[l].mnodes[n].maccum_transform);
+    *local_transform = layers[l].mnodes[n].mlocal_transform;
+    *accum_transform = layers[l].mnodes[n].maccum_transform;
   }
 
   void set_node_meshes(layer_id l, node_id n, const mesh_id* m, std::size_t num_meshes)
@@ -402,21 +412,58 @@ namespace cgs
     return layers[l].mnodes[n].mnext_sibling;
   }
 
-  void get_light_data(layer_id l, light_data* data)
+  void set_light_position(layer_id l, glm::vec3 position)
   {
-    if (!(l < layers.size() && data)) {
-      log(LOG_LEVEL_ERROR, "get_light_data error: invalid parameters"); return;
+    if (!(l < layers.size())) {
+      log(LOG_LEVEL_ERROR, "set_light_position error: invalid parameters"); return;
     }
 
-    *data = layers[l].mlight;
+    layers[l].mlight.mposition = position;
   }
 
-  void set_light_data(layer_id l, const light_data* data)
+  glm::vec3 get_light_position(layer_id l)
   {
-    if (!(l < layers.size() && data)) {
-      log(LOG_LEVEL_ERROR, "get_light_data error: invalid parameters"); return;
+    if (!(l < layers.size())) {
+      log(LOG_LEVEL_ERROR, "get_light_position error: invalid parameters"); return glm::vec3{1.0f};
     }
 
-    layers[l].mlight = *data;
+    return layers[l].mlight.mposition;
   }
+
+  void set_light_color(layer_id l, glm::vec3 color)
+  {
+    if (!(l < layers.size())) {
+      log(LOG_LEVEL_ERROR, "set_light_color error: invalid parameters"); return;
+    }
+
+    layers[l].mlight.mcolor = color;
+  }
+
+  glm::vec3 get_light_color(layer_id l)
+  {
+    if (!(l < layers.size())) {
+      log(LOG_LEVEL_ERROR, "get_light_color error: invalid parameters"); return glm::vec3{1.0f};
+    }
+
+    return layers[l].mlight.mcolor;
+  }
+
+  void set_light_power(layer_id l, float power)
+  {
+    if (!(l < layers.size())) {
+      log(LOG_LEVEL_ERROR, "set_light_power error: invalid parameters"); return;
+    }
+
+    layers[l].mlight.mpower = power;
+  }
+
+  float get_light_power(layer_id l)
+  {
+    if (!(l < layers.size())) {
+      log(LOG_LEVEL_ERROR, "get_light_power error: invalid parameters"); return 0.0f;
+    }
+
+    return layers[l].mlight.mpower;
+  }
+
 } // namespace cgs

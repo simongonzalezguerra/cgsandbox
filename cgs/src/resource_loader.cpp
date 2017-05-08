@@ -57,14 +57,14 @@ namespace cgs
       for (std::size_t i = 0; i < scene->mNumMaterials; i++) {
         aiColor4D diffuse_color(0.0f, 0.0f, 0.0f, 0.0f);
         aiGetMaterialColor(scene->mMaterials[i], AI_MATKEY_COLOR_DIFFUSE, &diffuse_color);
-        float color_diffuse[3];
+        glm::vec3 color_diffuse;
         color_diffuse[0] = diffuse_color[0];
         color_diffuse[1] = diffuse_color[1];
         color_diffuse[2] = diffuse_color[2];
 
         aiColor4D specular_color(0.0f, 0.0f, 0.0f, 0.0f);
         aiGetMaterialColor(scene->mMaterials[i], AI_MATKEY_COLOR_SPECULAR, &specular_color);
-        float color_specular[3];
+        glm::vec3 color_specular;
         color_specular[0] = specular_color[0];
         color_specular[1] = specular_color[1];
         color_specular[2] = specular_color[2];      
@@ -81,7 +81,10 @@ namespace cgs
         aiGetMaterialFloat(scene->mMaterials[i], AI_MATKEY_SHININESS, &smoothness);
 
         mat_id mat = add_material();
-        set_material_properties(mat, color_diffuse, color_specular, smoothness, texture_path.size()? texture_path.c_str() : nullptr);
+        set_material_diffuse_color(mat, color_diffuse);
+        set_material_specular_color(mat, color_specular);
+        set_material_smoothness(mat, smoothness);
+        set_material_texture_path(mat, texture_path);
         added_materials.push_back(mat);
         material_ids[i] = mat;
       }
@@ -242,19 +245,18 @@ namespace cgs
 
     void print_material(mat_id m)
     {
-      float color_diffuse[3];
-      float color_specular[3];
-      float smoothness = 0.0f;
-      const char* texture_path = nullptr;
-      get_material_properties(m, color_diffuse, color_specular, smoothness, &texture_path);
+      std::string texture_path = get_material_texture_path(m);
+      glm::vec3 diffuse_color = get_material_diffuse_color(m);
+      glm::vec3 specular_color = get_material_specular_color(m);
+      float smoothness = get_material_smoothness(m);
       std::ostringstream oss;
       oss << std::setprecision(2) << std::fixed;
       oss << "\tid: " << m << ", color diffuse: ";
-      print_sequence(color_diffuse, 3U, oss);
+      print_sequence((float*) &diffuse_color, 3U, oss);
       oss << ", color specular: ";
-      print_sequence(color_specular, 3U, oss);
+      print_sequence((float*) &specular_color, 3U, oss);
       oss << ", smoothness: " << smoothness;
-      oss << ", texture path: " << (std::strlen(texture_path)? texture_path : "");
+      oss << ", texture path: " << texture_path;
       log(LOG_LEVEL_DEBUG, oss.str().c_str());
     }
 

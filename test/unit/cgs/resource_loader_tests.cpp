@@ -51,15 +51,15 @@ TEST_F(resources_loader_test, load_resources_positive1) {
 
   default_logstream_tail_dump(cgs::LOG_LEVEL_DEBUG);
   ASSERT_EQ(num_materials_out, 13U);
-  float color_diffuse[] = {0.0f, 0.0f, 0.0f};
-  float color_spec[] = {0.0f, 0.0f, 0.0f};
-  float smoothness = 0.0f;
-  const char* texture_path = nullptr;
-  get_material_properties(materials_out[0], color_diffuse, color_spec, smoothness, &texture_path);
-  float expected_color_diffuse[] = { 0.75f, 0.71f, 0.67f };
-  ASSERT_SEQUENCE_NEAR(color_diffuse, expected_color_diffuse, 3, 0.01f);
-  float expected_color_specular[] = { 0.0f, 0.0f, 0.0f };
-  ASSERT_SEQUENCE_NEAR(color_spec, expected_color_specular, 3, 0.01f);
+  glm::vec3 color_diffuse = get_material_diffuse_color(materials_out[0]);
+  glm::vec3 color_spec = get_material_diffuse_color(materials_out[0]);
+  float smoothness = get_material_smoothness(materials_out[0]);
+  std::string texture_path = get_material_texture_path(materials_out[0]);
+
+  float expected_color_diffuse[] = {0.75f, 0.71f, 0.67f};
+  ASSERT_SEQUENCE_NEAR(glm::value_ptr(color_diffuse), expected_color_diffuse, 3, 0.01f);
+  float expected_color_specular[] = {0.74f, 0.71f, 0.67f};
+  ASSERT_SEQUENCE_NEAR(glm::value_ptr(color_spec), expected_color_specular, 3, 0.01f);
   ASSERT_EQ(smoothness, 200.0f);
 
   ASSERT_EQ(num_meshes_out, 36U);
