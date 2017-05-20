@@ -32,22 +32,16 @@ namespace cgs
     {
       mesh() :
         mvertices(),
-        mvertex_stride(3U),
         mtexture_coords(),
-        mtexture_coords_stride(2U),
-        mfaces(),
-        mfaces_stride(3U),
         mnormals(),
+        mindices(),
         mmaterial(nmat) {}
 
-      std::vector<float> mvertices;             //!< vertex coordinates
-      std::size_t mvertex_stride;               //!< number of vertex coordinates per vertex
-      std::vector<float> mtexture_coords;       //!< texture coordinates for each vertex
-      std::size_t mtexture_coords_stride;       //!< number of texture coordinates per vertex
-      std::vector<vindex> mfaces;               //!< faces, as a sequence of indexes over the logical vertex array
-      std::size_t mfaces_stride;                //!< number of indexes per face
-      std::vector<float> mnormals;              //!< normals of the mesh
-      mat_id mmaterial;                         //!< material associated to the mesh
+      std::vector<glm::vec3> mvertices;        //!< vertex coordinates
+      std::vector<glm::vec2> mtexture_coords;  //!< texture coordinates for each vertex
+      std::vector<glm::vec3> mnormals;         //!< normals of the mesh
+      std::vector<vindex>    mindices;         //!< faces, as a sequence of indexes over the logical vertex array
+      mat_id                 mmaterial;        //!< material associated to the mesh
     };
 
     typedef std::vector<mesh> mesh_vector;
@@ -185,66 +179,94 @@ namespace cgs
     return meshes.size() - 1;
   }
 
-  void get_mesh_properties(mesh_id id, const float** vertex_base, std::size_t* vertex_stride,
-                          const float** texture_coords, std::size_t* texture_coords_stride, std::size_t* num_vertices,
-                          const vindex** faces, std::size_t* faces_stride, std::size_t* num_faces,
-                          const float** normals, mat_id* material)
+  void set_mesh_vertices(mesh_id id, const std::vector<glm::vec3>& vertices)
   {
-    if (!(id < meshes.size() && vertex_base && vertex_stride && texture_coords && texture_coords_stride
-        && num_vertices && faces && faces_stride && num_faces && material)) {
-      log(LOG_LEVEL_ERROR, "get_mesh_properties error: invalid arguments"); return;
+    if (!(id < meshes.size())) {
+      log(LOG_LEVEL_ERROR, "set_mesh_vertices error: invalid arguments"); return;
     }
 
-    mesh& m = meshes[id];
-    *vertex_base = &(m.mvertices[0]);
-    *vertex_stride = m.mvertex_stride;
-    *texture_coords = nullptr;
-    if (m.mtexture_coords.size()) {
-      *texture_coords = &(m.mtexture_coords[0]);
-    }
-    *texture_coords_stride = m.mtexture_coords_stride;
-    *num_vertices = m.mvertices.size() / m.mvertex_stride;
-    *faces = &(m.mfaces[0]);
-    *faces_stride = m.mfaces_stride;
-    *num_faces = m.mfaces.size() / m.mfaces_stride;
-    *normals = nullptr;
-    if (m.mnormals.size()) {
-      *normals = &m.mnormals[0];      
-    }
-    *material = m.mmaterial;
+    meshes[id].mvertices = vertices;
   }
 
-  void set_mesh_properties(mesh_id id, const float* vertex_base, std::size_t vertex_stride,
-                          float* texture_coords, std::size_t texture_coords_stride, std::size_t num_vertices,
-                          const vindex* faces, std::size_t faces_stride, std::size_t num_faces,
-                          const float* normals, mat_id mat_id)
+  void set_mesh_texture_coords(mesh_id id, const std::vector<glm::vec2>& texture_coords)
   {
-    if (!(id < meshes.size() && vertex_base && vertex_stride && num_vertices && faces && faces_stride && num_faces)) {
-      log(LOG_LEVEL_ERROR, "set_mesh_properties error: invalid arguments"); return;
+    if (!(id < meshes.size())) {
+      log(LOG_LEVEL_ERROR, "set_mesh_texture_coords error: invalid arguments"); return;
     }
 
-    mesh& m = meshes[id];
-    std::size_t vertices_nelements = vertex_stride * num_vertices;
-    m.mvertices.clear();
-    m.mvertices.reserve(vertices_nelements);
-    std::copy(vertex_base, vertex_base + vertices_nelements, std::back_inserter(m.mvertices));
-    m.mvertex_stride = vertex_stride;
-    if (texture_coords) {
-      std::size_t texture_coords_nelements = texture_coords_stride * num_vertices;
-      m.mtexture_coords.clear();
-      m.mtexture_coords.reserve(texture_coords_nelements);
-      std::copy(texture_coords, texture_coords + texture_coords_nelements, std::back_inserter(m.mtexture_coords));
-      m.mtexture_coords_stride = texture_coords_stride;
+    meshes[id].mtexture_coords = texture_coords;
+  }
+
+  void set_mesh_normals(mesh_id id, const std::vector<glm::vec3>& normals)
+  {
+    if (!(id < meshes.size())) {
+      log(LOG_LEVEL_ERROR, "set_mesh_normals error: invalid arguments"); return;
     }
-    std::size_t faces_nelements = faces_stride * num_faces;
-    m.mfaces.clear();
-    m.mfaces.reserve(faces_nelements);
-    std::copy(faces, faces + faces_nelements, std::back_inserter(m.mfaces));
-    m.mfaces_stride = faces_stride;
-    std::size_t normals_nelements = num_vertices * 3;
-    m.mnormals.reserve(normals_nelements);
-    std::copy(normals, normals + normals_nelements, std::back_inserter(m.mnormals));
-    m.mmaterial = mat_id;
+
+    meshes[id].mnormals = normals;
+  }
+
+  void set_mesh_indices(mesh_id id, const std::vector<vindex>& indices)
+  {
+    if (!(id < meshes.size())) {
+      log(LOG_LEVEL_ERROR, "set_mesh_indices error: invalid arguments"); return;
+    }
+
+    meshes[id].mindices = indices;
+  }
+
+  void set_mesh_material(mesh_id id, mat_id material)
+  {
+    if (!(id < meshes.size())) {
+      log(LOG_LEVEL_ERROR, "set_mesh_material error: invalid arguments"); return;
+    }
+
+    meshes[id].mmaterial = material;
+  }
+
+  std::vector<glm::vec3> get_mesh_vertices(mesh_id id)
+  {
+    if (!(id < meshes.size())) {
+      log(LOG_LEVEL_ERROR, "get_mesh_vertices error: invalid arguments"); return std::vector<glm::vec3>();
+    }
+
+    return meshes[id].mvertices;
+  }
+
+  std::vector<glm::vec2> get_mesh_texture_coords(mesh_id id)
+  {
+    if (!(id < meshes.size())) {
+      log(LOG_LEVEL_ERROR, "get_mesh_texture_coords error: invalid arguments"); return std::vector<glm::vec2>();
+    }
+
+    return meshes[id].mtexture_coords;
+  }
+
+  std::vector<glm::vec3> get_mesh_normals(mesh_id id)
+  {
+    if (!(id < meshes.size())) {
+      log(LOG_LEVEL_ERROR, "get_mesh_normals error: invalid arguments"); return std::vector<glm::vec3>();
+    }
+
+    return meshes[id].mnormals;
+  }
+
+  std::vector<vindex> get_mesh_indices(mesh_id id)
+  {
+    if (!(id < meshes.size())) {
+      log(LOG_LEVEL_ERROR, "get_mesh_indices error: invalid arguments"); return std::vector<vindex>();
+    }
+
+    return meshes[id].mindices;
+  }
+
+  mat_id get_mesh_material(mesh_id id)
+  {
+    if (!(id < meshes.size())) {
+      log(LOG_LEVEL_ERROR, "get_mesh_material error: invalid arguments"); return nmat;
+    }
+
+    return meshes[id].mmaterial;
   }
 
   mesh_id get_first_mesh()

@@ -97,68 +97,49 @@ namespace cgs
 
       for (std::size_t i_mesh = 0; i_mesh < scene->mNumMeshes; i_mesh++) {
         aiMesh* mesh = scene->mMeshes[i_mesh];
-        if (material_ids.find(mesh->mMaterialIndex) == material_ids.end()) continue;
-        mat_id material = material_ids[mesh->mMaterialIndex];
 
-        std::vector<float> vertex_base;
+        if (material_ids.find(mesh->mMaterialIndex) == material_ids.end()) continue;
+        mesh_id m = add_mesh();
+        set_mesh_material(m, material_ids[mesh->mMaterialIndex]);
+
+        std::vector<glm::vec3> vertices;
         if (mesh->HasPositions()) {
           for (std::size_t i_vertices = 0; i_vertices < mesh->mNumVertices; i_vertices++) {
             aiVector3D vertex = mesh->mVertices[i_vertices];
-            vertex_base.push_back(vertex.x);
-            vertex_base.push_back(vertex.y);
-            vertex_base.push_back(vertex.z);
+            vertices.push_back(glm::vec3(vertex.x, vertex.y, vertex.z));
           }
         }
+        set_mesh_vertices(m, vertices);
 
-        std::size_t texture_coords_stride = mesh->mNumUVComponents[0];
-        std::vector<float> texture_coords;
+        std::vector<glm::vec2> texture_coords;
         if (mesh->HasTextureCoords(0)) {
           for (std::size_t i_vertices = 0; i_vertices < mesh->mNumVertices; i_vertices++) {
             aiVector3D tex_coords = mesh->mTextureCoords[0][i_vertices];
-            texture_coords.push_back(tex_coords.x); // U coordinate
-            texture_coords.push_back(tex_coords.y); // V coordinate
-            if (texture_coords_stride > 2) {
-              texture_coords.push_back(tex_coords.z); // W coordinate
-            }
+            texture_coords.push_back(glm::vec2(tex_coords.x, tex_coords.y));
           }
         }
+        set_mesh_texture_coords(m, texture_coords);
 
-        std::vector<vindex> faces;
-        std::size_t faces_stride = 0U;
-        std::size_t num_faces = 0U;
-        if (mesh->HasFaces()) {
-          faces_stride = mesh->mFaces[0].mNumIndices;
-          num_faces = mesh->mNumFaces;
-          for (std::size_t i_faces = 0; i_faces < num_faces; i_faces++) {
-            aiFace face = mesh->mFaces[i_faces];
-            for (std::size_t i_indices = 0; i_indices < face.mNumIndices; i_indices++) {
-              faces.push_back(face.mIndices[i_indices]);
-            }
-          }
-        }
-
-        std::vector<float> normals;
+        std::vector<glm::vec3> normals;
         if (mesh->HasNormals()) {
           for (std::size_t i_normals = 0; i_normals < mesh->mNumVertices; i_normals++) {
             aiVector3D normal = mesh->mNormals[i_normals];
-            normals.push_back(normal.x);
-            normals.push_back(normal.y);
-            normals.push_back(normal.z);
+            normals.push_back(glm::vec3(normal.x, normal.y, normal.z));
           }
         }
+        set_mesh_normals(m, normals);
 
-        mesh_id m = add_mesh();
-        set_mesh_properties(m,
-                            &vertex_base[0],
-                            3U,
-                            &texture_coords[0],
-                            texture_coords_stride,
-                            mesh->mNumVertices,
-                            &faces[0],
-                            faces_stride,
-                            num_faces,
-                            &normals[0],
-                            material);
+        std::vector<vindex> indices;
+        if (mesh->HasFaces()) {
+          for (std::size_t i_faces = 0; i_faces < mesh->mNumFaces; i_faces++) {
+            aiFace face = mesh->mFaces[i_faces];
+            for (std::size_t i_indices = 0; i_indices < face.mNumIndices; i_indices++) {
+              indices.push_back(face.mIndices[i_indices]);
+            }
+          }
+        }
+        set_mesh_indices(m, indices);
+
         added_meshes.push_back(m);
         mesh_ids[i_mesh] = m;
       }
@@ -263,67 +244,45 @@ namespace cgs
 
     void print_mesh(mesh_id m)
     {
-      const float* vertex_base_out;
-      std::size_t vertex_stride_out;
-      const float* texture_coords_out;
-      std::size_t texture_coords_stride_out;
-      std::size_t num_vertices_out;
-      const vindex* faces_out;
-      std::size_t faces_stride_out;
-      const float* normals_out;
-      std::size_t num_faces_out;
-      mat_id material_out;
-      get_mesh_properties(m,
-                          &vertex_base_out,
-                          &vertex_stride_out,
-                          &texture_coords_out,
-                          &texture_coords_stride_out,
-                          &num_vertices_out,
-                          &faces_out,
-                          &faces_stride_out,
-                          &num_faces_out,
-                          &normals_out,
-                          &material_out);
+      std::vector<glm::vec3> vertices = get_mesh_vertices(m);
+      std::vector<glm::vec2> texture_coords = get_mesh_texture_coords(m);
+      std::vector<glm::vec3> normals = get_mesh_normals(m);
+      std::vector<vindex> indices = get_mesh_indices(m);
+      mat_id mat = get_mesh_material(m);
+
       std::ostringstream oss;
       oss << std::setprecision(2) << std::fixed;
-      oss << "\t" << "id: " << m << ", vertices: " << num_vertices_out
-                            << ", vertex stride: " << vertex_stride_out
-                            << ", faces: " << num_faces_out
-                            << ", faces stride: " << faces_stride_out;
+      oss << "\t" << "id: " << m << ", vertices: " << vertices.size();
       log(LOG_LEVEL_DEBUG, oss.str().c_str());
 
       oss.str("");
       oss << "\t\tvertex base: ";
-      if (num_vertices_out) {
-        preview_sequence(vertex_base_out, vertex_stride_out * num_vertices_out, oss);
+      if (vertices.size()) {
+        preview_sequence(&vertices[0][0], 3 * vertices.size(), oss);
       }
       log(LOG_LEVEL_DEBUG, oss.str().c_str());
 
       oss.str("");
       oss << "\t\ttexture coords: ";
-      if (texture_coords_out) {
-        preview_sequence(texture_coords_out, texture_coords_stride_out * num_vertices_out, oss);
+      if (texture_coords.size()) {
+        preview_sequence(&texture_coords[0][0], 2 * texture_coords.size(), oss);
       }
       log(LOG_LEVEL_DEBUG, oss.str().c_str());
 
       oss.str("");
-      oss << "\t\ttexture coords stride: " << texture_coords_stride_out;
-      log(LOG_LEVEL_DEBUG, oss.str().c_str());
-
-      oss.str("");
-      oss << "\t\tfaces: ";
-      preview_sequence(faces_out, faces_stride_out * num_faces_out, oss);
+      oss << "\t\tindices: ";
+      preview_sequence(&indices[0], indices.size(), oss);
       log(LOG_LEVEL_DEBUG, oss.str().c_str());
 
       oss.str("");
       oss << "\t\tnormals: ";
-      if (normals_out) {
-        preview_sequence(normals_out, 3 * num_vertices_out, oss);
+      if (normals.size()) {
+        preview_sequence(&normals[0][0], 3 * normals.size(), oss);
       }
       log(LOG_LEVEL_DEBUG, oss.str().c_str());
 
       oss.str("");
-      oss << "\t\tmaterial id: " << material_out;
+      oss << "\t\tmaterial id: " << mat;
       log(LOG_LEVEL_DEBUG, oss.str().c_str());
     }
 

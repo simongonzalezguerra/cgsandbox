@@ -4,6 +4,7 @@
 #include "glm/glm.hpp"
 
 #include <cstddef> // for size_t
+#include <vector>
 #include <string>
 
 namespace cgs
@@ -116,79 +117,16 @@ namespace cgs
   //-----------------------------------------------------------------------------------------------
   mesh_id add_mesh();
 
-  //-----------------------------------------------------------------------------------------------
-  //! @brief Reads the properties of a mesh.
-  //! @param mesh Id of the mesh to query.
-  //! @param vertex_base Address of a pointer in which to store the address of an internal array
-  //!  containing vertex coordinates. Can't be nulltptr.
-  //! @param vertex_stride Address of an object in which to store the vertex stride. Can't be
-  //!   nullptr.
-  //! @param texture_coords Address of a pointer in which to store the address of an internal
-  //!  array containing texture coordinates. Can't be nulltptr.
-  //! @param texture_coords_stride Address of an object in which to store the texture coordinate
-  //!  stride. Can't be nullptr.
-  //! @param num_vertices Address of an object in which to store the number of vertices. Can't
-  //!  be nullptr.
-  //! @param faces Address of a pointer in which to store the address of an internal array
-  //!  containing face indices. Can't be nulltptr.
-  //! @param faces_stride Address of an object in which to store the faces stride. Can't be
-  //!  nullptr.
-  //! @param num_faces Address of an object in which to store the number of faces. Can't be
-  //!  nullptr.
-  //! @param normals Address of a pointer in which to store the address of an internal array
-  //!  containing normals. Can't be nulltptr.
-  //! @param material Address of an object in which to store the id of the material associated
-  //!  to the mesh. Can't be nullptr.
-  //! @remarks See set_mesh_properties for the meaning of all the properties.
-  //! @remarks The value stored in the texture_coords pointer can be nullptr, even when the mesh
-  //! has vertices. This is used to indicate the mesh has no texture coordinates.
-  //! @remarks The value stored in the normals pointer can be nullptr, even when the mesh
-  //! has vertices. This is used to indicate the mesh has no normal data.
-  //-----------------------------------------------------------------------------------------------
-  void get_mesh_properties(mesh_id mesh,
-                          const float** vertex_base,
-                          std::size_t* vertex_stride,
-                          const float** texture_coords,
-                          std::size_t* texture_coords_stride,
-                          std::size_t* num_vertices,
-                          const vindex** faces,
-                          std::size_t* faces_stride,
-                          std::size_t* num_faces,
-                          const float** normals,
-                          mat_id* material);
-
-  //-----------------------------------------------------------------------------------------------
-  //! @brief Sets the properties of a mesh.
-  //! @param mesh Id of the mesh to set.
-  //! @param vertex_base Array containing vertex coordinates. Can't be nulltptr.
-  //! @param vertex_stride Number of elements of vertex_base representing each vertex (usually 3,
-  //!  but can be 2 for 2D meshes). Must be a positive number.
-  //! @param texture_coords Array containing the texture coordinates of each vertex, in the same
-  //!  order as the vertex_base array. Can be nullptr, in which case the texture_coords_stride
-  //!  parameter is ignored and the texture coordinates of the mesh are left unchanged.
-  //! @param texture_coords_stride Number of elements of texture_coords coorresponding to each
-  //!  vertex (usually 2, but can be higher for some specific texture data channels). If
-  //!  texture_coords is not nullptr then texture_coord_stride must be a positive number.
-  //! @param num_vertices Number of vertices. Must be a positive number.
-  //! @param faces Array containing the faces, as indexes over the logical vertex array formed
-  //!  by splitting vertex base in blocks of vertex_stride elements. Can't be nullptr.
-  //! @param faces_stride Number of elements in faces corresponding to each face. Usually 3
-  //!  which means the mesh is made of triangles. Must be a positive number.
-  //! @param num_faces Number of faces. Must be a positive number.
-  //! @param normals Array containing vertex normals. Can't be nulltptr.
-  //! @param material Id of the material associated to the mesh. Can be nmaterial.
-  //-----------------------------------------------------------------------------------------------
-  void set_mesh_properties(mesh_id mesh,
-                          const float* vertex_base,
-                          std::size_t vertex_stride,
-                          float* texture_coords,
-                          std::size_t texture_coords_stride,
-                          std::size_t num_vertices,
-                          const vindex* faces,
-                          std::size_t faces_stride,
-                          std::size_t num_faces,
-                          const float* normals,
-                          mat_id material);
+  void set_mesh_vertices(mesh_id mesh, const std::vector<glm::vec3>& vertices);
+  void set_mesh_texture_coords(mesh_id mesh, const std::vector<glm::vec2>& texture_coords);
+  void set_mesh_normals(mesh_id mesh, const std::vector<glm::vec3>& normals);
+  void set_mesh_indices(mesh_id mesh, const std::vector<vindex>& indices);
+  void set_mesh_material(mesh_id mesh, mat_id material);
+  std::vector<glm::vec3> get_mesh_vertices(mesh_id mesh);
+  std::vector<glm::vec2> get_mesh_texture_coords(mesh_id mesh);
+  std::vector<glm::vec3> get_mesh_normals(mesh_id mesh);
+  std::vector<vindex> get_mesh_indices(mesh_id mesh);
+  mat_id get_mesh_material(mesh_id mesh);
 
   //-----------------------------------------------------------------------------------------------
   //! @brief Returns the id of the first mesh in the sequence of all meshes.

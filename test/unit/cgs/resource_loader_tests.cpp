@@ -61,54 +61,36 @@ TEST_F(resources_loader_test, load_resources_positive1) {
   float expected_color_specular[] = {0.74f, 0.71f, 0.67f};
   ASSERT_SEQUENCE_NEAR(glm::value_ptr(color_spec), expected_color_specular, 3, 0.01f);
   ASSERT_EQ(smoothness, 200.0f);
-
   ASSERT_EQ(num_meshes_out, 36U);
-  const float* vertex_base_out;
-  std::size_t vertex_stride_out;
-  const float* texture_coords_out;
-  std::size_t texture_coords_stride_out;
-  std::size_t num_vertices_out;
-  const vindex* faces_out;
-  std::size_t faces_stride_out;
-  std::size_t num_faces_out;
-  const float* normals_out = nullptr;
-  mat_id material_out;
-  get_mesh_properties(meshes_out[0],
-                      &vertex_base_out,
-                      &vertex_stride_out,
-                      &texture_coords_out,
-                      &texture_coords_stride_out,
-                      &num_vertices_out,
-                      &faces_out,
-                      &faces_stride_out,
-                      &num_faces_out,
-                      &normals_out,
-                      &material_out);
-  ASSERT_EQ(num_vertices_out, 150U);
-  ASSERT_EQ(num_faces_out, 192U);
-  ASSERT_EQ(faces_stride_out, 3U);
-  ASSERT_EQ(material_out, materials_out[0]);
-  ASSERT_NEAR(vertex_base_out[0], 10.93f, 0.1f);
-  ASSERT_NEAR(vertex_base_out[1], 2.96f, 0.1f);
-  ASSERT_NEAR(vertex_base_out[2], 2.37f, 0.1f);
-  ASSERT_NEAR(vertex_base_out[447], -11.57f, 0.1f);
-  ASSERT_NEAR(vertex_base_out[448],   2.69f, 0.1f);
-  ASSERT_NEAR(vertex_base_out[449],  -2.16f, 0.1f);
-  ASSERT_EQ(vertex_stride_out, 3U);
-  ASSERT_NE(texture_coords_out, nullptr);
-  ASSERT_EQ(texture_coords_stride_out, 2U);
-  ASSERT_NEAR(texture_coords_out[0], 0.04f, 0.1f);
-  ASSERT_NEAR(texture_coords_out[1], 1.00f, 0.1f);
-  ASSERT_NEAR(texture_coords_out[2], 0.08f, 0.1f);
-  ASSERT_NEAR(texture_coords_out[297], 1.00f, 0.1f);
-  ASSERT_NEAR(texture_coords_out[298], 0.91f, 0.1f);
-  ASSERT_NEAR(texture_coords_out[299], 0.12f, 0.1f);
-  ASSERT_EQ(faces_out[0], 0U);
-  ASSERT_EQ(faces_out[1], 1U);
-  ASSERT_EQ(faces_out[2], 2U);
-  ASSERT_EQ(faces_out[573], 78U);
-  ASSERT_EQ(faces_out[574], 146U);
-  ASSERT_EQ(faces_out[575], 79U);
+
+  mesh_id m = meshes_out[0];
+  std::vector<glm::vec3> vertices = get_mesh_vertices(m);
+  std::vector<glm::vec2> texture_coords = get_mesh_texture_coords(m);
+  std::vector<glm::vec3> normals = get_mesh_normals(m);
+  std::vector<vindex> indices = get_mesh_indices(m);
+  mat_id mat = get_mesh_material(m);
+
+  ASSERT_EQ(vertices.size(), 150U);
+  ASSERT_EQ(mat, materials_out[0]);
+  ASSERT_NEAR(vertices[0][0], 10.93f, 0.1f);
+  ASSERT_NEAR(vertices[0][1], 2.96f, 0.1f);
+  ASSERT_NEAR(vertices[0][2], 2.37f, 0.1f);
+  ASSERT_NEAR(vertices[vertices.size() - 1][0], -11.57f, 0.1f);
+  ASSERT_NEAR(vertices[vertices.size() - 1][1],   2.69f, 0.1f);
+  ASSERT_NEAR(vertices[vertices.size() - 1][2],  -2.16f, 0.1f);
+  ASSERT_EQ(texture_coords.size(), 150U);
+  ASSERT_NEAR(texture_coords[0][0], 0.04f, 0.1f);
+  ASSERT_NEAR(texture_coords[0][1], 1.00f, 0.1f);
+  ASSERT_NEAR(texture_coords[1][0], 0.08f, 0.1f);
+  ASSERT_NEAR(texture_coords[texture_coords.size() - 2][0], 1.00f, 0.1f);
+  ASSERT_NEAR(texture_coords[texture_coords.size() - 1][0], 0.91f, 0.1f);
+  ASSERT_NEAR(texture_coords[texture_coords.size() - 1][1], 0.12f, 0.1f);
+  ASSERT_EQ(indices[0], 0U);
+  ASSERT_EQ(indices[1], 1U);
+  ASSERT_EQ(indices[2], 2U);
+  ASSERT_EQ(indices[indices.size() - 3], 78U);
+  ASSERT_EQ(indices[indices.size() - 2], 146U);
+  ASSERT_EQ(indices[indices.size() - 1], 79U);
 
   const float* local_transform_out = nullptr;
   get_resource_properties(get_first_child_resource(added_resource), &meshes_out, &num_meshes_out, &local_transform_out);
@@ -145,29 +127,6 @@ TEST_F(resources_loader_test, load_resources_no_texture_info) {
   std::size_t num_meshes_out = 0U;
   load_resources(RESOURCES_PATH + STANFORD_BUNNY, &materials_out, &num_materials_out, &meshes_out, &num_meshes_out);
   default_logstream_tail_dump(cgs::LOG_LEVEL_DEBUG);
-
-  const float* vertex_base_out;
-  std::size_t vertex_stride_out;
-  const float* texture_coords_out;
-  std::size_t texture_coords_stride_out;
-  std::size_t num_vertices_out;
-  const vindex* faces_out;
-  std::size_t faces_stride_out;
-  std::size_t num_faces_out;
-  const float* normals_out = nullptr;
-  mat_id material_out;
-  get_mesh_properties(0U,
-                      &vertex_base_out,
-                      &vertex_stride_out,
-                      &texture_coords_out,
-                      &texture_coords_stride_out,
-                      &num_vertices_out,
-                      &faces_out,
-                      &faces_stride_out,
-                      &num_faces_out,
-                      &normals_out,
-                      &material_out);
-  ASSERT_EQ(texture_coords_out, nullptr);
 }
 
 TEST_F(resources_loader_test, load_resources_billiard_table) {

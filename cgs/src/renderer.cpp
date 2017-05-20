@@ -531,29 +531,11 @@ namespace cgs
     model_matrix_id = glGetUniformLocation(program_id, "M");
 
     for (mesh_id mid = get_first_mesh(); mid != nmesh; mid = get_next_mesh(mid)) {
-      const float* vertex_base = nullptr;
-      std::size_t vertex_stride = 0U;
-      const float* texture_coords = nullptr;
-      std::size_t texture_coords_stride = 0U;
-      std::size_t num_vertices = 0U;
-      const vindex* faces = nullptr;
-      std::size_t faces_stride = 0U;
-      std::size_t num_faces = 0U;
-      const float* normals = nullptr;
-      mat_id material = nmat;
-      get_mesh_properties(mid,
-                          &vertex_base,
-                          &vertex_stride,
-                          &texture_coords,
-                          &texture_coords_stride,
-                          &num_vertices,
-                          &faces,
-                          &faces_stride,
-                          &num_faces,
-                          &normals,
-                          &material);
-
-      std::string texture_path = get_material_texture_path(material);
+      std::vector<glm::vec3> vertices = get_mesh_vertices(mid);
+      std::vector<glm::vec2> texture_coords = get_mesh_texture_coords(mid);
+      std::vector<glm::vec3> normals = get_mesh_normals(mid);
+      std::vector<vindex> indices = get_mesh_indices(mid);
+      std::string texture_path = get_material_texture_path(get_mesh_material(mid));
 
       // Load the texture
       GLuint texture_id = load_texture(texture_path.c_str());
@@ -564,23 +546,23 @@ namespace cgs
       GLuint positions_vbo_id = 0U;
       glGenBuffers(1, &positions_vbo_id);
       glBindBuffer(GL_ARRAY_BUFFER, positions_vbo_id);
-      glBufferData(GL_ARRAY_BUFFER, num_vertices * vertex_stride * sizeof (float), vertex_base, GL_STATIC_DRAW);
+      glBufferData(GL_ARRAY_BUFFER, 3 * vertices.size() * sizeof (float), &vertices[0][0], GL_STATIC_DRAW);
 
       GLuint uvs_vbo_id = 0U;
       glGenBuffers(1, &uvs_vbo_id);
       glBindBuffer(GL_ARRAY_BUFFER, uvs_vbo_id);
-      glBufferData(GL_ARRAY_BUFFER, num_vertices * texture_coords_stride * sizeof (float), texture_coords, GL_STATIC_DRAW);
+      glBufferData(GL_ARRAY_BUFFER, 2 * texture_coords.size() * sizeof (float), &texture_coords[0][0], GL_STATIC_DRAW);
 
       GLuint normals_vbo_id = 0U;
       glGenBuffers(1, &normals_vbo_id);
       glBindBuffer(GL_ARRAY_BUFFER, normals_vbo_id);
-      glBufferData(GL_ARRAY_BUFFER, num_vertices * 3 * sizeof(float), normals, GL_STATIC_DRAW);
+      glBufferData(GL_ARRAY_BUFFER, 3 * normals.size() * sizeof(float), &normals[0][0], GL_STATIC_DRAW);
 
       // Generate a buffer for the indices as well
       GLuint indices_vbo_id = 0U;
       glGenBuffers(1, &indices_vbo_id);
       glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indices_vbo_id);
-      glBufferData(GL_ELEMENT_ARRAY_BUFFER, num_faces * faces_stride * sizeof(vindex), faces, GL_STATIC_DRAW);
+      glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(vindex), &indices[0], GL_STATIC_DRAW);
 
       // Create a mesh context and add it to the map
       mesh_context context;
@@ -589,7 +571,7 @@ namespace cgs
       context.mnormals_vbo_id = normals_vbo_id;
       context.mindices_vbo_id = indices_vbo_id;
       context.mtexture_id = texture_id;
-      context.mnum_indices = num_faces * faces_stride;
+      context.mnum_indices = indices.size();
       mesh_contexts[mid] = context;
     }
 
