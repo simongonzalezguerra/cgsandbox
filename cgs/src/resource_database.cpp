@@ -49,16 +49,15 @@ namespace cgs
     struct resource
     {
       resource() :
-        mnum_meshes(0),
+        mmeshes(),
         mlocal_transform(1.0f),
         mfirst_child(nresource),
         mnext_sibling(nresource) {}
 
-      mesh_id mmeshes[max_meshes_by_resource];  //!< meshes in this resource
-      std::size_t mnum_meshes;                  //!< number of meshes in this resource
-      glm::mat4 mlocal_transform;               //!< resource transform relative to the parent's reference frame
-      resource_id mfirst_child;                 //!< first child resource of this resource
-      resource_id mnext_sibling;                //!< next sibling resource of this resource
+      std::vector<mesh_id> mmeshes;             //!< meshes contained in this resource
+      glm::mat4            mlocal_transform;    //!< resource transform relative to the parent's reference frame
+      resource_id          mfirst_child;        //!< first child resource of this resource
+      resource_id          mnext_sibling;       //!< next sibling resource of this resource
     };
 
     typedef std::vector<resource> resource_vector;
@@ -297,37 +296,46 @@ namespace cgs
     return resources.size() - 1;
   }
 
-  void get_resource_properties(resource_id r, const mesh_id** meshes, std::size_t* num_meshes, const float** local_transform)
+  void set_resource_meshes(resource_id r, const std::vector<mesh_id>& m)
   {
-    if (!(r < resources.size() && meshes && num_meshes && local_transform)) {
-      log(LOG_LEVEL_ERROR, "get_resource_properties error: invalid arguments"); return;
+    if (!(r < resources.size())) {
+      log(LOG_LEVEL_ERROR, "set_resource_meshes error: invalid arguments"); return;
     }
 
-    *meshes = resources[r].mmeshes;
-    *num_meshes = resources[r].mnum_meshes;
-    *local_transform = glm::value_ptr(resources[r].mlocal_transform);
-  }
-
-  void set_resource_properties(resource_id r, mesh_id* m, std::size_t num_meshes, float* local_transform)
-  {
-    if (!(r < resources.size() && (num_meshes == 0 || m != nullptr) && local_transform)) {
-      log(LOG_LEVEL_ERROR, "set_resource_properties error: invalid arguments"); return;
-    }
-
-    for (std::size_t i = 0; i < num_meshes && m; i++) {
+    for (std::size_t i = 0; i < m.size(); i++) {
       if (!(m[i] < meshes.size())) {
-        log(LOG_LEVEL_ERROR, "set_resource_properties error: invalid mesh id"); return;
+        log(LOG_LEVEL_ERROR, "set_resource_meshes error: invalid mesh id"); return;
       }
     }
 
-    for (std::size_t i = 0; i < num_meshes; i++) {
-      resources[r].mmeshes[i] = m[i];
-    }
-    resources[r].mnum_meshes = num_meshes;
+    resources[r].mmeshes = m;
+  }
 
-    for (std::size_t i = 0; i < 16; i++) {
-      glm::value_ptr(resources[r].mlocal_transform)[i] = local_transform[i];
+  void set_resource_local_transform(resource_id r, const glm::mat4& local_transform)
+  {
+    if (!(r < resources.size())) {
+      log(LOG_LEVEL_ERROR, "set_resource_local_transform error: invalid arguments"); return;
     }
+
+    resources[r].mlocal_transform = local_transform;
+  }
+
+  std::vector<mesh_id> get_resource_meshes(resource_id r)
+  {
+    if (!(r < resources.size())) {
+      log(LOG_LEVEL_ERROR, "get_resource_meshes error: invalid arguments"); return std::vector<mesh_id>();
+    }
+
+    return resources[r].mmeshes;
+  }
+
+  glm::mat4 get_resource_local_transform(resource_id r)
+  {
+    if (!(r < resources.size())) {
+      log(LOG_LEVEL_ERROR, "get_resource_local_transform error: invalid arguments"); return glm::mat4{1.0f};
+    }
+
+    return resources[r].mlocal_transform;
   }
 
   resource_id get_first_child_resource(resource_id r)

@@ -428,11 +428,9 @@ namespace cgs
 
     void render_node(layer_id l, node_id n, const glm::vec3& light_pos, const glm::mat4& model_matrix, const glm::mat4& view_matrix, const glm::mat4& projection_matrix)
     {
-      const mesh_id* meshes = nullptr;
-      std::size_t num_meshes = 0U;
-      get_node_meshes(l, n, &meshes, &num_meshes);
+      std::vector<mesh_id> meshes = get_node_meshes(l, n);
       // For each mesh in the node
-      for (std::size_t i = 0U; i < num_meshes; ++i) {
+      for (std::size_t i = 0U; i < meshes.size(); ++i) {
         if (mesh_contexts.find(meshes[i]) != mesh_contexts.end()) {
           render_mesh(meshes[i], light_pos, model_matrix, view_matrix, projection_matrix);
         }

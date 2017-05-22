@@ -62,11 +62,6 @@ namespace cgs
   constexpr resource_id root_resource = 0;
 
   //-----------------------------------------------------------------------------------------------
-  //! @brief Constant indicating the maximum number of meshes a resource can hold.
-  //-----------------------------------------------------------------------------------------------
-  constexpr std::size_t max_meshes_by_resource = 10;
-
-  //-----------------------------------------------------------------------------------------------
   //! @brief Initializes the resource database.
   //! @remarks This function can be called any number of times during program execution.
   //!  Calling it erases all materials, meshes and resources that might exist.
@@ -151,32 +146,10 @@ namespace cgs
   //-----------------------------------------------------------------------------------------------
   resource_id add_resource(resource_id parent);
 
-  //-----------------------------------------------------------------------------------------------
-  //! @brief Reads the properties of a resource node.
-  //! @param r Id of the resource node to query.
-  //! @param meshes Address of a pointer to store the address of an internal array containing the
-  //!  list of meshes in the resource node. Can't be nullptr.
-  //! @param num_meshes Address of an object to store the number of meshes contained in the
-  //!  resource node. Can't be nullptr.
-  //! @param local_transform Address of a pointer to store the address of an internal array
-  //!  representing the resource's local transform as a matrix in column major format (that is,
-  //!  one column, then the other, and so on). Can't be nullptr.
-  //! @remarks See set_resource_properties for the meaning of all these properties.
-  //-----------------------------------------------------------------------------------------------
-  void get_resource_properties(resource_id r, const mesh_id** meshes, std::size_t* num_meshes, const float** local_transform);
-
-  //-----------------------------------------------------------------------------------------------
-  //! @brief Sets the properties of a resource node.
-  //! @param r Id of the resource node to set.
-  //! @param meshes An array of num_meshes elements containing the list of meshes that should
-  //!  be contained in the resource node. Can't be nullptr.
-  //! @param num_meshes The number of elements of the meshes array. Can be zero to indicate an
-  //!  empty set of meshes.
-  //! @param local_transform An array containing the local transform that should be assigned to
-  //!  the resource node, in column-major format (that is, one column, then the other, and so on),
-  //! expressed in the coordinate system of the  parent resource node.
-  //-----------------------------------------------------------------------------------------------
-  void set_resource_properties(resource_id r, mesh_id* meshes, std::size_t num_meshes, float* local_transform);
+  void set_resource_meshes(resource_id r, const std::vector<mesh_id>& meshes);
+  void set_resource_local_transform(resource_id r, const glm::mat4& local_transform);
+  std::vector<mesh_id> get_resource_meshes(resource_id r);
+  glm::mat4 get_resource_local_transform(resource_id r);
 
   //-----------------------------------------------------------------------------------------------
   //! @brief Returns the id of the first resource node in the children of a given resource node.

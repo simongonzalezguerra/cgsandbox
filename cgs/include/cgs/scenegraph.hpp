@@ -182,7 +182,7 @@ namespace cgs
   //!  empty set of meshes.
   //! @remarks If some of the meshes in the provided array do not exist, they will not be added.
   //-----------------------------------------------------------------------------------------------
-  void set_node_meshes(layer_id layer, node_id node, const mesh_id* meshes, std::size_t num_meshes);
+  void set_node_meshes(layer_id layer, node_id node, const std::vector<mesh_id>& meshes);
 
   //-----------------------------------------------------------------------------------------------
   //! @brief Reads the list of meshes contained in a node.
@@ -193,7 +193,7 @@ namespace cgs
   //! @param num_meshes Address of an object to store the number of meshes contained in the
   //!  resource node. Can't be nullptr.
   //-----------------------------------------------------------------------------------------------
-  void get_node_meshes(layer_id layer, node_id node, const mesh_id** meshes, std::size_t* num_meshes);
+  std::vector<mesh_id> get_node_meshes(layer_id layer, node_id node);
 
   //-----------------------------------------------------------------------------------------------
   //! @brief Updates the enabled flag of a node, which determines if the node and its descendants

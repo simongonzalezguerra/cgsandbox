@@ -92,10 +92,10 @@ TEST_F(resources_loader_test, load_resources_positive1) {
   ASSERT_EQ(indices[indices.size() - 2], 146U);
   ASSERT_EQ(indices[indices.size() - 1], 79U);
 
-  const float* local_transform_out = nullptr;
-  get_resource_properties(get_first_child_resource(added_resource), &meshes_out, &num_meshes_out, &local_transform_out);
-  ASSERT_EQ(num_meshes_out, 1U);
-  ASSERT_EQ(meshes_out[0], 0U);
+  resource_id rid = get_first_child_resource(added_resource);
+  std::vector<mesh_id> meshes = get_resource_meshes(rid);
+  ASSERT_EQ(meshes.size(), 1U);
+  ASSERT_EQ(meshes[0], 0U);
 
   ASSERT_NE(added_resource, nresource);
 }
@@ -111,12 +111,12 @@ TEST_F(resources_loader_test, load_resources_three_levels) {
 
   // Ugly hack: the test assumes the resources are created with a breadth-first search, so the node in the
   // third level is the last one to be created, with id 166.
-  const float* local_transform_out = nullptr;
-  get_resource_properties(166U, &meshes_out, &num_meshes_out, &local_transform_out);
-  ASSERT_EQ(num_meshes_out, 1U);
-  ASSERT_EQ(meshes_out[0], 171U);
+  std::vector<mesh_id> meshes = get_resource_meshes(166U);
+  glm::mat4 local_transform = get_resource_local_transform(166U);
+  ASSERT_EQ(meshes.size(), 1U);
+  ASSERT_EQ(meshes[0], 171U);
   const float expected_local_transform[] = { 0.95, -0.02, 0.32, 0.00, 0.00, 1.00, 0.07, 0.00, -0.32, -0.07, 0.95, 0.00, -5.16, 3.29, 2.77, 1.00 };
-  ASSERT_SEQUENCE_NEAR(local_transform_out, expected_local_transform, 16, 0.01f);
+  ASSERT_SEQUENCE_NEAR(glm::value_ptr(local_transform), expected_local_transform, 16, 0.01f);
 }
 
 TEST_F(resources_loader_test, load_resources_no_texture_info) {

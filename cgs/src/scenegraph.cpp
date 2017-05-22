@@ -26,7 +26,6 @@ namespace cgs
     struct node
     {
       node() :
-        mnum_meshes(0U),
         mlocal_transform(1.0f),
         maccum_transform(1.0f),
         mfirst_child(nnode),
@@ -34,14 +33,13 @@ namespace cgs
         menabled(true),
         mused(true) {}
 
-      mesh_id mmeshes[max_meshes_by_resource];  //!< meshes in this node
-      std::size_t mnum_meshes;                  //!< number of meshes in this node
-      glm::mat4 mlocal_transform;               //!< node transform relative to the parent
-      glm::mat4 maccum_transform;               //!< node transform relative to the root
-      node_id mfirst_child;                     //!< first child node of this node
-      node_id mnext_sibling;                    //!< next sibling node of this node
-      bool menabled;                            //!< is this node enabled? (if it is not, all descendants are ignored when rendering)
-      bool mused;                               //!< is this cell used? (used for soft deletion)
+      std::vector<mesh_id> mmeshes;  //!< meshes in this node
+      glm::mat4 mlocal_transform;    //!< node transform relative to the parent
+      glm::mat4 maccum_transform;    //!< node transform relative to the root
+      node_id mfirst_child;          //!< first child node of this node
+      node_id mnext_sibling;         //!< next sibling node of this node
+      bool menabled;                 //!< is this node enabled? (if it is not, all descendants are ignored when rendering)
+      bool mused;                    //!< is this cell used? (used for soft deletion)
     };
 
     typedef std::vector<node> node_vector;
@@ -266,14 +264,12 @@ namespace cgs
       auto current = pending_nodes.front();
       pending_nodes.pop();
 
-      const float* local_transform_out = nullptr;
-      std::size_t num_meshes_out = 0U;
-      const mesh_id* meshes_out = nullptr;
-      get_resource_properties(current.rid, &meshes_out, &num_meshes_out, &local_transform_out);
+      std::vector<mesh_id> meshes = get_resource_meshes(current.rid);
+      glm::mat4 local_transform = get_resource_local_transform(current.rid);
 
       node_id n = add_node(l, current.parent);
-      set_node_transform(l, n, glm::make_mat4(local_transform_out));
-      set_node_meshes(l, n, meshes_out, num_meshes_out);
+      set_node_transform(l, n, local_transform);
+      set_node_meshes(l, n, meshes);
       set_node_enabled(l, n, true);
       if (ret == nnode) {
         ret = n;
@@ -347,33 +343,22 @@ namespace cgs
     *accum_transform = layers[l].mnodes[n].maccum_transform;
   }
 
-  void set_node_meshes(layer_id l, node_id n, const mesh_id* m, std::size_t num_meshes)
+  void set_node_meshes(layer_id l, node_id n, const std::vector<mesh_id>& m)
   {
-    if (!(l < layers.size() && n < layers[l].mnodes.size() && layers[l].mnodes[n].mused && m)) {
+    if (!(l < layers.size() && n < layers[l].mnodes.size() && layers[l].mnodes[n].mused)) {
       log(LOG_LEVEL_ERROR, "set_node_meshes error: invalid parameters"); return;
     }
 
-    std::size_t added_meshes = 0U;
-    for (std::size_t i = 0; i < num_meshes; i++) {
-      for (mesh_id mid = get_first_mesh(); mid != nmesh; mid = get_next_mesh(mid)) {
-        if (mid == m[i]) {
-          layers[l].mnodes[n].mmeshes[i] = m[i];
-          added_meshes++;
-          break;
-        }
-      }
-    }
-    layers[l].mnodes[n].mnum_meshes = added_meshes;
+    layers[l].mnodes[n].mmeshes = m;
   }
 
-  void get_node_meshes(layer_id l, node_id n, const mesh_id** meshes, std::size_t* num_meshes)
+  std::vector<mesh_id> get_node_meshes(layer_id l, node_id n)
   {
-    if (!(l < layers.size() && n < layers[l].mnodes.size() && layers[l].mnodes[n].mused && meshes && num_meshes)) {
-      log(LOG_LEVEL_ERROR, "get_node_meshes error: invalid parameters"); return;
+    if (!(l < layers.size() && n < layers[l].mnodes.size() && layers[l].mnodes[n].mused)) {
+      log(LOG_LEVEL_ERROR, "get_node_meshes error: invalid parameters"); return std::vector<mesh_id>();
     }
 
-    *meshes = layers[l].mnodes[n].mmeshes;
-    *num_meshes = layers[l].mnodes[n].mnum_meshes;
+    return layers[l].mnodes[n].mmeshes;
   }
 
   void set_node_enabled(layer_id l, node_id n, bool enabled)

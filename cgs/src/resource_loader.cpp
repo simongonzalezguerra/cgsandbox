@@ -157,6 +157,7 @@ namespace cgs
       while (!pending_nodes.empty()) {
         auto current = pending_nodes.front();
         pending_nodes.pop();
+        resource_id res = add_resource(current.parent);
         
         std::vector<mesh_id> meshes;
         for (std::size_t i = 0; i < current.node->mNumMeshes; i++) {
@@ -164,15 +165,15 @@ namespace cgs
             meshes.push_back(mesh_ids[current.node->mMeshes[i]]);
           }
         }
+        set_resource_meshes(res, meshes);
 
         // The aiMatrix4x4 type uses a contiguous layout for its elements, so we can just use its
         // representation as if it were a float array. But we need to transpose it first, because
         // assimp uses a row-major layout and we need column-major.
         aiMatrix4x4 local_transform = current.node->mTransformation;
         aiTransposeMatrix4(&local_transform);
+        set_resource_local_transform(res, glm::make_mat4((float *) &local_transform));
 
-        resource_id res = add_resource(current.parent);
-        set_resource_properties(res, meshes.size()? &meshes[0] : nullptr, meshes.size(), (float*) &local_transform);
         if (added_root == nresource) {
           added_root = res;
         }
@@ -296,10 +297,8 @@ namespace cgs
         auto current = pending_nodes.front();
         pending_nodes.pop();
 
-        const float* local_transform_out = nullptr;
-        std::size_t num_meshes_out = 0U;
-        const mesh_id* meshes_out = nullptr;
-        get_resource_properties(current.rid, &meshes_out, &num_meshes_out, &local_transform_out);
+        std::vector<mesh_id> meshes = get_resource_meshes(current.rid);
+        glm::mat4 local_transform = get_resource_local_transform(current.rid);
 
         std::ostringstream oss;
         oss << std::setprecision(2) << std::fixed;
@@ -309,9 +308,9 @@ namespace cgs
         oss << "[ ";
         oss << "resource id: " << current.rid;
         oss << ", meshes: ";
-        print_sequence(meshes_out, num_meshes_out, oss);
+        print_sequence(&meshes[0], meshes.size(), oss);
         oss << ", local transform: ";
-        print_sequence(local_transform_out, 16, oss);
+        print_sequence(glm::value_ptr(local_transform), 16, oss);
         oss << " ]";
         log(LOG_LEVEL_DEBUG, oss.str().c_str());
 
