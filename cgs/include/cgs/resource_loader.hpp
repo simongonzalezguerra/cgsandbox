@@ -4,6 +4,7 @@
 #include "cgs/resource_database.hpp"
 
 #include <cstddef> // for size_t
+#include <vector>
 #include <string>
 
 namespace cgs
@@ -26,10 +27,8 @@ namespace cgs
   //! @return The id of the root resource created from the file.
   //-----------------------------------------------------------------------------------------------
   resource_id load_resources(const std::string& file_name,
-                             const mat_id** materials_out,
-                             std::size_t* num_materials_out,
-                             const mesh_id** meshes_out,
-                             std::size_t* num_meshes_out);
+                             std::vector<mat_id>* materials_out,
+                             std::vector<mesh_id>* meshes_out);
 } // namespace cgs
 
 #endif // RESOURCE_LOADER_HPP

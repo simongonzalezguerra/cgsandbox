@@ -53,8 +53,7 @@ namespace model_viewer
     void update_simulation(float dt)
     {
       m_sim_rotation_yaw += m_sim_rotation_speed * dt;
-      glm::mat4 rot = glm::rotate(m_sim_rotation_yaw, glm::vec3{0.0f, 1.0f, 0.0f});
-      cgs::set_node_transform(m_layer, m_object_root, glm::value_ptr(rot));
+      cgs::set_node_transform(m_layer, m_object_root, glm::rotate(m_sim_rotation_yaw, glm::vec3{0.0f, 1.0f, 0.0f}));
     }
 
     // Member variables
@@ -64,10 +63,10 @@ namespace model_viewer
     cgs::fps_camera_controller    m_fps_camera_controller;
     cgs::framerate_controller     m_framerate_controller;
     cgs::perspective_controller   m_perspective_controller;
-    float                               m_last_time;
-    bool                                m_should_continue;
-    float                               m_sim_rotation_speed;
-    float                               m_sim_rotation_yaw;
+    float                         m_last_time;
+    bool                          m_should_continue;
+    float                         m_sim_rotation_speed;
+    float                         m_sim_rotation_yaw;
   }; // class controller::controller_impl
 
   void controller::initialize()
@@ -77,12 +76,10 @@ namespace model_viewer
     cgs::attach_logstream(cgs::default_logstream_file_callback);
     cgs::resource_database_init();
 
-    const cgs::mat_id* materials_out = nullptr;
-    std::size_t num_materials_out = 0U;
-    const cgs::mesh_id* meshes_out = nullptr;
-    std::size_t num_meshes_out = 0U;
-    // cgs::resource_id s_resource_root = cgs::load_resources("../../resources/sponza/sponza.obj", &materials_out, &num_materials_out, &meshes_out, &num_meshes_out);
-    s_resource_root = cgs::load_resources("../../../resources/f-14D-super-tomcat/F-14D_SuperTomcatRotated.obj", &materials_out, &num_materials_out, &meshes_out, &num_meshes_out);
+    std::vector<cgs::mat_id> materials_out;
+    std::vector<cgs::mesh_id> meshes_out;
+    // cgs::resource_id s_resource_root = cgs::load_resources("../../resources/sponza/sponza.obj", &materials_out, &meshes_out);
+    s_resource_root = cgs::load_resources("../../../resources/f-14D-super-tomcat/F-14D_SuperTomcatRotated.obj", &materials_out, &meshes_out);
     // The suzzane model doesn't have the texture path in its material information so we need to insert it manually
     // if (num_materials_out) {
     //   float color_diffuse[] = {0.0f, 0.0f, 0.0f};
@@ -117,11 +114,7 @@ namespace model_viewer
     m_impl->m_layer = cgs::add_layer(m_impl->m_view);
     // cgs::set_layer_projection_transform(m_impl->m_layer, glm::perspective(cgs::fov_to_fovy(fov, 1920.0f, 1080.0f), 1920.0f / 1080.0f, 0.1f, 100.0f));
     m_impl->m_object_root = cgs::add_node(m_impl->m_layer, cgs::root_node, s_resource_root);
-    cgs::light_data ld;
-    ld.mposition[0] = 4.0f;
-    ld.mposition[1] = 4.0f;
-    ld.mposition[2] = 4.0f;
-    cgs::set_light_data(m_impl->m_layer, &ld);
+    cgs::set_light_position(m_impl->m_layer, glm::vec3(4.0f, 4.0f, 4.0f));
     m_impl->m_last_time = cgs::get_time();
 
 
@@ -142,7 +135,10 @@ namespace model_viewer
     m_impl->m_sim_rotation_yaw = 0.0f;
   }
 
-  controller::~controller() {}
+  controller::~controller()
+  {
+    m_impl->m_framerate_controller.log_stats();
+  }
 
 
   bool controller::process()
@@ -174,9 +170,6 @@ namespace model_viewer
     // Control framerate
     m_impl->m_framerate_controller.process(dt, events);
 
-    if (!m_impl->m_should_continue) {
-      m_impl->m_framerate_controller.log_stats();
-    }
     return !m_impl->m_should_continue;
   }
 } // namespace model_viewer

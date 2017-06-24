@@ -27,22 +27,6 @@ namespace cgs
   //-----------------------------------------------------------------------------------------------
   typedef std::size_t node_id;
 
-  struct light_data
-  {
-    light_data() :
-      mposition{0.0f, 0.0f, 0.0f},
-      mdiffuse_power(1.0f),
-      mdiffuse_color{1.0f, 1.0f, 1.0f},
-      mspecular_power(1.0f),
-      mspecular_color{1.0f, 1.0f, 1.0f} {}
-
-    float mposition[3];
-    float mdiffuse_power;
-    float mdiffuse_color[3];
-    float mspecular_power;
-    float mspecular_color[3];
-  };
-
   //-----------------------------------------------------------------------------------------------
   // Constants
   //-----------------------------------------------------------------------------------------------
@@ -168,28 +152,25 @@ namespace cgs
   //! @brief Updates the local and accumulated transforms of a node.
   //! @param layer Id of the layer the node belongs to.
   //! @param node Id of the node within that layer.
-  //! @param local transform An array containing the local transform that should be assigned to
-  //!  the node, in column-major format (that is, one column, then the other, and so on),
-  //!  expressed in the coordinate system of the  parent node.
+  //! @param local transform A matrix containing the local transform that should be assigned to
+  //!  the node.
   //! @remarks The accumulated transform of the node and all its descendants are updated. The
   //!  accumulated transform of a node is the product of the local transforms of all the nodes
   //!  along the path from the root node to the node, starting from the root and including
   //!  the node.
   //-----------------------------------------------------------------------------------------------
-  void set_node_transform(layer_id layer, node_id node, const float* local_transform);
+  void set_node_transform(layer_id layer, node_id node, const glm::mat4& local_transform);
 
   //-----------------------------------------------------------------------------------------------
   //! @brief Reads the local and accumulated transforms of a node.
   //! @param layer Id of the layer the node belongs to.
   //! @param node Id of the node within that layer.
-  //! @param local_transform Address of a pointer to store the address of an  internal array
-  //!  representing the nodes's local transform as a matrix in column major format (that is, one
-  //!  column, then the other, and so on). Can't be nullptr.
-  //! @param accum_transform Address of a pointer to store the address of an  internal array
-  //!  representing the nodes's accumulated transform as a matrix in column major format. Can't
-  //!  be nullptr. See set_node_transform for the meaning of this value.
+  //! @param local_transform Pointer to a matrix in which to store the nodes's local transform.
+  //!  Can't be nullptr.
+  //! @param accum_transform Pointer to a matrix in which to store the nodes's accumulated
+  //!  transform. Can't be nullptr.
   //-----------------------------------------------------------------------------------------------
-  void get_node_transform(layer_id layer, node_id node, const float** local_transform, const float** accumm_transform);
+  void get_node_transform(layer_id layer, node_id node, glm::mat4* local_transform, glm::mat4* accum_transform);
 
   //-----------------------------------------------------------------------------------------------
   //! @brief Updates the list of meshes contained in a node.
@@ -201,7 +182,7 @@ namespace cgs
   //!  empty set of meshes.
   //! @remarks If some of the meshes in the provided array do not exist, they will not be added.
   //-----------------------------------------------------------------------------------------------
-  void set_node_meshes(layer_id layer, node_id node, const mesh_id* meshes, std::size_t num_meshes);
+  void set_node_meshes(layer_id layer, node_id node, const std::vector<mesh_id>& meshes);
 
   //-----------------------------------------------------------------------------------------------
   //! @brief Reads the list of meshes contained in a node.
@@ -212,7 +193,7 @@ namespace cgs
   //! @param num_meshes Address of an object to store the number of meshes contained in the
   //!  resource node. Can't be nullptr.
   //-----------------------------------------------------------------------------------------------
-  void get_node_meshes(layer_id layer, node_id node, const mesh_id** meshes, std::size_t* num_meshes);
+  std::vector<mesh_id> get_node_meshes(layer_id layer, node_id node);
 
   //-----------------------------------------------------------------------------------------------
   //! @brief Updates the enabled flag of a node, which determines if the node and its descendants
@@ -250,19 +231,12 @@ namespace cgs
   //-----------------------------------------------------------------------------------------------
   node_id get_next_sibling_node(layer_id layer, node_id node);
 
-  //-----------------------------------------------------------------------------------------------
-  //! @brief Reads the light data of a layer.
-  //! @param layer Id of the layer to query.
-  //! @param data Address of an object to write light data to. Can't be nullptr.
-  //-----------------------------------------------------------------------------------------------
-  void get_light_data(layer_id layer, light_data* data);
-
-  //-----------------------------------------------------------------------------------------------
-  //! @brief Writes the light data of a layer.
-  //! @param layer The layer to write to.
-  //! @param data Address of an object containing light data to write.
-  //-----------------------------------------------------------------------------------------------
-  void set_light_data(layer_id layer, const light_data* data);
+  void set_light_position(layer_id layer, glm::vec3 position);
+  glm::vec3 get_light_position(layer_id layer);
+  void set_light_color(layer_id layer, glm::vec3 color);
+  glm::vec3 get_light_color(layer_id layer);
+  void set_light_power(layer_id layer, float power);
+  float get_light_power(layer_id layer);
 } // namespace cgs
 
 #endif // SCENE_GRAPH_HPP

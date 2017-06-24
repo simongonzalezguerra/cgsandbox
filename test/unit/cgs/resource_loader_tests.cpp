@@ -31,151 +31,98 @@ protected:
 };
 
 TEST_F(resources_loader_test, load_resources_negative) {
-  const mat_id* materials_out = nullptr;
-  std::size_t num_materials_out = 0U;
-  const mesh_id* meshes_out = nullptr;
-  std::size_t num_meshes_out = 0U;
-  load_resources("", &materials_out, &num_materials_out, &meshes_out, &num_meshes_out);
-  load_resources("some_file.3ds", nullptr, &num_materials_out, &meshes_out, &num_meshes_out);
-  load_resources("some_file.3ds", &materials_out, nullptr, &meshes_out, &num_meshes_out);
-  load_resources("some_file.3ds", &materials_out, &num_materials_out, nullptr, &num_meshes_out);
-  load_resources("some_file.3ds", &materials_out, &num_materials_out, &meshes_out, nullptr);
+  std::vector<mat_id> materials_out;
+  std::vector<mesh_id> meshes_out;
+  load_resources("", &materials_out, &meshes_out);
+  load_resources("some_file.3ds", nullptr, &meshes_out);
+  load_resources("some_file.3ds", &materials_out, &meshes_out);
+  load_resources("some_file.3ds", &materials_out, nullptr);
+  load_resources("some_file.3ds", &materials_out, &meshes_out);
 }
 
 TEST_F(resources_loader_test, load_resources_positive1) {
-  const mat_id* materials_out = nullptr;
-  std::size_t num_materials_out = 0U;
-  const mesh_id* meshes_out = nullptr;
-  std::size_t num_meshes_out = 0U;
-  resource_id added_resource = load_resources(RESOURCES_PATH + SPONZA, &materials_out, &num_materials_out, &meshes_out, &num_meshes_out);
+  std::vector<mat_id> materials_out;
+  std::vector<mesh_id> meshes_out;
+  resource_id added_resource = load_resources(RESOURCES_PATH + SPONZA, &materials_out, &meshes_out);
 
   default_logstream_tail_dump(cgs::LOG_LEVEL_DEBUG);
-  ASSERT_EQ(num_materials_out, 13U);
-  float color_diffuse[] = {0.0f, 0.0f, 0.0f};
-  float color_spec[] = {0.0f, 0.0f, 0.0f};
-  float smoothness = 0.0f;
-  const char* texture_path = nullptr;
-  get_material_properties(materials_out[0], color_diffuse, color_spec, smoothness, &texture_path);
-  float expected_color_diffuse[] = { 0.75f, 0.71f, 0.67f };
-  ASSERT_SEQUENCE_NEAR(color_diffuse, expected_color_diffuse, 3, 0.01f);
-  float expected_color_specular[] = { 0.0f, 0.0f, 0.0f };
-  ASSERT_SEQUENCE_NEAR(color_spec, expected_color_specular, 3, 0.01f);
+  glm::vec3 color_diffuse = get_material_diffuse_color(materials_out[0]);
+  glm::vec3 color_spec = get_material_diffuse_color(materials_out[0]);
+  float smoothness = get_material_smoothness(materials_out[0]);
+  std::string texture_path = get_material_texture_path(materials_out[0]);
+
+  float expected_color_diffuse[] = {0.75f, 0.71f, 0.67f};
+  ASSERT_SEQUENCE_NEAR(glm::value_ptr(color_diffuse), expected_color_diffuse, 3, 0.01f);
+  float expected_color_specular[] = {0.74f, 0.71f, 0.67f};
+  ASSERT_SEQUENCE_NEAR(glm::value_ptr(color_spec), expected_color_specular, 3, 0.01f);
   ASSERT_EQ(smoothness, 200.0f);
 
-  ASSERT_EQ(num_meshes_out, 36U);
-  const float* vertex_base_out;
-  std::size_t vertex_stride_out;
-  const float* texture_coords_out;
-  std::size_t texture_coords_stride_out;
-  std::size_t num_vertices_out;
-  const vindex* faces_out;
-  std::size_t faces_stride_out;
-  std::size_t num_faces_out;
-  const float* normals_out = nullptr;
-  mat_id material_out;
-  get_mesh_properties(meshes_out[0],
-                      &vertex_base_out,
-                      &vertex_stride_out,
-                      &texture_coords_out,
-                      &texture_coords_stride_out,
-                      &num_vertices_out,
-                      &faces_out,
-                      &faces_stride_out,
-                      &num_faces_out,
-                      &normals_out,
-                      &material_out);
-  ASSERT_EQ(num_vertices_out, 150U);
-  ASSERT_EQ(num_faces_out, 192U);
-  ASSERT_EQ(faces_stride_out, 3U);
-  ASSERT_EQ(material_out, materials_out[0]);
-  ASSERT_NEAR(vertex_base_out[0], 10.93f, 0.1f);
-  ASSERT_NEAR(vertex_base_out[1], 2.96f, 0.1f);
-  ASSERT_NEAR(vertex_base_out[2], 2.37f, 0.1f);
-  ASSERT_NEAR(vertex_base_out[447], -11.57f, 0.1f);
-  ASSERT_NEAR(vertex_base_out[448],   2.69f, 0.1f);
-  ASSERT_NEAR(vertex_base_out[449],  -2.16f, 0.1f);
-  ASSERT_EQ(vertex_stride_out, 3U);
-  ASSERT_NE(texture_coords_out, nullptr);
-  ASSERT_EQ(texture_coords_stride_out, 2U);
-  ASSERT_NEAR(texture_coords_out[0], 0.04f, 0.1f);
-  ASSERT_NEAR(texture_coords_out[1], 1.00f, 0.1f);
-  ASSERT_NEAR(texture_coords_out[2], 0.08f, 0.1f);
-  ASSERT_NEAR(texture_coords_out[297], 1.00f, 0.1f);
-  ASSERT_NEAR(texture_coords_out[298], 0.91f, 0.1f);
-  ASSERT_NEAR(texture_coords_out[299], 0.12f, 0.1f);
-  ASSERT_EQ(faces_out[0], 0U);
-  ASSERT_EQ(faces_out[1], 1U);
-  ASSERT_EQ(faces_out[2], 2U);
-  ASSERT_EQ(faces_out[573], 78U);
-  ASSERT_EQ(faces_out[574], 146U);
-  ASSERT_EQ(faces_out[575], 79U);
+  mesh_id m = meshes_out[0];
+  std::vector<glm::vec3> vertices = get_mesh_vertices(m);
+  std::vector<glm::vec2> texture_coords = get_mesh_texture_coords(m);
+  std::vector<glm::vec3> normals = get_mesh_normals(m);
+  std::vector<vindex> indices = get_mesh_indices(m);
+  mat_id mat = get_mesh_material(m);
 
-  const float* local_transform_out = nullptr;
-  get_resource_properties(get_first_child_resource(added_resource), &meshes_out, &num_meshes_out, &local_transform_out);
-  ASSERT_EQ(num_meshes_out, 1U);
-  ASSERT_EQ(meshes_out[0], 0U);
+  ASSERT_EQ(vertices.size(), 150U);
+  ASSERT_EQ(mat, materials_out[0]);
+  ASSERT_NEAR(vertices[0][0], 10.93f, 0.1f);
+  ASSERT_NEAR(vertices[0][1], 2.96f, 0.1f);
+  ASSERT_NEAR(vertices[0][2], 2.37f, 0.1f);
+  ASSERT_NEAR(vertices[vertices.size() - 1][0], -11.57f, 0.1f);
+  ASSERT_NEAR(vertices[vertices.size() - 1][1],   2.69f, 0.1f);
+  ASSERT_NEAR(vertices[vertices.size() - 1][2],  -2.16f, 0.1f);
+  ASSERT_EQ(texture_coords.size(), 150U);
+  ASSERT_NEAR(texture_coords[0][0], 0.04f, 0.1f);
+  ASSERT_NEAR(texture_coords[0][1], 1.00f, 0.1f);
+  ASSERT_NEAR(texture_coords[1][0], 0.08f, 0.1f);
+  ASSERT_NEAR(texture_coords[texture_coords.size() - 2][0], 1.00f, 0.1f);
+  ASSERT_NEAR(texture_coords[texture_coords.size() - 1][0], 0.91f, 0.1f);
+  ASSERT_NEAR(texture_coords[texture_coords.size() - 1][1], 0.12f, 0.1f);
+  ASSERT_EQ(indices[0], 0U);
+  ASSERT_EQ(indices[1], 1U);
+  ASSERT_EQ(indices[2], 2U);
+  ASSERT_EQ(indices[indices.size() - 3], 78U);
+  ASSERT_EQ(indices[indices.size() - 2], 146U);
+  ASSERT_EQ(indices[indices.size() - 1], 79U);
+
+  resource_id rid = get_first_child_resource(added_resource);
+  std::vector<mesh_id> meshes = get_resource_meshes(rid);
+  ASSERT_EQ(meshes.size(), 1U);
+  ASSERT_EQ(meshes[0], 0U);
 
   ASSERT_NE(added_resource, nresource);
 }
 
 TEST_F(resources_loader_test, load_resources_three_levels) {
   // Load a scene with more than two levels
-  const mat_id* materials_out = nullptr;
-  std::size_t num_materials_out = 0U;
-  const mesh_id* meshes_out = nullptr;
-  std::size_t num_meshes_out = 0U;
-  load_resources(RESOURCES_PATH + THREE_LEVELS, &materials_out, &num_materials_out, &meshes_out, &num_meshes_out);
+  std::vector<mat_id> materials_out;
+  std::vector<mesh_id> meshes_out;
+  load_resources(RESOURCES_PATH + THREE_LEVELS, &materials_out, &meshes_out);
   default_logstream_tail_dump(cgs::LOG_LEVEL_DEBUG);
 
   // Ugly hack: the test assumes the resources are created with a breadth-first search, so the node in the
   // third level is the last one to be created, with id 166.
-  const float* local_transform_out = nullptr;
-  get_resource_properties(166U, &meshes_out, &num_meshes_out, &local_transform_out);
-  ASSERT_EQ(num_meshes_out, 1U);
-  ASSERT_EQ(meshes_out[0], 171U);
+  std::vector<mesh_id> meshes = get_resource_meshes(166U);
+  glm::mat4 local_transform = get_resource_local_transform(166U);
+  ASSERT_EQ(meshes.size(), 1U);
+  ASSERT_EQ(meshes[0], 171U);
   const float expected_local_transform[] = { 0.95, -0.02, 0.32, 0.00, 0.00, 1.00, 0.07, 0.00, -0.32, -0.07, 0.95, 0.00, -5.16, 3.29, 2.77, 1.00 };
-  ASSERT_SEQUENCE_NEAR(local_transform_out, expected_local_transform, 16, 0.01f);
+  ASSERT_SEQUENCE_NEAR(glm::value_ptr(local_transform), expected_local_transform, 16, 0.01f);
 }
 
 TEST_F(resources_loader_test, load_resources_no_texture_info) {
   // Load a scene with no texture info
-  const mat_id* materials_out = nullptr;
-  std::size_t num_materials_out = 0U;
-  const mesh_id* meshes_out = nullptr;
-  std::size_t num_meshes_out = 0U;
-  load_resources(RESOURCES_PATH + STANFORD_BUNNY, &materials_out, &num_materials_out, &meshes_out, &num_meshes_out);
+  std::vector<mat_id> materials_out;
+  std::vector<mesh_id> meshes_out;
+  load_resources(RESOURCES_PATH + STANFORD_BUNNY, &materials_out, &meshes_out);
   default_logstream_tail_dump(cgs::LOG_LEVEL_DEBUG);
-
-  const float* vertex_base_out;
-  std::size_t vertex_stride_out;
-  const float* texture_coords_out;
-  std::size_t texture_coords_stride_out;
-  std::size_t num_vertices_out;
-  const vindex* faces_out;
-  std::size_t faces_stride_out;
-  std::size_t num_faces_out;
-  const float* normals_out = nullptr;
-  mat_id material_out;
-  get_mesh_properties(0U,
-                      &vertex_base_out,
-                      &vertex_stride_out,
-                      &texture_coords_out,
-                      &texture_coords_stride_out,
-                      &num_vertices_out,
-                      &faces_out,
-                      &faces_stride_out,
-                      &num_faces_out,
-                      &normals_out,
-                      &material_out);
-  ASSERT_EQ(texture_coords_out, nullptr);
 }
 
 TEST_F(resources_loader_test, load_resources_billiard_table) {
-  const mat_id* materials_out = nullptr;
-  std::size_t num_materials_out = 0U;
-  const mesh_id* meshes_out = nullptr;
-  std::size_t num_meshes_out = 0U;
-  load_resources(RESOURCES_PATH + BILLIARD_TABLE, &materials_out, &num_materials_out, &meshes_out, &num_meshes_out);
+  std::vector<mat_id> materials_out;
+  std::vector<mesh_id> meshes_out;
+  load_resources(RESOURCES_PATH + BILLIARD_TABLE, &materials_out, &meshes_out);
   default_logstream_tail_dump(cgs::LOG_LEVEL_DEBUG);
 }
 

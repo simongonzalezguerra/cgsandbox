@@ -428,11 +428,9 @@ namespace cgs
 
     void render_node(layer_id l, node_id n, const glm::vec3& light_pos, const glm::mat4& model_matrix, const glm::mat4& view_matrix, const glm::mat4& projection_matrix)
     {
-      const mesh_id* meshes = nullptr;
-      std::size_t num_meshes = 0U;
-      get_node_meshes(l, n, &meshes, &num_meshes);
+      std::vector<mesh_id> meshes = get_node_meshes(l, n);
       // For each mesh in the node
-      for (std::size_t i = 0U; i < num_meshes; ++i) {
+      for (std::size_t i = 0U; i < meshes.size(); ++i) {
         if (mesh_contexts.find(meshes[i]) != mesh_contexts.end()) {
           render_mesh(meshes[i], light_pos, model_matrix, view_matrix, projection_matrix);
         }
@@ -531,36 +529,14 @@ namespace cgs
     model_matrix_id = glGetUniformLocation(program_id, "M");
 
     for (mesh_id mid = get_first_mesh(); mid != nmesh; mid = get_next_mesh(mid)) {
-      const float* vertex_base = nullptr;
-      std::size_t vertex_stride = 0U;
-      const float* texture_coords = nullptr;
-      std::size_t texture_coords_stride = 0U;
-      std::size_t num_vertices = 0U;
-      const vindex* faces = nullptr;
-      std::size_t faces_stride = 0U;
-      std::size_t num_faces = 0U;
-      const float* normals = nullptr;
-      mat_id material = nmat;
-      get_mesh_properties(mid,
-                          &vertex_base,
-                          &vertex_stride,
-                          &texture_coords,
-                          &texture_coords_stride,
-                          &num_vertices,
-                          &faces,
-                          &faces_stride,
-                          &num_faces,
-                          &normals,
-                          &material);
-
-      float color_diffuse[] = {0.0f, 0.0f, 0.0f};
-      float color_spec[] = {0.0f, 0.0f, 0.0f};
-      float smoothness = 0.0f;
-      const char* texture_path = nullptr;
-      get_material_properties(material, color_diffuse, color_spec, smoothness, &texture_path);
+      std::vector<glm::vec3> vertices = get_mesh_vertices(mid);
+      std::vector<glm::vec2> texture_coords = get_mesh_texture_coords(mid);
+      std::vector<glm::vec3> normals = get_mesh_normals(mid);
+      std::vector<vindex> indices = get_mesh_indices(mid);
+      std::string texture_path = get_material_texture_path(get_mesh_material(mid));
 
       // Load the texture
-      GLuint texture_id = load_texture(texture_path);
+      GLuint texture_id = load_texture(texture_path.c_str());
       // Get a handle for our "myTextureSampler" uniform
       texture_sampler_id = glGetUniformLocation(program_id, "myTextureSampler");
 
@@ -568,23 +544,23 @@ namespace cgs
       GLuint positions_vbo_id = 0U;
       glGenBuffers(1, &positions_vbo_id);
       glBindBuffer(GL_ARRAY_BUFFER, positions_vbo_id);
-      glBufferData(GL_ARRAY_BUFFER, num_vertices * vertex_stride * sizeof (float), vertex_base, GL_STATIC_DRAW);
+      glBufferData(GL_ARRAY_BUFFER, 3 * vertices.size() * sizeof (float), &vertices[0][0], GL_STATIC_DRAW);
 
       GLuint uvs_vbo_id = 0U;
       glGenBuffers(1, &uvs_vbo_id);
       glBindBuffer(GL_ARRAY_BUFFER, uvs_vbo_id);
-      glBufferData(GL_ARRAY_BUFFER, num_vertices * texture_coords_stride * sizeof (float), texture_coords, GL_STATIC_DRAW);
+      glBufferData(GL_ARRAY_BUFFER, 2 * texture_coords.size() * sizeof (float), &texture_coords[0][0], GL_STATIC_DRAW);
 
       GLuint normals_vbo_id = 0U;
       glGenBuffers(1, &normals_vbo_id);
       glBindBuffer(GL_ARRAY_BUFFER, normals_vbo_id);
-      glBufferData(GL_ARRAY_BUFFER, num_vertices * 3 * sizeof(float), normals, GL_STATIC_DRAW);
+      glBufferData(GL_ARRAY_BUFFER, 3 * normals.size() * sizeof(float), &normals[0][0], GL_STATIC_DRAW);
 
       // Generate a buffer for the indices as well
       GLuint indices_vbo_id = 0U;
       glGenBuffers(1, &indices_vbo_id);
       glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indices_vbo_id);
-      glBufferData(GL_ELEMENT_ARRAY_BUFFER, num_faces * faces_stride * sizeof(vindex), faces, GL_STATIC_DRAW);
+      glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(vindex), &indices[0], GL_STATIC_DRAW);
 
       // Create a mesh context and add it to the map
       mesh_context context;
@@ -593,7 +569,7 @@ namespace cgs
       context.mnormals_vbo_id = normals_vbo_id;
       context.mindices_vbo_id = indices_vbo_id;
       context.mtexture_id = texture_id;
-      context.mnum_indices = num_faces * faces_stride;
+      context.mnum_indices = indices.size();
       mesh_contexts[mid] = context;
     }
 
@@ -654,8 +630,7 @@ namespace cgs
       get_layer_view_transform(l, &view_matrix);
 
       // Get light data for the layer (actually only the position is being used)
-      light_data ldata;
-      get_light_data(l, &ldata);
+      glm::vec3 light_position = get_light_position(l);
 
       struct context{ node_id nid; };
       std::queue<context> pending_nodes;
@@ -666,11 +641,10 @@ namespace cgs
         pending_nodes.pop();
 
         if (is_node_enabled(l, current.nid)) {
-          const float* local_transform = nullptr;
-          const float* accum_transform = nullptr;
+          glm::mat4 local_transform;
+          glm::mat4 accum_transform;
           get_node_transform(l, current.nid, &local_transform, &accum_transform);
-          glm::mat4 model_matrix = glm::make_mat4(accum_transform);
-          render_node(l, current.nid, glm::make_vec3(ldata.mposition), model_matrix, view_matrix, projection_matrix);
+          render_node(l, current.nid, light_position, accum_transform, view_matrix, projection_matrix);
 
           for (node_id child = get_first_child_node(l, current.nid); child != nnode; child = get_next_sibling_node(l, child)) {
             pending_nodes.push({child});
