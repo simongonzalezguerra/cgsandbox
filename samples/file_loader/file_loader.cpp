@@ -18,11 +18,9 @@ int main(int argc, char** argv)
   attach_logstream(default_logstream_file_callback);
   attach_logstream(default_logstream_tail_callback);
 
-  const mat_id* materials_out = nullptr;
-  std::size_t num_materials_out = 0U;
-  const mesh_id* meshes_out = nullptr;
-  std::size_t num_meshes_out = 0U;
-  load_resources(argv[1], &materials_out, &num_materials_out, &meshes_out, &num_meshes_out);
+  std::vector<mat_id> materials_out;
+  std::vector<mesh_id> meshes_out;
+  load_resources(argv[1], &materials_out, &meshes_out);
 
   detach_logstream(default_logstream_tail_callback);
   detach_logstream(default_logstream_file_callback);

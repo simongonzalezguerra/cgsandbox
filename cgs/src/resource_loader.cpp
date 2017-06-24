@@ -27,11 +27,8 @@ namespace cgs
     //---------------------------------------------------------------------------------------------
     // Internal declarations
     //---------------------------------------------------------------------------------------------
-    std::vector<mat_id> added_materials;         //!< List of materials created in the last call to load_resources()
     std::map<std::size_t, mat_id> material_ids;  //!< Map from index in assimp's material array to resource database material_id
-    std::vector<mesh_id> added_meshes;           //!< List of meshes created in the last call to load_resources()
     std::map<std::size_t, mesh_id> mesh_ids;     //!< Map from index in assimp's mesh array to resource database mesh_id
-    resource_id added_root;                      //!< Id of the root resource created in the last call to load_resources()
 
     //---------------------------------------------------------------------------------------------
     // Helper functions
@@ -52,7 +49,7 @@ namespace cgs
       return dir;
     }
 
-    void create_materials(const struct aiScene* scene, const mat_id** materials_out, std::size_t* num_materials_out, const std::string& file_name)
+    void create_materials(const struct aiScene* scene, std::vector<mat_id>* materials_out, const std::string& file_name)
     {
       for (std::size_t i = 0; i < scene->mNumMaterials; i++) {
         aiColor4D diffuse_color(0.0f, 0.0f, 0.0f, 0.0f);
@@ -85,14 +82,12 @@ namespace cgs
         set_material_specular_color(mat, color_specular);
         set_material_smoothness(mat, smoothness);
         set_material_texture_path(mat, texture_path);
-        added_materials.push_back(mat);
+        materials_out->push_back(mat);
         material_ids[i] = mat;
       }
-      *materials_out = &added_materials[0];
-      *num_materials_out = added_materials.size();
     }
 
-    void create_meshes(const struct aiScene* scene, const mesh_id** meshes_out, std::size_t* num_meshes_out)
+    void create_meshes(const struct aiScene* scene, std::vector<mesh_id>* meshes_out)
     {
 
       for (std::size_t i_mesh = 0; i_mesh < scene->mNumMeshes; i_mesh++) {
@@ -140,17 +135,15 @@ namespace cgs
         }
         set_mesh_indices(m, indices);
 
-        added_meshes.push_back(m);
+        meshes_out->push_back(m);
         mesh_ids[i_mesh] = m;
       }
-
-      *meshes_out = &added_meshes[0];
-      *num_meshes_out = added_meshes.size();
     }
 
-    resource_id create_resources(const struct aiScene* scene)
+    void create_resources(const struct aiScene* scene, resource_id* added_root)
     {
       // Iterate the scene tree with a breadth-first search creating resources
+      *added_root = nresource;
       struct context{ const aiNode* node; resource_id parent; };
       std::queue<context> pending_nodes;
       pending_nodes.push({ scene->mRootNode, root_resource });
@@ -174,16 +167,14 @@ namespace cgs
         aiTransposeMatrix4(&local_transform);
         set_resource_local_transform(res, glm::make_mat4((float *) &local_transform));
 
-        if (added_root == nresource) {
-          added_root = res;
+        if (*added_root == nresource) {
+          *added_root = res;
         }
 
         for (std::size_t i = 0; i < current.node->mNumChildren; ++i) {
           pending_nodes.push({ current.node->mChildren[i], res });
         }
       }
-
-      return added_root;
     }
 
     template<typename T>
@@ -320,7 +311,7 @@ namespace cgs
       }
     }
 
-    void log_statistics()
+    void log_statistics(resource_id added_root, const std::vector<mat_id>& added_materials, const std::vector<mesh_id>& added_meshes)
     {
       log(LOG_LEVEL_DEBUG, "---------------------------------------------------------------------------------------------------");
       log(LOG_LEVEL_DEBUG, "load_resources: finished loading file, summary:");
@@ -357,12 +348,10 @@ namespace cgs
   // Public functions
   //-----------------------------------------------------------------------------------------------
   resource_id load_resources(const std::string& file_name,
-                             const mat_id** materials_out,
-                             std::size_t* num_materials_out,
-                             const mesh_id** meshes_out,
-                             std::size_t* num_meshes_out)
+                             std::vector<mat_id>* materials_out,
+                             std::vector<mesh_id>* meshes_out)
   {
-    if (!(file_name.size() > 0 && materials_out && num_materials_out && meshes_out && num_meshes_out)) {
+    if (!(file_name.size() > 0 && materials_out && meshes_out)) {
       log(LOG_LEVEL_ERROR, "load_resources error: invalid arguments"); return nresource;
     }
 
@@ -375,22 +364,18 @@ namespace cgs
       log(LOG_LEVEL_ERROR, "load_resources: some errors occured, aborting"); return nresource;
     }
 
-    added_materials.clear();
     material_ids.clear();
-    create_materials(scene, materials_out, num_materials_out, file_name);
-
-    added_meshes.clear();
     mesh_ids.clear();
-    create_meshes(scene, meshes_out, num_meshes_out);
+    resource_id added_root = nresource;
+    create_materials(scene, materials_out, file_name);
+    create_meshes(scene, meshes_out);
+    create_resources(scene, &added_root);
 
-    added_root = nresource;
-    resource_id root = create_resources(scene);
-
-    log_statistics();
+    log_statistics(added_root, *materials_out, *meshes_out);
 
     aiReleaseImport(scene);
     aiDetachAllLogStreams();
 
-    return root;
+    return added_root;
   }
 } // namespace cgs

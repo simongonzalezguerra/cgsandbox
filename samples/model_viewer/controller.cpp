@@ -76,12 +76,10 @@ namespace model_viewer
     cgs::attach_logstream(cgs::default_logstream_file_callback);
     cgs::resource_database_init();
 
-    const cgs::mat_id* materials_out = nullptr;
-    std::size_t num_materials_out = 0U;
-    const cgs::mesh_id* meshes_out = nullptr;
-    std::size_t num_meshes_out = 0U;
-    // cgs::resource_id s_resource_root = cgs::load_resources("../../resources/sponza/sponza.obj", &materials_out, &num_materials_out, &meshes_out, &num_meshes_out);
-    s_resource_root = cgs::load_resources("../../../resources/f-14D-super-tomcat/F-14D_SuperTomcatRotated.obj", &materials_out, &num_materials_out, &meshes_out, &num_meshes_out);
+    std::vector<cgs::mat_id> materials_out;
+    std::vector<cgs::mesh_id> meshes_out;
+    // cgs::resource_id s_resource_root = cgs::load_resources("../../resources/sponza/sponza.obj", &materials_out, &meshes_out);
+    s_resource_root = cgs::load_resources("../../../resources/f-14D-super-tomcat/F-14D_SuperTomcatRotated.obj", &materials_out, &meshes_out);
     // The suzzane model doesn't have the texture path in its material information so we need to insert it manually
     // if (num_materials_out) {
     //   float color_diffuse[] = {0.0f, 0.0f, 0.0f};

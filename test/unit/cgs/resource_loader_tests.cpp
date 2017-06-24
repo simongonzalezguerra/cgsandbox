@@ -31,26 +31,21 @@ protected:
 };
 
 TEST_F(resources_loader_test, load_resources_negative) {
-  const mat_id* materials_out = nullptr;
-  std::size_t num_materials_out = 0U;
-  const mesh_id* meshes_out = nullptr;
-  std::size_t num_meshes_out = 0U;
-  load_resources("", &materials_out, &num_materials_out, &meshes_out, &num_meshes_out);
-  load_resources("some_file.3ds", nullptr, &num_materials_out, &meshes_out, &num_meshes_out);
-  load_resources("some_file.3ds", &materials_out, nullptr, &meshes_out, &num_meshes_out);
-  load_resources("some_file.3ds", &materials_out, &num_materials_out, nullptr, &num_meshes_out);
-  load_resources("some_file.3ds", &materials_out, &num_materials_out, &meshes_out, nullptr);
+  std::vector<mat_id> materials_out;
+  std::vector<mesh_id> meshes_out;
+  load_resources("", &materials_out, &meshes_out);
+  load_resources("some_file.3ds", nullptr, &meshes_out);
+  load_resources("some_file.3ds", &materials_out, &meshes_out);
+  load_resources("some_file.3ds", &materials_out, nullptr);
+  load_resources("some_file.3ds", &materials_out, &meshes_out);
 }
 
 TEST_F(resources_loader_test, load_resources_positive1) {
-  const mat_id* materials_out = nullptr;
-  std::size_t num_materials_out = 0U;
-  const mesh_id* meshes_out = nullptr;
-  std::size_t num_meshes_out = 0U;
-  resource_id added_resource = load_resources(RESOURCES_PATH + SPONZA, &materials_out, &num_materials_out, &meshes_out, &num_meshes_out);
+  std::vector<mat_id> materials_out;
+  std::vector<mesh_id> meshes_out;
+  resource_id added_resource = load_resources(RESOURCES_PATH + SPONZA, &materials_out, &meshes_out);
 
   default_logstream_tail_dump(cgs::LOG_LEVEL_DEBUG);
-  ASSERT_EQ(num_materials_out, 13U);
   glm::vec3 color_diffuse = get_material_diffuse_color(materials_out[0]);
   glm::vec3 color_spec = get_material_diffuse_color(materials_out[0]);
   float smoothness = get_material_smoothness(materials_out[0]);
@@ -61,7 +56,6 @@ TEST_F(resources_loader_test, load_resources_positive1) {
   float expected_color_specular[] = {0.74f, 0.71f, 0.67f};
   ASSERT_SEQUENCE_NEAR(glm::value_ptr(color_spec), expected_color_specular, 3, 0.01f);
   ASSERT_EQ(smoothness, 200.0f);
-  ASSERT_EQ(num_meshes_out, 36U);
 
   mesh_id m = meshes_out[0];
   std::vector<glm::vec3> vertices = get_mesh_vertices(m);
@@ -102,11 +96,9 @@ TEST_F(resources_loader_test, load_resources_positive1) {
 
 TEST_F(resources_loader_test, load_resources_three_levels) {
   // Load a scene with more than two levels
-  const mat_id* materials_out = nullptr;
-  std::size_t num_materials_out = 0U;
-  const mesh_id* meshes_out = nullptr;
-  std::size_t num_meshes_out = 0U;
-  load_resources(RESOURCES_PATH + THREE_LEVELS, &materials_out, &num_materials_out, &meshes_out, &num_meshes_out);
+  std::vector<mat_id> materials_out;
+  std::vector<mesh_id> meshes_out;
+  load_resources(RESOURCES_PATH + THREE_LEVELS, &materials_out, &meshes_out);
   default_logstream_tail_dump(cgs::LOG_LEVEL_DEBUG);
 
   // Ugly hack: the test assumes the resources are created with a breadth-first search, so the node in the
@@ -121,20 +113,16 @@ TEST_F(resources_loader_test, load_resources_three_levels) {
 
 TEST_F(resources_loader_test, load_resources_no_texture_info) {
   // Load a scene with no texture info
-  const mat_id* materials_out = nullptr;
-  std::size_t num_materials_out = 0U;
-  const mesh_id* meshes_out = nullptr;
-  std::size_t num_meshes_out = 0U;
-  load_resources(RESOURCES_PATH + STANFORD_BUNNY, &materials_out, &num_materials_out, &meshes_out, &num_meshes_out);
+  std::vector<mat_id> materials_out;
+  std::vector<mesh_id> meshes_out;
+  load_resources(RESOURCES_PATH + STANFORD_BUNNY, &materials_out, &meshes_out);
   default_logstream_tail_dump(cgs::LOG_LEVEL_DEBUG);
 }
 
 TEST_F(resources_loader_test, load_resources_billiard_table) {
-  const mat_id* materials_out = nullptr;
-  std::size_t num_materials_out = 0U;
-  const mesh_id* meshes_out = nullptr;
-  std::size_t num_meshes_out = 0U;
-  load_resources(RESOURCES_PATH + BILLIARD_TABLE, &materials_out, &num_materials_out, &meshes_out, &num_meshes_out);
+  std::vector<mat_id> materials_out;
+  std::vector<mesh_id> meshes_out;
+  load_resources(RESOURCES_PATH + BILLIARD_TABLE, &materials_out, &meshes_out);
   default_logstream_tail_dump(cgs::LOG_LEVEL_DEBUG);
 }
 
