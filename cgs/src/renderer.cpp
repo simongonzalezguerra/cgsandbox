@@ -34,7 +34,15 @@ namespace cgs
       GLuint mnum_indices;
     };
 
+    struct skybox_context
+    {
+      GLuint mvao_id;
+      GLuint mvbo_id;
+      GLuint mtexture_id;
+    };
+
     typedef std::map<mesh_id, mesh_context> mesh_context_map;
+    typedef std::map<cubemap_id, skybox_context> cubemap_context_map;
     typedef std::map<int, event_type> key_event_type_map;
     typedef key_event_type_map::iterator event_type_it;
     typedef std::map<int, std::string> error_code_map;
@@ -42,7 +50,7 @@ namespace cgs
     //---------------------------------------------------------------------------------------------
     // Internal data structures
     //---------------------------------------------------------------------------------------------
-    const char* vertex_shader = R"glsl(
+    const char* object_vertex_shader = R"glsl(
       #version 330 core
 
       // Input vertex data, different for all executions of this shader.
@@ -88,7 +96,7 @@ namespace cgs
       }
     )glsl";
 
-    const char* fragment_shader = R"glsl(
+    const char* object_fragment_shader = R"glsl(
       #version 330 core
 
       // Interpolated values from the vertex shaders
@@ -152,13 +160,89 @@ namespace cgs
       }
     )glsl";
 
+    const char* skybox_vertex_shader = R"glsl(
+      #version 330 core
+      layout (location = 0) in vec3 a_pos;
+
+      out vec3 tex_coords;
+
+      uniform mat4 projection;
+      uniform mat4 view;
+
+      void main()
+      {
+          tex_coords = a_pos;
+          vec4 pos = projection * view * vec4(a_pos, 1.0);
+          gl_Position = pos.xyww;
+      }
+    )glsl";
+
+    const char* skybox_fragment_shader = R"glsl(
+      #version 330 core
+      out vec4 FragColor;
+
+      in vec3 tex_coords;
+
+      uniform samplerCube skybox;
+
+      void main()
+      {    
+          FragColor = texture(skybox, tex_coords);
+      }
+    )glsl";
+
+    float skybox_vertices[] = {
+      // positions          
+      -1.0f,  1.0f, -1.0f,
+      -1.0f, -1.0f, -1.0f,
+       1.0f, -1.0f, -1.0f,
+       1.0f, -1.0f, -1.0f,
+       1.0f,  1.0f, -1.0f,
+      -1.0f,  1.0f, -1.0f,
+
+      -1.0f, -1.0f,  1.0f,
+      -1.0f, -1.0f, -1.0f,
+      -1.0f,  1.0f, -1.0f,
+      -1.0f,  1.0f, -1.0f,
+      -1.0f,  1.0f,  1.0f,
+      -1.0f, -1.0f,  1.0f,
+
+       1.0f, -1.0f, -1.0f,
+       1.0f, -1.0f,  1.0f,
+       1.0f,  1.0f,  1.0f,
+       1.0f,  1.0f,  1.0f,
+       1.0f,  1.0f, -1.0f,
+       1.0f, -1.0f, -1.0f,
+
+      -1.0f, -1.0f,  1.0f,
+      -1.0f,  1.0f,  1.0f,
+       1.0f,  1.0f,  1.0f,
+       1.0f,  1.0f,  1.0f,
+       1.0f, -1.0f,  1.0f,
+      -1.0f, -1.0f,  1.0f,
+
+      -1.0f,  1.0f, -1.0f,
+       1.0f,  1.0f, -1.0f,
+       1.0f,  1.0f,  1.0f,
+       1.0f,  1.0f,  1.0f,
+      -1.0f,  1.0f,  1.0f,
+      -1.0f,  1.0f, -1.0f,
+
+      -1.0f, -1.0f, -1.0f,
+      -1.0f, -1.0f,  1.0f,
+       1.0f, -1.0f, -1.0f,
+       1.0f, -1.0f, -1.0f,
+      -1.0f, -1.0f,  1.0f,
+       1.0f, -1.0f,  1.0f
+    };
+
     GLFWwindow* window = nullptr;
     bool ok = false;
     mesh_context_map mesh_contexts;
-    GLuint vertex_array_id = 0U;
-    GLuint vertex_shader_id = 0U;
-    GLuint fragment_shader_id = 0U;
-    GLuint program_id = 0U;
+    cubemap_context_map skybox_contexts;
+    GLuint object_vao_id = 0U;
+    GLuint object_program_id = 0U;
+    GLuint skybox_program_id = 0U;
     GLuint matrix_id = 0U;
     GLuint view_matrix_id = 0U;
     GLuint model_matrix_id = 0U;
@@ -173,34 +257,34 @@ namespace cgs
     //---------------------------------------------------------------------------------------------
     // Helper functions
     //---------------------------------------------------------------------------------------------
-    bool load_shaders(const char* vertex_file_path, const char* fragment_file_path)
+    bool load_shaders(const char* vertex_shader_source, const char* fragment_shader_source, GLuint* program_id)
     {
       // Create the shaders
-      vertex_shader_id = glCreateShader(GL_VERTEX_SHADER);
-      fragment_shader_id = glCreateShader(GL_FRAGMENT_SHADER);
+      GLuint vertex_shader_id = glCreateShader(GL_VERTEX_SHADER); 
+      GLuint fragment_shader_id = glCreateShader(GL_FRAGMENT_SHADER);
 
       GLint result = GL_FALSE;
       int info_log_length = 0;
 
       // Compile Vertex Shader
-      log(LOG_LEVEL_DEBUG, std::string("load_shaders: compiling shader: ") + vertex_file_path);
-      glShaderSource(vertex_shader_id, 1, &vertex_shader, nullptr);
+      log(LOG_LEVEL_DEBUG, std::string("load_shaders: compiling vertex shader: "));
+      glShaderSource(vertex_shader_id, 1, &vertex_shader_source, nullptr);
       glCompileShader(vertex_shader_id);
 
       // Check Vertex Shader
       glGetShaderiv(vertex_shader_id, GL_COMPILE_STATUS, &result);
       glGetShaderiv(vertex_shader_id, GL_INFO_LOG_LENGTH, &info_log_length);
       if (result == GL_FALSE){
-        std::vector<char> vertex_shader_error_message(info_log_length + 1);
-        glGetShaderInfoLog(vertex_shader_id, info_log_length, nullptr, &vertex_shader_error_message[0]);
-        log(LOG_LEVEL_ERROR, &vertex_shader_error_message[0]);
+        std::vector<char> error_message(info_log_length + 1);
+        glGetShaderInfoLog(vertex_shader_id, info_log_length, nullptr, &error_message[0]);
+        log(LOG_LEVEL_ERROR, &error_message[0]);
         return false;
       }
       log(LOG_LEVEL_DEBUG, "vertex shader compiled successfully");
 
       // Compile Fragment Shader
-      log(LOG_LEVEL_DEBUG, std::string("load_shaders: compiling shader: ") + fragment_file_path);
-      glShaderSource(fragment_shader_id, 1, &fragment_shader , nullptr);
+      log(LOG_LEVEL_DEBUG, std::string("load_shaders: compiling fragment shader: "));
+      glShaderSource(fragment_shader_id, 1, &fragment_shader_source, nullptr);
       glCompileShader(fragment_shader_id);
 
       // Check Fragment Shader
@@ -216,25 +300,26 @@ namespace cgs
 
       // Link the program
       log(LOG_LEVEL_DEBUG, "load_shaders: linking program");
-      program_id = glCreateProgram();
-      glAttachShader(program_id, vertex_shader_id);
-      glAttachShader(program_id, fragment_shader_id);
-      glLinkProgram(program_id);
+      GLuint new_program_id = glCreateProgram();
+      glAttachShader(new_program_id, vertex_shader_id);
+      glAttachShader(new_program_id, fragment_shader_id);
+      glLinkProgram(new_program_id);
 
       // Check the program
-      glGetProgramiv(program_id, GL_LINK_STATUS, &result);
-      glGetProgramiv(program_id, GL_INFO_LOG_LENGTH, &info_log_length);
+      glGetProgramiv(new_program_id, GL_LINK_STATUS, &result);
+      glGetProgramiv(new_program_id, GL_INFO_LOG_LENGTH, &info_log_length);
       if (result == GL_FALSE) {
         std::vector<char> program_error_message(info_log_length + 1);
-        glGetProgramInfoLog(program_id, info_log_length, nullptr, &program_error_message[0]);
+        glGetProgramInfoLog(new_program_id, info_log_length, nullptr, &program_error_message[0]);
         log(LOG_LEVEL_ERROR, &program_error_message[0]);
         return false;
       }
       log(LOG_LEVEL_DEBUG, "program linked successfully");
       
-      glDetachShader(program_id, vertex_shader_id);
-      glDetachShader(program_id, fragment_shader_id);
-      
+      *program_id = new_program_id;
+
+      glDetachShader(new_program_id, vertex_shader_id);
+      glDetachShader(new_program_id, fragment_shader_id);
       glDeleteShader(vertex_shader_id);
       glDeleteShader(fragment_shader_id);
 
@@ -314,7 +399,7 @@ namespace cgs
     {
       log(LOG_LEVEL_DEBUG, "load_texture: loading texture from path " + std::string(path));
 
-      FREE_IMAGE_FORMAT format = FreeImage_GetFileType(path, 0); // automatocally detects the format(from over 20 formats!)
+      FREE_IMAGE_FORMAT format = FreeImage_GetFileType(path, 0); // automatically detects the format(from over 20 formats!)
       FIBITMAP* image = FreeImage_Load(format, path);
       unsigned int width = FreeImage_GetWidth(image);
       unsigned int height = FreeImage_GetHeight(image);
@@ -334,13 +419,20 @@ namespace cgs
       log(LOG_LEVEL_DEBUG, oss.str());
 
       // Create one OpenGL texture
-      GLuint textureID;
-      glGenTextures(1, &textureID);
+      GLuint texture_id;
+      glGenTextures(1, &texture_id);
       // "Bind" the newly created texture : all future texture functions will modify this texture
-      glBindTexture(GL_TEXTURE_2D, textureID);
+      glBindTexture(GL_TEXTURE_2D, texture_id);
 
       // Give the image to OpenGL
-      glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, &data[0]);
+      // Note about image format: when running in another OS you may need to change RGB to BGR for
+      // the raw data to be interpreted correctly. From the FreeImage doc: However, the pixel layout
+      // used by this model is OS dependant. Using a byte by byte memory order to label the pixel
+      // layout, then FreeImage uses a BGR[A] pixel layout under a Little Endian processor (Windows,
+      // Linux) and uses a RGB[A] pixel layout under a Big Endian processor (Mac OS X or any Big
+      // Endian Linux / Unix). This choice was made to ease the use of FreeImage with graphics API.
+      // When runing on Linux, FreeImage stores data in BGRA format.
+      glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_BGRA, GL_UNSIGNED_BYTE, &data[0]);
       // OpenGL has now copied the data. Free our own version
 
       // Trilinear filtering.
@@ -351,7 +443,7 @@ namespace cgs
       glGenerateMipmap(GL_TEXTURE_2D);
 
       // Return the ID of the texture we just created
-      return textureID;
+      return texture_id;
     }
 
     void render_mesh(mesh_id mid, const glm::vec3 light_pos, const glm::mat4& model_matrix, const glm::mat4& view_matrix, const glm::mat4& projection_matrix)
@@ -436,6 +528,75 @@ namespace cgs
         }
       }
     }
+
+    // loads a cubemap texture from 6 individual texture faces
+    // order:
+    // +X (right)
+    // -X (left)
+    // +Y (top)
+    // -Y (bottom)
+    // +Z (front) 
+    // -Z (back)
+    // -------------------------------------------------------
+    bool load_cubemap(const std::vector<std::string>& faces, GLuint* cubemap_texture)
+    {
+        unsigned int texture_id;
+        glGenTextures(1, &texture_id);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, texture_id);
+
+        for (unsigned int i = 0; i < faces.size(); i++)
+        {
+          log(LOG_LEVEL_DEBUG, "load_cubemap: loading image from path " + faces[i]);
+
+          FREE_IMAGE_FORMAT format = FreeImage_GetFileType(faces[i].c_str(), 0); // automatically detects the format(from over 20 formats!)
+          FIBITMAP* image = FreeImage_Load(format, faces[i].c_str());
+          if (image == nullptr) {
+            log(LOG_LEVEL_ERROR, "load_cubemap: could not find image in path " + faces[i]);
+            FreeImage_Unload(image);
+            return false;
+          }
+          // In FreeImage, images are store upside-down in memory (see the PDF doc about pixel
+          // access). For normal textures this is matches what OpenGL expects, but for cubemaps
+          // OpenGL follows the RenderMan criteria, which requires flipping the images. You can flip
+          // the images on disk, or by software. Here we opted for the second approach.
+          FreeImage_FlipVertical(image);
+          unsigned int width = FreeImage_GetWidth(image);
+          unsigned int height = FreeImage_GetHeight(image);
+          unsigned int depth = FreeImage_GetBPP(image) / 8;
+          unsigned int red_mask = FreeImage_GetRedMask(image);
+          unsigned int green_mask = FreeImage_GetGreenMask(image);
+          unsigned int blue_mask = FreeImage_GetBlueMask(image);
+          char* fi_data = (char*) FreeImage_GetBits(image);
+          std::vector<char> data(depth * width * height);
+          std::memcpy(&data[0], fi_data, depth * width * height);
+          FreeImage_Unload(image);
+
+          std::ostringstream oss;
+          oss << "load_cubemap: loaded image of (width x height) = " << width << " x " << height
+              << " pixels, " << depth * width * height << " bytes in total" << ", bytes by pixel: " << depth
+              << std::hex << ", red mask: " << red_mask << ", green mask: " << green_mask << ", blue mask: " << blue_mask;
+          log(LOG_LEVEL_DEBUG, oss.str());
+
+          // Note about image format: when running in another OS you may need to change RGB to BGR for
+          // the raw data to be interpreted correctly. From the FreeImage doc: However, the pixel layout
+          // used by this model is OS dependant. Using a byte by byte memory order to label the pixel
+          // layout, then FreeImage uses a BGR[A] pixel layout under a Little Endian processor (Windows,
+          // Linux) and uses a RGB[A] pixel layout under a Big Endian processor (Mac OS X or any Big
+          // Endian Linux / Unix). This choice was made to ease the use of FreeImage with graphics API.
+          // When runing on Linux, FreeImage stores data in BGR format.
+          // The format (7th argument) argument specifies the format of the data we pass in, stored in client memory
+          glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB, width, height, 0, GL_BGR, GL_UNSIGNED_BYTE, &data[0]);
+        }
+
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+        *cubemap_texture = texture_id;
+        return true;
+    }
   } // anonymous namespace
 
   //-----------------------------------------------------------------------------------------------
@@ -512,21 +673,21 @@ namespace cgs
     // remember which buffer is bound to which attribute and various other things. This reduces the
     // number of OpenGL calls before glDrawArrays/Elements(). Since OpenGL 3 Core, they are
     // compulsory, but you may use only one and modify it permanently.
-    glGenVertexArrays(1, &vertex_array_id);
-    glBindVertexArray(vertex_array_id);
+    glGenVertexArrays(1, &object_vao_id);
 
     // Create and compile our GLSL program from the shaders
-    bool shaders_ok = load_shaders("../../shaders/vertex_shader.glsl", "../../shaders/fragment_shader.glsl");
-    if (!shaders_ok) {
-      log(LOG_LEVEL_ERROR, "open_window: failed to load shaders");
+    bool ok = load_shaders(object_vertex_shader, object_fragment_shader, &object_program_id);
+    if (!ok) {
+      log(LOG_LEVEL_ERROR, "open_window: failed to load object shaders");
       glfwTerminate();
       return false;
     }
 
+
     // Get a handle for our "mvp" uniform
-    matrix_id = glGetUniformLocation(program_id, "mvp");
-    view_matrix_id = glGetUniformLocation(program_id, "V");
-    model_matrix_id = glGetUniformLocation(program_id, "M");
+    matrix_id = glGetUniformLocation(object_program_id, "mvp");
+    view_matrix_id = glGetUniformLocation(object_program_id, "V");
+    model_matrix_id = glGetUniformLocation(object_program_id, "M");
 
     for (mesh_id mid = get_first_mesh(); mid != nmesh; mid = get_next_mesh(mid)) {
       std::vector<glm::vec3> vertices = get_mesh_vertices(mid);
@@ -538,7 +699,7 @@ namespace cgs
       // Load the texture
       GLuint texture_id = load_texture(texture_path.c_str());
       // Get a handle for our "myTextureSampler" uniform
-      texture_sampler_id = glGetUniformLocation(program_id, "myTextureSampler");
+      texture_sampler_id = glGetUniformLocation(object_program_id, "myTextureSampler");
 
       // Load it into a VBO
       GLuint positions_vbo_id = 0U;
@@ -574,8 +735,42 @@ namespace cgs
     }
 
     // Get a handle for our "LightPosition" uniform
-    glUseProgram(program_id);
-    light_id = glGetUniformLocation(program_id, "LightPosition_worldspace");
+    glUseProgram(object_program_id);
+    light_id = glGetUniformLocation(object_program_id, "LightPosition_worldspace");
+
+    ////////////////////////////////////////////////////////////////////////////////////
+    // Skybox initialization
+    ////////////////////////////////////////////////////////////////////////////////////
+
+    // Create and compile our GLSL program from the shaders
+    ok = load_shaders(skybox_vertex_shader, skybox_fragment_shader, &skybox_program_id);
+    if (!ok) {
+      log(LOG_LEVEL_ERROR, "open_window: failed to load skybox shaders");
+      glfwTerminate();
+      return false;
+    }
+
+    for (cubemap_id cid = get_first_cubemap(); cid != ncubemap; cid = get_next_cubemap(cid)) {
+      // skybox VAO and VBO
+      skybox_context context;
+      glGenVertexArrays(1, &context.mvao_id);
+      glGenBuffers(1, &context.mvbo_id);
+      glBindVertexArray(context.mvao_id);
+      glBindBuffer(GL_ARRAY_BUFFER, context.mvbo_id);
+      glBufferData(GL_ARRAY_BUFFER, sizeof(skybox_vertices), &skybox_vertices, GL_STATIC_DRAW);
+      glEnableVertexAttribArray(0);
+      glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+
+      std::vector<std::string> faces = get_cubemap_faces(cid);
+      ok = load_cubemap(faces, &context.mtexture_id);
+      if (!ok) {
+        log(LOG_LEVEL_ERROR, "open_window: failed to load skybox textures");
+        glfwTerminate();
+        return false;
+      }
+
+      skybox_contexts[cid] = context;
+    }
 
     return true;
   }
@@ -590,17 +785,22 @@ namespace cgs
         glDeleteBuffers(1, &it->second.mindices_vbo_id);
         glDeleteTextures(1, &it->second.mtexture_id);
       }
+      glDeleteProgram(object_program_id);
 
-      glDeleteProgram(program_id);
-      glDeleteVertexArrays(1, &vertex_array_id);
+      glDeleteProgram(skybox_program_id);
+      for (auto it = skybox_contexts.begin(); it != skybox_contexts.end(); it++) {
+        glDeleteBuffers(1, &it->second.mvbo_id);
+        glDeleteVertexArrays(1, &it->second.mvao_id);
+        glDeleteTextures(1, &it->second.mtexture_id);
+      }
+
       glfwTerminate();
       window = nullptr;
       ok = false;
       mesh_contexts.clear();
-      vertex_array_id = 0U;
-      vertex_shader_id = 0U;
-      fragment_shader_id = 0U;
-      program_id = 0U;
+      object_vao_id = 0U;
+      object_program_id = 0U;
+      skybox_program_id = 0U;
       matrix_id = 0U;
       view_matrix_id = 0U;
       model_matrix_id = 0U;
@@ -618,11 +818,13 @@ namespace cgs
     if (!is_view_enabled(v)) {
       log(LOG_LEVEL_ERROR, "render: view is not enabled"); return;
     }
-    // Use our shader
-    glUseProgram(program_id);
 
     // For each layer in the view
     for (layer_id l = get_first_layer(v); l != nlayer && is_layer_enabled(l); l = get_next_layer(l)) {
+      // Use our shader
+      glUseProgram(object_program_id);
+      glBindVertexArray(object_vao_id);
+
       // Get view and projection matrices for the layer
       glm::mat4 projection_matrix;
       get_layer_projection_transform(l, &projection_matrix);
@@ -651,7 +853,27 @@ namespace cgs
           }
         }
       }
+
+      cubemap_id skybox_id = get_layer_skybox(l);
+      if (skybox_id != ncubemap) {
+        // Render the skybox
+        glUseProgram(skybox_program_id);
+        glUniform1i(glGetUniformLocation(skybox_program_id, "skybox"), 0);
+        glDepthFunc(GL_LEQUAL);  // change depth function so depth test passes when values are equal to depth buffer's content
+        glm::mat4 skybox_view = glm::mat4(glm::mat3(view_matrix)); // remove translation from the view matrix
+        glUniformMatrix4fv(glGetUniformLocation(skybox_program_id, "view"), 1, GL_FALSE, &skybox_view[0][0]);
+        glUniformMatrix4fv(glGetUniformLocation(skybox_program_id, "projection"), 1, GL_FALSE, &projection_matrix[0][0]);
+        // skybox cube
+        cubemap_context_map::iterator it = skybox_contexts.find(l);
+        glBindVertexArray(it->second.mvao_id);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, it->second.mtexture_id);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+        glBindVertexArray(0);
+        glDepthFunc(GL_LESS); // set depth function back to default
+      }
     }
+
 
     // Swap buffers
     glfwSwapBuffers(window);

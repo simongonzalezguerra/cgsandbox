@@ -24,6 +24,7 @@ namespace model_viewer
     // Internal declarations
     //-----------------------------------------------------------------------------------------------
     cgs::resource_id s_resource_root = cgs::nresource;
+    cgs::cubemap_id  s_skybox_id     = cgs::ncubemap;
     bool s_ok = false;
   } // anonymous namespace
 
@@ -93,9 +94,22 @@ namespace model_viewer
       s_ok = false;
     }
 
+    s_skybox_id = cgs::add_cubemap();
+    std::vector<std::string> skybox_faces
+    {
+        "../../../resources/skybox_sea/right.jpg",
+        "../../../resources/skybox_sea/left.jpg",
+        "../../../resources/skybox_sea/top.jpg",
+        "../../../resources/skybox_sea/bottom.jpg",
+        "../../../resources/skybox_sea/back.jpg",
+        "../../../resources/skybox_sea/front.jpg"
+    };
+    cgs::set_cubemap_faces(s_skybox_id, skybox_faces);
+
     bool window_ok = cgs::open_window(1920, 1080, true);
     if (!window_ok) {
       s_ok = false;
+      return;
     }
 
     s_ok = true;
@@ -112,6 +126,7 @@ namespace model_viewer
   {
     m_impl->m_view = cgs::add_view();
     m_impl->m_layer = cgs::add_layer(m_impl->m_view);
+    cgs::set_layer_skybox(m_impl->m_layer, s_skybox_id);
     // cgs::set_layer_projection_transform(m_impl->m_layer, glm::perspective(cgs::fov_to_fovy(fov, 1920.0f, 1080.0f), 1920.0f / 1080.0f, 0.1f, 100.0f));
     m_impl->m_object_root = cgs::add_node(m_impl->m_layer, cgs::root_node, s_resource_root);
     cgs::set_light_position(m_impl->m_layer, glm::vec3(4.0f, 4.0f, 4.0f));

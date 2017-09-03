@@ -65,7 +65,8 @@ namespace cgs
         mnext_layer(nlayer),
         mlight(light{}),
         mview_transform{1.0f},
-        mprojection_transform{1.0f} {}
+        mprojection_transform{1.0f},
+        mskybox(ncubemap) {}
 
       view_id mview;                     //!< id of the view this layer belongs to
       bool menabled;                     //!< is this layer enabled?
@@ -74,6 +75,7 @@ namespace cgs
       light mlight;                      //!< light source (one for the whole layer)
       glm::mat4 mview_transform;         //!< the view transform used to render all objects in the layer
       glm::mat4 mprojection_transform;   //!< the projection transform used to render all objects in the layer
+      cubemap_id mskybox;                //!< the id of the cubemap to use as skybox (can be ncubemap)
     };
 
     typedef std::vector<layer> layer_vector;
@@ -230,6 +232,24 @@ namespace cgs
     }
 
     *projection_transform = layers[l].mprojection_transform;
+  }
+
+  void set_layer_skybox(layer_id l, cubemap_id id)
+  {
+    if (!(l < layers.size())) {
+      log(LOG_LEVEL_ERROR, "set_layer_skybox error: invalid arguments"); return;
+    }
+
+    layers[l].mskybox = id;
+  }
+
+  cubemap_id get_layer_skybox(layer_id l)
+  {
+    if (!(l < layers.size())) {
+      log(LOG_LEVEL_ERROR, "get_layer_skybox error: invalid arguments"); return ncubemap;
+    }
+
+    return layers[l].mskybox;
   }
 
   node_id add_node(layer_id l, node_id parent)

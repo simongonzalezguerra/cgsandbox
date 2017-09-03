@@ -62,12 +62,22 @@ namespace cgs
 
     typedef std::vector<resource> resource_vector;
 
+    struct cubemap
+    {
+      cubemap() : mfaces() {}
+
+      std::vector<std::string> mfaces;          //!< paths to image files containing the six faces of the cubemap
+    };
+
+    typedef std::vector<cubemap> cubemap_vector;
+
     //---------------------------------------------------------------------------------------------
     // Internal data structures
     //---------------------------------------------------------------------------------------------
     material_vector materials;                  //!< collection of all the materials
     mesh_vector meshes;                         //!< collection of all the meshes
     resource_vector resources;                  //!< collection of all the resources
+    cubemap_vector cubemaps;                    //!< collection of all the cubemaps
   } // anonymous namespace
 
   //-----------------------------------------------------------------------------------------------
@@ -82,6 +92,8 @@ namespace cgs
     resources.clear();
     resources.reserve(2048);
     resources.push_back(resource{});
+    cubemaps.clear();
+    cubemaps.reserve(10);
   }
 
   mat_id add_material()
@@ -355,4 +367,39 @@ namespace cgs
 
     return resources[r].mnext_sibling;
   }
+
+  cubemap_id add_cubemap()
+  {
+    cubemaps.push_back(cubemap{});
+    return cubemaps.size() - 1;
+  }
+
+  void set_cubemap_faces(cubemap_id id, const std::vector<std::string>& faces)
+  {
+    if (!(id < cubemaps.size())) {
+      log(LOG_LEVEL_ERROR, "set_cubemap_faces error: invalid cubemap id"); return;
+    }
+
+    cubemaps[id].mfaces = faces;
+  }
+
+  std::vector<std::string> get_cubemap_faces(cubemap_id id)
+  {
+    if (!(id < cubemaps.size())) {
+      log(LOG_LEVEL_ERROR, "get_cubemap_faces error: invalid cubemap id"); return std::vector<std::string>();
+    }
+
+    return cubemaps[id].mfaces;
+  }
+
+  cubemap_id get_first_cubemap()
+  {
+    return (cubemaps.size() ? 0 : ncubemap);
+  }
+
+  cubemap_id get_next_cubemap(cubemap_id id)
+  {
+    return (id + 1 < cubemaps.size()? id + 1 : ncubemap);
+  }
+
 } // namespace cgs

@@ -49,6 +49,7 @@ namespace cgs
   //-----------------------------------------------------------------------------------------------
   constexpr node_id root_node = 0;
 
+
   //-----------------------------------------------------------------------------------------------
   //! @brief Initializes scene graph state.
   //! @remark This function clears all existing views, layers and nodes.
@@ -104,6 +105,9 @@ namespace cgs
   void get_layer_view_transform(layer_id layer, glm::mat4* view_transform);
   void set_layer_projection_transform(layer_id layer, const glm::mat4& projection_transform);
   void get_layer_projection_transform(layer_id layer, glm::mat4* projection_transform);
+
+  void set_layer_skybox(layer_id layer, cubemap_id id);
+  cubemap_id get_layer_skybox(layer_id layer);
 
   //-----------------------------------------------------------------------------------------------
   //! @brief Returns if a layer is enabled for rendering or not.

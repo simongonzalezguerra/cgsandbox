@@ -34,6 +34,11 @@ namespace cgs
   typedef std::size_t resource_id;
 
   //-----------------------------------------------------------------------------------------------
+  //! @brief Handle to a cubemap.
+  //-----------------------------------------------------------------------------------------------
+  typedef std::size_t cubemap_id;
+
+  //-----------------------------------------------------------------------------------------------
   // Constants
   //-----------------------------------------------------------------------------------------------
 
@@ -60,6 +65,12 @@ namespace cgs
   //!  It always exists.
   //-----------------------------------------------------------------------------------------------
   constexpr resource_id root_resource = 0;
+
+  //-----------------------------------------------------------------------------------------------
+  //! @brief Constant representing 'not a cubemap'. Used as a wildcard when iterating the
+  //!  cubemaps to indicate the end of the sequence has been reached.
+  //-----------------------------------------------------------------------------------------------
+  constexpr cubemap_id ncubemap = -1;
 
   //-----------------------------------------------------------------------------------------------
   //! @brief Initializes the resource database.
@@ -164,6 +175,12 @@ namespace cgs
   //! @return Id of the next sibling, or nresource if there are no siblings.
   //-----------------------------------------------------------------------------------------------
   resource_id get_next_sibling_resource(resource_id resource);
+
+  cubemap_id add_cubemap();
+  void set_cubemap_faces(cubemap_id id, const std::vector<std::string>& faces);
+  std::vector<std::string> get_cubemap_faces(cubemap_id id);
+  cubemap_id get_first_cubemap();
+  cubemap_id get_next_cubemap(cubemap_id id);
 } // namespace cgs
 
 #endif // RESOURCE_DATABASE_HPP
