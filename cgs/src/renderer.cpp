@@ -636,7 +636,7 @@ namespace cgs
     // after calling glfwMakeContextCurrent, since it acts on the current context, and the context
     // created with glfwCreateWindow is not current until we make it explicitly so with
     // glfwMakeContextCurrent
-    glfwSwapInterval(0);
+    glfwSwapInterval(1);
 
     // Initialize GLEW
     glewExperimental = true; // Needed for core profile
