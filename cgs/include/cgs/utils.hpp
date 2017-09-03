@@ -3,7 +3,7 @@
 
 namespace cgs
 {
-  float fov_to_fovy(float fov_degrees, float window_width, float window_height);
+    float fov_to_fovy(float fov_degrees, float window_width, float window_height);
 }
 
 #endif
