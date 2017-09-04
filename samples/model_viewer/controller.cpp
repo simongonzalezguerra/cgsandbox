@@ -25,7 +25,7 @@ namespace model_viewer
     //-----------------------------------------------------------------------------------------------
     cgs::resource_id s_resource_root = cgs::nresource;
     cgs::cubemap_id  s_skybox_id     = cgs::ncubemap;
-    bool s_ok = false;
+    bool             s_ok            = false;
   } // anonymous namespace
 
   class controller::controller_impl
@@ -127,11 +127,22 @@ namespace model_viewer
     m_impl->m_view = cgs::add_view();
     m_impl->m_layer = cgs::add_layer(m_impl->m_view);
     cgs::set_layer_skybox(m_impl->m_layer, s_skybox_id);
-    // cgs::set_layer_projection_transform(m_impl->m_layer, glm::perspective(cgs::fov_to_fovy(fov, 1920.0f, 1080.0f), 1920.0f / 1080.0f, 0.1f, 100.0f));
-    m_impl->m_object_root = cgs::add_node(m_impl->m_layer, cgs::root_node, s_resource_root);
-    cgs::set_light_position(m_impl->m_layer, glm::vec3(4.0f, 4.0f, 4.0f));
-    m_impl->m_last_time = cgs::get_time();
+    cgs::set_directional_light_ambient_color(m_impl->m_layer,  glm::vec3(0.05f, 0.05f, 0.05f));
+    cgs::set_directional_light_diffuse_color(m_impl->m_layer,  glm::vec3(0.5f, 0.5f, 0.5f));
+    cgs::set_directional_light_specular_color(m_impl->m_layer, glm::vec3(0.5f, 0.5f, 0.5f));
+    cgs::set_directional_light_direction(m_impl->m_layer, glm::vec3(0.0f, -1.0f, 0.0f));
 
+    m_impl->m_object_root = cgs::add_node(m_impl->m_layer, cgs::root_node, s_resource_root);
+    cgs::point_light_id point_light = cgs::add_point_light(m_impl->m_layer);
+    cgs::set_point_light_position(m_impl->m_layer, point_light, glm::vec3(4.0f, 4.0f, 4.0f));
+    cgs::set_point_light_ambient_color(m_impl->m_layer, point_light, glm::vec3(0.1f, 0.1f, 0.1f));
+    cgs::set_point_light_diffuse_color(m_impl->m_layer, point_light, glm::vec3(1.0f, 1.0f, 1.0f));
+    cgs::set_point_light_specular_color(m_impl->m_layer, point_light, glm::vec3(0.3f, 0.3f, 0.3f));
+    cgs::set_point_light_constant_attenuation(m_impl->m_layer, point_light, 1.0f);
+    cgs::set_point_light_linear_attenuation(m_impl->m_layer, point_light, 0.0f); // Be careful with this parameter, it can dim your point light pretty fast
+    cgs::set_point_light_quadratic_attenuation(m_impl->m_layer, point_light, 0.0f); // Be careful with this parameter, it can dim your point light pretty fast
+
+    m_impl->m_last_time = cgs::get_time();
 
     m_impl->m_fps_camera_controller.set_layer(m_impl->m_layer);
     m_impl->m_fps_camera_controller.set_position(glm::vec3(-2.91f, 15.35f, 26.09f));
@@ -146,7 +157,7 @@ namespace model_viewer
     m_impl->m_perspective_controller.set_fov_speed(0.5f);
     m_impl->m_perspective_controller.set_fov(120.0f);
 
-    m_impl->m_sim_rotation_speed = 2.0f;
+    m_impl->m_sim_rotation_speed = 1.5f;
     m_impl->m_sim_rotation_yaw = 0.0f;
   }
 

@@ -33,18 +33,41 @@ namespace cgs
                 menabled(true),
                 mused(true) {}
 
-            std::vector<mesh_id> mmeshes;  //!< meshes in this node
-            glm::mat4 mlocal_transform;    //!< node transform relative to the parent
-            glm::mat4 maccum_transform;    //!< node transform relative to the root
-            node_id mfirst_child;          //!< first child node of this node
-            node_id mnext_sibling;         //!< next sibling node of this node
-            bool menabled;                 //!< is this node enabled? (if it is not, all descendants are ignored when rendering)
-            bool mused;                    //!< is this cell used? (used for soft deletion)
+            std::vector<mesh_id> mmeshes;           //!< meshes in this node
+            glm::mat4            mlocal_transform;  //!< node transform relative to the parent
+            glm::mat4            maccum_transform;  //!< node transform relative to the root
+            node_id              mfirst_child;      //!< first child node of this node
+            node_id              mnext_sibling;     //!< next sibling node of this node
+            bool                 menabled;          //!< is this node enabled? (if it is not, all descendants are ignored when rendering)
+            bool                 mused;             //!< is this cell used? (used for soft deletion)
         };
 
         typedef std::vector<node> node_vector;
         typedef node_vector::iterator node_iterator;
 
+        struct point_light
+        {
+            point_light() :
+                mposition(0.0f),
+                mambient_color(0.0f),
+                mdiffuse_color(0.0f),
+                mspecular_color(0.0f),
+                mconstant_attenuation(0.0f),
+                mlinear_attenuation(0.0f),
+                mquadratic_attenuation(0.0f) {}
+
+            glm::vec3 mposition;
+            glm::vec3 mambient_color;
+            glm::vec3 mdiffuse_color;
+            glm::vec3 mspecular_color;
+            float     mconstant_attenuation;
+            float     mlinear_attenuation;
+            float     mquadratic_attenuation;
+        };
+
+        typedef std::vector<point_light> point_light_vector;
+
+        // TODO DELETE THIS
         struct light
         {
             light() :
@@ -63,23 +86,30 @@ namespace cgs
                 mview(0),
                 menabled(false),
                 mnext_layer(nlayer),
+                // TODO DELETE THIS
                 mlight(light{}),
                 mview_transform{1.0f},
                 mprojection_transform{1.0f},
-                mskybox(ncubemap) {}
+                mskybox(ncubemap),
+                mpoint_lights() {}
 
-            view_id mview;                     //!< id of the view this layer belongs to
-            bool menabled;                     //!< is this layer enabled?
-            layer_id mnext_layer;              //!< id of the next layer in the view this layer belongs to
-            node_vector mnodes;                //!< collection of all the nodes in this layer
-            light mlight;                      //!< light source (one for the whole layer)
-            glm::mat4 mview_transform;         //!< the view transform used to render all objects in the layer
-            glm::mat4 mprojection_transform;   //!< the projection transform used to render all objects in the layer
-            cubemap_id mskybox;                //!< the id of the cubemap to use as skybox (can be ncubemap)
+            view_id            mview;                             //!< id of the view this layer belongs to
+            bool               menabled;                          //!< is this layer enabled?
+            layer_id           mnext_layer;                       //!< id of the next layer in the view this layer belongs to
+            node_vector        mnodes;                            //!< collection of all the nodes in this layer
+            // TODO DELETE THIS
+            light              mlight;                            //!< light source (one for the whole layer)
+            glm::mat4          mview_transform;                   //!< the view transform used to render all objects in the layer
+            glm::mat4          mprojection_transform;             //!< the projection transform used to render all objects in the layer
+            cubemap_id         mskybox;                           //!< the id of the cubemap to use as skybox (can be ncubemap)
+            glm::vec3          mdirectional_light_ambient_color;  //!< ambient color of the directional light
+            glm::vec3          mdirectional_light_diffuse_color;  //!< diffuse color of the directional light
+            glm::vec3          mdirectional_light_specular_color; //!< specular color of the directional light
+            glm::vec3          mdirectional_light_direction;      //!< direction of the directional light
+            point_light_vector mpoint_lights;                     //!< collection of all the point lights in this layer
         };
 
         typedef std::vector<layer> layer_vector;
-
 
         //---------------------------------------------------------------------------------------------
         // Internal data structures
@@ -417,6 +447,158 @@ namespace cgs
         return layers[l].mnodes[n].mnext_sibling;
     }
 
+    void set_directional_light_ambient_color(layer_id l, glm::vec3 ambient_color)
+    {
+        if (l < layers.size()) {
+            layers[l].mdirectional_light_ambient_color = ambient_color;
+        }
+    }
+
+    void set_directional_light_diffuse_color(layer_id l, glm::vec3 diffuse_color)
+    {
+        if (l < layers.size()) {
+            layers[l].mdirectional_light_diffuse_color = diffuse_color;
+        }
+    }
+
+    void set_directional_light_specular_color(layer_id l, glm::vec3 specular_color)
+    {
+        if (l < layers.size()) {
+            layers[l].mdirectional_light_specular_color = specular_color;
+        }
+    }
+
+    void set_directional_light_direction(layer_id l, glm::vec3 direction)
+    {
+        if (l < layers.size()) {
+            layers[l].mdirectional_light_direction = direction;
+        }
+    }
+
+    glm::vec3 get_directional_light_ambient_color(layer_id l)
+    {
+        return (l < layers.size()? layers[l].mdirectional_light_ambient_color : glm::vec3());
+    }
+
+    glm::vec3 get_directional_light_diffuse_color(layer_id l)
+    {
+        return (l < layers.size()? layers[l].mdirectional_light_diffuse_color : glm::vec3());
+    }
+
+    glm::vec3 get_directional_light_specular_color(layer_id l)
+    {
+        return (l < layers.size()? layers[l].mdirectional_light_specular_color : glm::vec3());
+    }
+
+    glm::vec3 get_directional_light_direction(layer_id l)
+    {
+        return (l < layers.size()? layers[l].mdirectional_light_direction : glm::vec3());
+    }
+
+    point_light_id add_point_light(layer_id layer)
+    {
+        if (!(layer < layers.size())) { return npoint_light; }
+        layers[layer].mpoint_lights.push_back(point_light{});
+        return layers[layer].mpoint_lights.size() - 1;
+    }
+
+    point_light_id get_first_point_light(layer_id layer)
+    {
+        if (!(layer < layers.size())) { return npoint_light; }
+        return (layers[layer].mpoint_lights.size()? 0U : npoint_light);
+    }
+
+    point_light_id get_next_point_light(layer_id layer, point_light_id light)
+    {
+        if (!(layer < layers.size())) { return npoint_light; }
+        return (light + 1 < layers[layer].mpoint_lights.size()? light + 1 : npoint_light);
+    }
+
+    void set_point_light_position(layer_id layer, point_light_id light, glm::vec3 position)
+    {
+        if (!(layer < layers.size() && light < layers[layer].mpoint_lights.size())) { return; }
+        layers[layer].mpoint_lights[light].mposition = position;
+    }
+
+    void set_point_light_ambient_color(layer_id layer, point_light_id light, glm::vec3 ambient_color)
+    {
+        if (!(layer < layers.size() && light < layers[layer].mpoint_lights.size())) { return; }
+        layers[layer].mpoint_lights[light].mambient_color = ambient_color;
+    }
+
+    void set_point_light_diffuse_color(layer_id layer, point_light_id light, glm::vec3 diffuse_color)
+    {
+        if (!(layer < layers.size() && light < layers[layer].mpoint_lights.size())) { return; }
+        layers[layer].mpoint_lights[light].mdiffuse_color = diffuse_color;
+    }
+
+    void set_point_light_specular_color(layer_id layer, point_light_id light, glm::vec3 specular_color)
+    {
+        if (!(layer < layers.size() && light < layers[layer].mpoint_lights.size())) { return; }
+        layers[layer].mpoint_lights[light].mspecular_color = specular_color;
+    }
+
+    void set_point_light_constant_attenuation(layer_id layer, point_light_id light, float constant_attenuation)
+    {
+        if (!(layer < layers.size() && light < layers[layer].mpoint_lights.size())) { return; }
+        layers[layer].mpoint_lights[light].mconstant_attenuation = constant_attenuation;
+    }
+
+    void set_point_light_linear_attenuation(layer_id layer, point_light_id light, float linear_attenuation)
+    {
+        if (!(layer < layers.size() && light < layers[layer].mpoint_lights.size())) { return; }
+        layers[layer].mpoint_lights[light].mlinear_attenuation = linear_attenuation;
+    }
+
+    void set_point_light_quadratic_attenuation(layer_id layer, point_light_id light, float quadratic_attenuation)
+    {
+        if (!(layer < layers.size() && light < layers[layer].mpoint_lights.size())) { return; }
+        layers[layer].mpoint_lights[light].mquadratic_attenuation = quadratic_attenuation;
+    }
+
+    glm::vec3 get_point_light_position(layer_id layer, point_light_id light)
+    {
+        if (!(layer < layers.size() && light < layers[layer].mpoint_lights.size())) { return glm::vec3(); }
+        return layers[layer].mpoint_lights[light].mposition;
+    }
+
+    glm::vec3 get_point_light_ambient_color(layer_id layer, point_light_id light)
+    {
+        if (!(layer < layers.size() && light < layers[layer].mpoint_lights.size())) { return glm::vec3(); }
+        return layers[layer].mpoint_lights[light].mambient_color;
+    }
+
+    glm::vec3 get_point_light_diffuse_color(layer_id layer, point_light_id light)
+    {
+        if (!(layer < layers.size() && light < layers[layer].mpoint_lights.size())) { return glm::vec3(); }
+        return layers[layer].mpoint_lights[light].mdiffuse_color;
+    }
+
+    glm::vec3 get_point_light_specular_color(layer_id layer, point_light_id light)
+    {
+        if (!(layer < layers.size() && light < layers[layer].mpoint_lights.size())) { return glm::vec3(); }
+        return layers[layer].mpoint_lights[light].mspecular_color;
+    }
+
+    float get_point_light_constant_attenuation(layer_id layer, point_light_id light)
+    {
+        if (!(layer < layers.size() && light < layers[layer].mpoint_lights.size())) { return 0.0f; }
+        return layers[layer].mpoint_lights[light].mconstant_attenuation;
+    }
+
+    float get_point_light_linear_attenuation(layer_id layer, point_light_id light)
+    {
+        if (!(layer < layers.size() && light < layers[layer].mpoint_lights.size())) { return 0.0f; }
+        return layers[layer].mpoint_lights[light].mlinear_attenuation;
+    }
+
+    float get_point_light_quadratic_attenuation(layer_id layer, point_light_id light)
+    {
+        if (!(layer < layers.size() && light < layers[layer].mpoint_lights.size())) { return 0.0f; }
+        return layers[layer].mpoint_lights[light].mquadratic_attenuation;
+    }
+
+    // TODO DELETE THIS
     void set_light_position(layer_id l, glm::vec3 position)
     {
         if (!(l < layers.size())) {

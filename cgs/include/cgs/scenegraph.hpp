@@ -28,6 +28,11 @@ namespace cgs
     typedef std::size_t node_id;
 
     //-----------------------------------------------------------------------------------------------
+    //! @brief Handle to a point light.
+    //-----------------------------------------------------------------------------------------------
+    typedef std::size_t point_light_id;
+
+    //-----------------------------------------------------------------------------------------------
     // Constants
     //-----------------------------------------------------------------------------------------------
 
@@ -49,6 +54,11 @@ namespace cgs
     //-----------------------------------------------------------------------------------------------
     constexpr node_id root_node = 0;
 
+    //-----------------------------------------------------------------------------------------------
+    //! @brief Constant representing 'not a point light'. Used as a wildcard when iterating the
+    //!  point lights to indicate the end of the sequence has been reached.
+    //-----------------------------------------------------------------------------------------------
+    constexpr node_id npoint_light = -1;
 
     //-----------------------------------------------------------------------------------------------
     //! @brief Initializes scene graph state.
@@ -235,6 +245,34 @@ namespace cgs
     //-----------------------------------------------------------------------------------------------
     node_id get_next_sibling_node(layer_id layer, node_id node);
 
+    void set_directional_light_ambient_color(layer_id layer, glm::vec3 ambient_color);
+    void set_directional_light_diffuse_color(layer_id layer, glm::vec3 diffuse_color);
+    void set_directional_light_specular_color(layer_id layer, glm::vec3 specular_color);
+    void set_directional_light_direction(layer_id layer, glm::vec3 direction); // from the light to the objects
+    glm::vec3 get_directional_light_ambient_color(layer_id layer);
+    glm::vec3 get_directional_light_diffuse_color(layer_id layer);
+    glm::vec3 get_directional_light_specular_color(layer_id layer);
+    glm::vec3 get_directional_light_direction(layer_id layer);
+
+    point_light_id add_point_light(layer_id layer);
+    point_light_id get_first_point_light(layer_id layer);
+    point_light_id get_next_point_light(layer_id layer, point_light_id light);
+    void set_point_light_position(layer_id layer, point_light_id light, glm::vec3 position);
+    void set_point_light_ambient_color(layer_id layer, point_light_id light, glm::vec3 ambient_color);
+    void set_point_light_diffuse_color(layer_id layer, point_light_id light, glm::vec3 diffuse_color);
+    void set_point_light_specular_color(layer_id layer, point_light_id light, glm::vec3 specular_color);
+    void set_point_light_constant_attenuation(layer_id layer, point_light_id light, float constant_attenuation);
+    void set_point_light_linear_attenuation(layer_id layer, point_light_id light, float linear_attenuation);
+    void set_point_light_quadratic_attenuation(layer_id layer, point_light_id light, float quadratic_attenuation);
+    glm::vec3 get_point_light_position(layer_id layer, point_light_id light);
+    glm::vec3 get_point_light_ambient_color(layer_id layer, point_light_id light);
+    glm::vec3 get_point_light_diffuse_color(layer_id layer, point_light_id light);
+    glm::vec3 get_point_light_specular_color(layer_id layer, point_light_id light);
+    float get_point_light_constant_attenuation(layer_id layer, point_light_id light);
+    float get_point_light_linear_attenuation(layer_id layer, point_light_id light);
+    float get_point_light_quadratic_attenuation(layer_id layer, point_light_id light);
+
+    // TODO DELETE THIS
     void set_light_position(layer_id layer, glm::vec3 position);
     glm::vec3 get_light_position(layer_id layer);
     void set_light_color(layer_id layer, glm::vec3 color);

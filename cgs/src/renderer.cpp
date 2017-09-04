@@ -24,14 +24,18 @@ namespace cgs
         //---------------------------------------------------------------------------------------------
         // Internal declarations
         //---------------------------------------------------------------------------------------------
+        // WARNING: this constant is also defined inside the object fragment shader
+        constexpr std::size_t MAX_POINT_LIGHTS = 10;
+
         struct mesh_context
         {
-            GLuint mpositions_vbo_id;
-            GLuint muvs_vbo_id;
-            GLuint mnormals_vbo_id;
-            GLuint mindices_vbo_id;
-            GLuint mtexture_id;
-            GLuint mnum_indices;
+            GLuint  mpositions_vbo_id;
+            GLuint  muvs_vbo_id;
+            GLuint  mnormals_vbo_id;
+            GLuint  mindices_vbo_id;
+            GLuint  mtexture_id;
+            GLuint  mnum_indices;
+            GLfloat msmoothness;
         };
 
         struct skybox_context
@@ -41,154 +45,215 @@ namespace cgs
             GLuint mtexture_id;
         };
 
-        typedef std::map<mesh_id, mesh_context> mesh_context_map;
+        struct dirlight_data
+        {
+            glm::vec3 mambient_color;
+            glm::vec3 mdiffuse_color;
+            glm::vec3 mspecular_color;
+            glm::vec3 mdirection;
+        };
+
+        typedef std::map<mesh_id, mesh_context>      mesh_context_map;
         typedef std::map<cubemap_id, skybox_context> cubemap_context_map;
-        typedef std::map<int, event_type> key_event_type_map;
-        typedef key_event_type_map::iterator event_type_it;
-        typedef std::map<int, std::string> error_code_map;
+        typedef std::map<int, event_type>            key_event_type_map;
+        typedef key_event_type_map::iterator         event_type_it;
+        typedef std::map<int, std::string>           error_code_map;
 
         //---------------------------------------------------------------------------------------------
         // Internal data structures
         //---------------------------------------------------------------------------------------------
+        // Based on the shaders from
+        //     http://www.opengl-tutorial.org/beginners-tutorials/tutorial-8-basic-shading/
+        //     https://learnopengl.com/#!Lighting/Multiple-lights
         const char* object_vertex_shader = R"glsl(
-#version 330 core
+            #version 330 core
 
             // Input vertex data, different for all executions of this shader.
-            layout(location = 0) in vec3 vertexPosition_modelspace;
-        layout(location = 1) in vec2 vertexUV;
-        layout(location = 2) in vec3 vertexNormal_modelspace;
+            layout(location = 0) in vec3 vertex_position_modelspace;
+            layout(location = 1) in vec2 vertex_tex_coords;
+            layout(location = 2) in vec3 vertex_direction_n_modelspace;
 
-        // Output data ; will be interpolated for each fragment.
-        out vec2 UV;
-        out vec3 Position_worldspace;
-        out vec3 Normal_cameraspace;
-        out vec3 EyeDirection_cameraspace;
-        out vec3 LightDirection_cameraspace;
+            // Output data ; will be interpolated for each fragment.
+            out vec2 tex_coords;
+            out vec3 position_worldspace;
+            out vec3 position_cameraspace;
+            out vec3 direction_n_cameraspace;
+            out vec3 direction_v_cameraspace;
 
-        // Values that stay constant for the whole mesh.
-        uniform mat4 mvp;
-        uniform mat4 V;
-        uniform mat4 M;
-        uniform vec3 LightPosition_worldspace;
+            // Values that stay constant for the whole mesh.
+            uniform mat4 mvp;
+            uniform mat4 view;
+            uniform mat4 model;
 
-        void main(){
+            void main(){
+                // Output position of the vertex, in clip space : mvp * position
+                gl_Position =  mvp * vec4(vertex_position_modelspace,1);
 
-            // Output position of the vertex, in clip space : mvp * position
-            gl_Position =  mvp * vec4(vertexPosition_modelspace,1);
+                // Position of the vertex, in worldspace : model * position
+                position_worldspace = (model * vec4(vertex_position_modelspace, 1)).xyz;
 
-            // Position of the vertex, in worldspace : M * position
-            Position_worldspace = (M * vec4(vertexPosition_modelspace,1)).xyz;
+                // Vector that goes from the vertex to the camera, in camera space.
+                // In camera space, the camera is at the origin (0,0,0).
+                position_cameraspace = (view * model * vec4(vertex_position_modelspace, 1)).xyz;
+                direction_v_cameraspace = vec3(0,0,0) - position_cameraspace;
 
-            // Vector that goes from the vertex to the camera, in camera space.
-            // In camera space, the camera is at the origin (0,0,0).
-            vec3 vertexPosition_cameraspace = ( V * M * vec4(vertexPosition_modelspace,1)).xyz;
-            EyeDirection_cameraspace = vec3(0,0,0) - vertexPosition_cameraspace;
+                // Normal of the the vertex, in camera space. Note this is only correct if the model
+                // transform does not scale the model in a way that is non-uniform accross all axes! If not
+                // you can use its inverse transpose, but keep in mind that computing the inverse is expensive
+                // (direction_n_cameraspace = mat3(transpose(inverse(model))) * vertex_direction_n_modelspace;)
+                direction_n_cameraspace = ( view * model * vec4(vertex_direction_n_modelspace,0)).xyz;
 
-            // Vector that goes from the vertex to the light, in camera space. M is ommited because it's identity.
-            vec3 LightPosition_cameraspace = ( V * vec4(LightPosition_worldspace,1)).xyz;
-            LightDirection_cameraspace = LightPosition_cameraspace + EyeDirection_cameraspace;
-
-            // Normal of the the vertex, in camera space
-            Normal_cameraspace = ( V * M * vec4(vertexNormal_modelspace,0)).xyz; // Only correct if ModelMatrix does not scale the model ! Use its inverse transpose if not.
-
-            // UV of the vertex. No special space for this one.
-            UV = vertexUV;
-        }
+                // Texture coordinates of the vertex. No special space for this one.
+                tex_coords = vertex_tex_coords;
+            }
         )glsl";
 
         const char* object_fragment_shader = R"glsl(
-#version 330 core
+            // Lighting computations are performed in camera space. This can also be done in worlspace with the same
+            // result, what matters is that all vectors are expressed in the same coordinate system. Regardless of this,
+            // there are precision advantages to computing in view space (worldspace can have coordinates with large
+            // values that introduce precision issues).
+            // Source:
+            // https://www.opengl.org/discussion_boards/showthread.php/168104-lighting-in-eye-space-or-in-world-space
+
+            #version 330 core
+
+            #define MAX_POINT_LIGHTS 10
+
+            struct material_data
+            {
+                sampler2D diffuse_sampler;
+                float     smoothness;
+            };
+
+            struct dirlight_data
+            {
+                vec3 ambient_color;
+                vec3 diffuse_color;
+                vec3 specular_color;
+                vec3 direction_cameraspace;
+            };
+
+            struct point_light_data
+            {
+                vec3  position_cameraspace;
+                vec3  ambient_color;
+                vec3  diffuse_color;
+                vec3  specular_color;
+                float constant_attenuation;
+                float linear_attenuation;
+                float quadratic_attenuation;
+            };
+
 
             // Interpolated values from the vertex shaders
-            in vec2 UV;
-        in vec3 Position_worldspace;
-        in vec3 Normal_cameraspace;
-        in vec3 EyeDirection_cameraspace;
-        in vec3 LightDirection_cameraspace;
+            in vec2 tex_coords;
+            in vec3 position_worldspace;
+            in vec3 position_cameraspace;
+            in vec3 direction_n_cameraspace;
+            in vec3 direction_v_cameraspace;
 
-        // Ouput data
-        out vec3 color;
+            // Ouput data
+            out vec3 color;
 
-        // Values that stay constant for the whole mesh.
-        uniform sampler2D myTextureSampler;
-        uniform mat4 MV;
-        uniform vec3 LightPosition_worldspace;
+            // Values that stay constant for the whole mesh.
+            uniform material_data     material;
+            uniform dirlight_data     dirlight;
+            uniform point_light_data  point_lights[MAX_POINT_LIGHTS];
+            uniform uint              npoint_lights;
 
-        void main(){
-            // Light emission properties
-            // You probably want to put them as uniforms
-            vec3 LightColor = vec3(1,1,1);
-            float LightPower = 50.0f;
+            // Calculates the contribution of the directional light
+            vec3 calc_dirlight(dirlight_data dirlight,
+                                vec3 n_cameraspace,
+                                vec3 v_cameraspace,
+                                material_data material,
+                                vec2 tex_coords)
+            {
+                vec3 l_cameraspace = normalize(-dirlight.direction_cameraspace);
+                // diffuse shading
+                float cos_theta_diff = clamp(dot(n_cameraspace, l_cameraspace), 0, 1);
+                // specular shading
+                vec3 r_cameraspace = reflect(-l_cameraspace, n_cameraspace);
+                float cos_alpha_spec = clamp(dot(v_cameraspace, r_cameraspace), 0, 1);
+                // combine results
+                vec3 ambient = dirlight.ambient_color * vec3(texture(material.diffuse_sampler, tex_coords));
+                vec3 diffuse = dirlight.diffuse_color * cos_theta_diff * vec3(texture(material.diffuse_sampler, tex_coords));
+                vec3 specular = dirlight.specular_color * pow(cos_alpha_spec, material.smoothness);
+                return (ambient + diffuse + specular);
+            }
 
-            // Material properties
-            vec3 MaterialDiffuseColor = texture( myTextureSampler, UV ).rgb;
-            vec3 MaterialAmbientColor = vec3(0.1,0.1,0.1) * MaterialDiffuseColor;
-            vec3 MaterialSpecularColor = vec3(0.3,0.3,0.3);
+            vec3 calc_point_light(point_light_data point_light,
+                                vec3 n_cameraspace,
+                                vec3 position_cameraspace,
+                                vec3 v_cameraspace,
+                                material_data material,
+                                vec2 tex_coords)
+            {
+                vec3 l_cameraspace = normalize(point_light.position_cameraspace - position_cameraspace);
+                // diffuse shading
+                float cos_theta_diff = clamp(dot(n_cameraspace, l_cameraspace), 0, 1);
+                // specular shading
+                vec3 r_cameraspace = reflect(-l_cameraspace, n_cameraspace);
+                float cos_alpha_spec = clamp(dot(v_cameraspace, r_cameraspace), 0, 1);
+                // attenuation
+                float distance = length(point_light.position_cameraspace - position_cameraspace);
+                float attenuation = 1.0 / (point_light.constant_attenuation
+                                           + point_light.linear_attenuation * distance
+                                           + point_light.quadratic_attenuation * (distance * distance));    
+                // combine results
+                vec3 ambient  = point_light.ambient_color * vec3(texture(material.diffuse_sampler, tex_coords));
+                vec3 diffuse  = point_light.diffuse_color * cos_theta_diff * vec3(texture(material.diffuse_sampler, tex_coords));
+                vec3 specular = point_light.specular_color * pow(cos_alpha_spec, material.smoothness);
+                ambient *= attenuation;
+                diffuse *= attenuation;
+                specular *= attenuation;
+                return (ambient + diffuse + specular);
+            }
 
-            // Distance to the light
-            float distance = length( LightPosition_worldspace - Position_worldspace );
-
-            // Normal of the computed fragment, in camera space
-            vec3 n = normalize( Normal_cameraspace );
-            // Direction of the light (from the fragment to the light)
-            vec3 l = normalize( LightDirection_cameraspace );
-            // Cosine of the angle between the normal and the light direction, 
-            // clamped above 0
-            //  - light is at the vertical of the triangle -> 1
-            //  - light is perpendicular to the triangle -> 0
-            //  - light is behind the triangle -> 0
-            float cosTheta = clamp( dot( n,l ), 0,1 );
-
-            // Eye vector (towards the camera)
-            vec3 E = normalize(EyeDirection_cameraspace);
-            // Direction in which the triangle reflects the light
-            vec3 R = reflect(-l,n);
-            // Cosine of the angle between the Eye vector and the Reflect vector,
-            // clamped to 0
-            //  - Looking into the reflection -> 1
-            //  - Looking elsewhere -> < 1
-            float cosAlpha = clamp( dot( E,R ), 0,1 );
-
-            color = 
-                // Ambient : simulates indirect lighting
-                MaterialAmbientColor +
-                // Diffuse : "color" of the object
-                MaterialDiffuseColor * LightColor * LightPower * cosTheta / (distance*distance) +
-                // Specular : reflective highlight, like a mirror
-                MaterialSpecularColor * LightColor * LightPower * pow(cosAlpha,5) / (distance*distance);
-
-        }
+            void main()
+            {
+                // Normal of the computed fragment, in camera space
+                vec3 n_cameraspace = normalize(direction_n_cameraspace);
+                // Eye vector (towards the camera)
+                vec3 v_cameraspace = normalize(direction_v_cameraspace);
+                // Phase 1: directional lighting
+                color = calc_dirlight(dirlight, n_cameraspace, v_cameraspace, material, tex_coords);
+                // Phase 2: point lights
+                for (uint i = 0U; i < npoint_lights; i++) {
+                    color += calc_point_light(point_lights[i], n_cameraspace, position_cameraspace, v_cameraspace, material, tex_coords); 
+                }
+            }
         )glsl";
 
         const char* skybox_vertex_shader = R"glsl(
-#version 330 core
+            #version 330 core
             layout (location = 0) in vec3 a_pos;
 
-        out vec3 tex_coords;
+            out vec3 tex_coords;
 
-        uniform mat4 projection;
-        uniform mat4 view;
+            uniform mat4 projection;
+            uniform mat4 view;
 
-        void main()
-        {
-            tex_coords = a_pos;
-            vec4 pos = projection * view * vec4(a_pos, 1.0);
-            gl_Position = pos.xyww;
-        }
+            void main()
+            {
+                tex_coords = a_pos;
+                vec4 pos = projection * view * vec4(a_pos, 1.0);
+                gl_Position = pos.xyww;
+            }
         )glsl";
 
         const char* skybox_fragment_shader = R"glsl(
-#version 330 core
+            #version 330 core
             out vec4 FragColor;
 
-        in vec3 tex_coords;
+            in vec3 tex_coords;
 
-        uniform samplerCube skybox;
+            uniform samplerCube skybox;
 
-        void main()
-        {    
-            FragColor = texture(skybox, tex_coords);
-        }
+            void main()
+            {    
+                FragColor = texture(skybox, tex_coords);
+            }
         )glsl";
 
         float skybox_vertices[] = {
@@ -236,23 +301,23 @@ namespace cgs
             1.0f, -1.0f,  1.0f
         };
 
-        GLFWwindow* window = nullptr;
-        bool ok = false;
-        mesh_context_map mesh_contexts;
+        GLFWwindow*         window = nullptr;
+        bool                ok = false;
+        mesh_context_map    mesh_contexts;
         cubemap_context_map skybox_contexts;
-        GLuint object_vao_id = 0U;
-        GLuint object_program_id = 0U;
-        GLuint skybox_program_id = 0U;
-        GLuint matrix_id = 0U;
-        GLuint view_matrix_id = 0U;
-        GLuint model_matrix_id = 0U;
-        GLuint texture_sampler_id = 0U;
-        GLuint light_id = 0U;
-        std::vector<event> events;
-        key_event_type_map event_types; // map from GLFW key action value to event_type value
-        error_code_map error_codes;     // map from GLFW error codes to their names
-        float last_mouse_x = 0.0f;
-        float last_mouse_y = 0.0f;
+        GLuint              object_vao_id = 0U;
+        GLuint              object_program_id = 0U;
+        GLuint              skybox_program_id = 0U;
+        GLuint              matrix_id = 0U;
+        GLuint              view_matrix_id = 0U;
+        GLuint              model_matrix_id = 0U;
+        std::vector<event>  events;
+        key_event_type_map  event_types; // map from GLFW key action value to event_type value
+        error_code_map      error_codes;     // map from GLFW error codes to their names
+        float               last_mouse_x = 0.0f;
+        float               last_mouse_y = 0.0f;
+        dirlight_data       dirlight;
+        layer_id            current_layer;
 
         //---------------------------------------------------------------------------------------------
         // Helper functions
@@ -446,7 +511,7 @@ namespace cgs
             return texture_id;
         }
 
-        void render_mesh(mesh_id mid, const glm::vec3 light_pos, const glm::mat4& model_matrix, const glm::mat4& view_matrix, const glm::mat4& projection_matrix)
+        void render_mesh(mesh_id mid, const glm::mat4& model_matrix, const glm::mat4& view_matrix, const glm::mat4& projection_matrix)
         {
             // Get buffer ids previously created for the mesh
             auto& context = mesh_contexts[mid];
@@ -458,13 +523,48 @@ namespace cgs
             glUniformMatrix4fv(matrix_id, 1, GL_FALSE, &mvp[0][0]);
             glUniformMatrix4fv(model_matrix_id, 1, GL_FALSE, &model_matrix[0][0]);
             glUniformMatrix4fv(view_matrix_id, 1, GL_FALSE, &view_matrix[0][0]);
-            glUniform3f(light_id, light_pos.x, light_pos.y, light_pos.z);
 
             // Bind our texture in texture Unit 0
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, context.mtexture_id);
-            // Set our "myTextureSampler" sampler to user texture Unit 0
-            glUniform1i(texture_sampler_id, 0);
+            // Set material unform properties from material information
+            glUniform1i(glGetUniformLocation(object_program_id, "material.diffuse_sampler"), 0);
+            glUniform1f(glGetUniformLocation(object_program_id, "material.smoothness"), context.msmoothness);
+            // Set dirlight uniform
+            glUniform3fv(glGetUniformLocation(object_program_id, "dirlight.ambient_color"),  1, &dirlight.mambient_color[0]);
+            glUniform3fv(glGetUniformLocation(object_program_id, "dirlight.diffuse_color"),  1, &dirlight.mdiffuse_color[0]);
+            glUniform3fv(glGetUniformLocation(object_program_id, "dirlight.specular_color"), 1, &dirlight.mspecular_color[0]);
+            glm::vec3 direction_cameraspace(view_matrix * glm::vec4(dirlight.mdirection, 0.0f));
+            glUniform3fv(glGetUniformLocation(object_program_id, "dirlight.direction_cameraspace"), 1, &direction_cameraspace[0]);
+
+            // Set point light uniform
+            std::size_t sent_point_lights = 0U;
+            for (point_light_id point_light = get_first_point_light(current_layer); point_light != npoint_light; point_light = get_next_point_light(current_layer, point_light)) {
+                if (sent_point_lights >= MAX_POINT_LIGHTS) { break; }
+
+                glm::vec3 position_worldspace = get_point_light_position(current_layer, point_light);
+                glm::vec3 position_cameraspace(view_matrix * glm::vec4(position_worldspace, 0.0f));
+                glm::vec3 ambient_color = get_point_light_ambient_color(current_layer, point_light);
+                glm::vec3 diffuse_color = get_point_light_diffuse_color(current_layer, point_light);
+                glm::vec3 specular_color = get_point_light_specular_color(current_layer, point_light);
+                float constant_attenuation = get_point_light_constant_attenuation(current_layer, point_light);
+                float linear_attenuation = get_point_light_linear_attenuation(current_layer, point_light);
+                float quadratic_attenuation = get_point_light_quadratic_attenuation(current_layer, point_light);
+
+                std::ostringstream oss;
+                oss << "point_lights[" << sent_point_lights << "]";
+                std::string uniform_prefix = oss.str();
+                glUniform3fv(glGetUniformLocation(object_program_id, (uniform_prefix + ".position_cameraspace").c_str()), 1, &position_cameraspace[0]);
+                glUniform3fv(glGetUniformLocation(object_program_id, (uniform_prefix + ".ambient_color").c_str()), 1, &ambient_color[0]);
+                glUniform3fv(glGetUniformLocation(object_program_id, (uniform_prefix + ".diffuse_color").c_str()), 1, &diffuse_color[0]);
+                glUniform3fv(glGetUniformLocation(object_program_id, (uniform_prefix + ".specular_color").c_str()), 1, &specular_color[0]);
+                glUniform1f(glGetUniformLocation(object_program_id,  (uniform_prefix + ".constant_attenuation").c_str()), constant_attenuation);
+                glUniform1f(glGetUniformLocation(object_program_id,  (uniform_prefix + ".linear_attenuation").c_str()), linear_attenuation);
+                glUniform1f(glGetUniformLocation(object_program_id,  (uniform_prefix + ".quadratic_attenuation").c_str()), quadratic_attenuation);
+
+                sent_point_lights++;
+            }
+            glUniform1ui(glGetUniformLocation(object_program_id, "npoint_lights"), sent_point_lights);
 
             // 1rst attribute buffer : vertices
             glEnableVertexAttribArray(0);
@@ -518,13 +618,13 @@ namespace cgs
             glDisableVertexAttribArray(2);
         }
 
-        void render_node(layer_id l, node_id n, const glm::vec3& light_pos, const glm::mat4& model_matrix, const glm::mat4& view_matrix, const glm::mat4& projection_matrix)
+        void render_node(layer_id l, node_id n, const glm::mat4& model_matrix, const glm::mat4& view_matrix, const glm::mat4& projection_matrix)
         {
             std::vector<mesh_id> meshes = get_node_meshes(l, n);
             // For each mesh in the node
             for (std::size_t i = 0U; i < meshes.size(); ++i) {
                 if (mesh_contexts.find(meshes[i]) != mesh_contexts.end()) {
-                    render_mesh(meshes[i], light_pos, model_matrix, view_matrix, projection_matrix);
+                    render_mesh(meshes[i], model_matrix, view_matrix, projection_matrix);
                 }
             }
         }
@@ -686,8 +786,8 @@ namespace cgs
 
         // Get a handle for our "mvp" uniform
         matrix_id = glGetUniformLocation(object_program_id, "mvp");
-        view_matrix_id = glGetUniformLocation(object_program_id, "V");
-        model_matrix_id = glGetUniformLocation(object_program_id, "M");
+        view_matrix_id = glGetUniformLocation(object_program_id, "view");
+        model_matrix_id = glGetUniformLocation(object_program_id, "model");
 
         for (mesh_id mid = get_first_mesh(); mid != nmesh; mid = get_next_mesh(mid)) {
             std::vector<glm::vec3> vertices = get_mesh_vertices(mid);
@@ -698,8 +798,6 @@ namespace cgs
 
             // Load the texture
             GLuint texture_id = load_texture(texture_path.c_str());
-            // Get a handle for our "myTextureSampler" uniform
-            texture_sampler_id = glGetUniformLocation(object_program_id, "myTextureSampler");
 
             // Load it into a VBO
             GLuint positions_vbo_id = 0U;
@@ -731,12 +829,12 @@ namespace cgs
             context.mindices_vbo_id = indices_vbo_id;
             context.mtexture_id = texture_id;
             context.mnum_indices = indices.size();
+            context.msmoothness = get_material_smoothness(get_mesh_material(mid));
             mesh_contexts[mid] = context;
         }
 
         // Get a handle for our "LightPosition" uniform
         glUseProgram(object_program_id);
-        light_id = glGetUniformLocation(object_program_id, "LightPosition_worldspace");
 
         ////////////////////////////////////////////////////////////////////////////////////
         // Skybox initialization
@@ -804,8 +902,6 @@ namespace cgs
             matrix_id = 0U;
             view_matrix_id = 0U;
             model_matrix_id = 0U;
-            texture_sampler_id = 0U;
-            light_id = 0U;
             events.clear();
         }
     }
@@ -821,6 +917,12 @@ namespace cgs
 
         // For each layer in the view
         for (layer_id l = get_first_layer(v); l != nlayer && is_layer_enabled(l); l = get_next_layer(l)) {
+            current_layer = l;
+            dirlight.mambient_color = get_directional_light_ambient_color(l);
+            dirlight.mdiffuse_color = get_directional_light_diffuse_color(l);
+            dirlight.mspecular_color = get_directional_light_specular_color(l);
+            dirlight.mdirection = get_directional_light_direction(l);
+
             // Use our shader
             glUseProgram(object_program_id);
             glBindVertexArray(object_vao_id);
@@ -830,9 +932,6 @@ namespace cgs
             get_layer_projection_transform(l, &projection_matrix);
             glm::mat4 view_matrix;
             get_layer_view_transform(l, &view_matrix);
-
-            // Get light data for the layer (actually only the position is being used)
-            glm::vec3 light_position = get_light_position(l);
 
             struct context{ node_id nid; };
             std::queue<context> pending_nodes;
@@ -846,7 +945,7 @@ namespace cgs
                     glm::mat4 local_transform;
                     glm::mat4 accum_transform;
                     get_node_transform(l, current.nid, &local_transform, &accum_transform);
-                    render_node(l, current.nid, light_position, accum_transform, view_matrix, projection_matrix);
+                    render_node(l, current.nid, accum_transform, view_matrix, projection_matrix);
 
                     for (node_id child = get_first_child_node(l, current.nid); child != nnode; child = get_next_sibling_node(l, child)) {
                         pending_nodes.push({child});

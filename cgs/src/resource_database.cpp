@@ -20,9 +20,9 @@ namespace cgs
                 msmoothness(1.0f),
                 mtexture_path() {}
 
-            glm::vec3 mcolor_diffuse;
-            glm::vec3 mcolor_spec;
-            float msmoothness;
+            glm::vec3   mcolor_diffuse;
+            glm::vec3   mcolor_spec;
+            float       msmoothness;
             std::string mtexture_path;
         };
 
