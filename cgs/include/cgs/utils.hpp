@@ -3,7 +3,8 @@
 
 namespace cgs
 {
-    float fov_to_fovy(float fov_degrees, float window_width, float window_height);
+    // Retuns fovy in radians. This is how glm::perspective expects it
+    float fov_to_fovy(float fov_radians, float window_width, float window_height);
 }
 
 #endif

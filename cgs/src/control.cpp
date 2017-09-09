@@ -1,6 +1,6 @@
 #include "glm/gtc/matrix_transform.hpp"
-#include "cgs/control.hpp"
 #include "glm/gtx/transform.hpp"
+#include "cgs/control.hpp"
 #include "cgs/utils.hpp"
 #include "cgs/log.hpp"
 #include "glm/glm.hpp"
@@ -39,16 +39,16 @@ namespace cgs
                 cgs::log(cgs::LOG_LEVEL_DEBUG, oss.str());
             }
 
-            cgs:: layer_id    m_layer;
-            glm::vec3               m_position;
-            float                   m_yaw;
-            float                   m_pitch;
-            float                   m_speed;
-            float                   m_mouse_speed;
-            bool                    m_moving_forward;
-            bool                    m_moving_backward;
-            bool                    m_moving_right;
-            bool                    m_moving_left;
+            cgs:: layer_id m_layer;
+            glm::vec3      m_position;
+            float          m_yaw;
+            float          m_pitch;
+            float          m_speed;
+            float          m_mouse_speed;
+            bool           m_moving_forward;
+            bool           m_moving_backward;
+            bool           m_moving_right;
+            bool           m_moving_left;
     };
 
     fps_camera_controller::fps_camera_controller() :
@@ -200,8 +200,8 @@ namespace cgs
     //-----------------------------------------------------------------------------------------------
     // perspective_controller
     //-----------------------------------------------------------------------------------------------
-    constexpr float max_fov = 120.0f;
-    constexpr float min_fov = 90.0f;
+    constexpr float max_fov_radians = glm::radians(120.0f);
+    constexpr float min_fov_radians = glm::radians(60.0f);
 
     class perspective_controller::perspective_controller_impl
     {
@@ -213,16 +213,18 @@ namespace cgs
                 m_increasing_fov(false),
                 m_decreasing_fov(false),
                 m_fov_speed(0.0f),
-                m_fov(0.0f) {}
+                m_fov_radians(0.0f) {}
 
-            void set_fov(float fov)
+            void set_fov_radians(float fov_radians)
             {
-                m_fov = glm::clamp(fov, min_fov, max_fov);;
+                m_fov_radians = glm::clamp(fov_radians, min_fov_radians, max_fov_radians);
 
                 std::ostringstream oss;
                 oss << std::fixed << std::setprecision(2);
-                oss << "perspective_controller, fov: " << m_fov
-                    << ", fovy: " << cgs::fov_to_fovy(m_fov, m_window_width, m_window_height);
+                oss << "perspective_controller, fov degrees: "
+                    << glm::degrees(m_fov_radians)
+                    << ", fovy degrees: "
+                    << glm::degrees(cgs::fov_to_fovy(m_fov_radians, m_window_width, m_window_height));
                 cgs::log(cgs::LOG_LEVEL_DEBUG, oss.str());
             }
 
@@ -246,17 +248,22 @@ namespace cgs
                 }
 
                 if (m_increasing_fov) {
-                    set_fov(m_fov + m_fov_speed * dt);
+                    set_fov_radians(m_fov_radians + m_fov_speed * dt);
                 } else if (m_decreasing_fov) {
-                    set_fov(m_fov - m_fov_speed * dt);
+                    set_fov_radians(m_fov_radians - m_fov_speed * dt);
                 }
 
                 // The fovy parameter to glm::perspective is the full vertical fov, not the half! the reason
                 // they usually use 45 is that 90.0 would look weird. 90 would be ok for horizontal fov, not
                 // vertical
                 // https://www.opengl.org/discussion_boards/showthread.php/171227-glm-perspective-fovy-question
-                float fovy = cgs::fov_to_fovy(m_fov, m_window_width, m_window_height);
-                glm::mat4 projection_transform = glm::perspective(fovy, m_window_width / m_window_height, 0.1f, 100.0f);
+                // Also, the fovy parameter is in radians, not degrees! there are some old versions
+                // of the glm documentation that state this depends on a preprocessor symbol, but
+                // version 0.9.7 states explicitly that it's in radians:
+                // http://glm.g-truc.net/0.9.7/api/a00174.html#gac3613dcb6c6916465ad5b7ad5a786175
+                // This is why our utility function fov_to_fovy takes radians and returns radians
+                float fovy_radians = cgs::fov_to_fovy(m_fov_radians, m_window_width, m_window_height);
+                glm::mat4 projection_transform = glm::perspective(fovy_radians, m_window_width / m_window_height, 0.1f, 100.0f);
                 cgs::set_layer_projection_transform(m_layer, projection_transform);
             }
 
@@ -267,7 +274,7 @@ namespace cgs
             bool            m_increasing_fov;
             bool            m_decreasing_fov;
             float           m_fov_speed;
-            float           m_fov;
+            float           m_fov_radians;
     };
 
     perspective_controller::perspective_controller() :
@@ -295,9 +302,9 @@ namespace cgs
         m_impl->m_fov_speed = fov_speed;
     }
 
-    void  perspective_controller::set_fov(float fov)
+    void  perspective_controller::set_fov_radians(float fov)
     {
-        m_impl->set_fov(fov);
+        m_impl->set_fov_radians(fov);
     }
 
     float perspective_controller::get_fov_speed()
@@ -305,9 +312,9 @@ namespace cgs
         return m_impl->m_fov_speed;
     }
 
-    float perspective_controller::get_fov()
+    float perspective_controller::get_fov_radians()
     {
-        return m_impl->m_fov;
+        return m_impl->m_fov_radians;
     }
 
     cgs::layer_id perspective_controller::get_layer()

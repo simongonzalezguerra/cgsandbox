@@ -155,7 +155,7 @@ namespace samples
             m_impl->m_perspective_controller.set_window_width(1920.0f);
             m_impl->m_perspective_controller.set_window_height(1080.0f);
             m_impl->m_perspective_controller.set_fov_speed(0.5f);
-            m_impl->m_perspective_controller.set_fov(120.0f);
+            m_impl->m_perspective_controller.set_fov_radians(glm::radians(70.0f));
 
             m_impl->m_sim_rotation_speed = 1.5f;
             m_impl->m_sim_rotation_yaw = 0.0f;

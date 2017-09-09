@@ -41,9 +41,9 @@ namespace cgs
             void set_window_width(float window_width);
             void set_window_height(float window_height);
             void set_fov_speed(float fov_speed);
-            void set_fov(float fov);
+            void set_fov_radians(float fov_radians);
             float get_fov_speed();
-            float get_fov();
+            float get_fov_radians();
             cgs::layer_id get_layer();
             float get_window_width();
             float get_window_height();
