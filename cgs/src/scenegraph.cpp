@@ -26,6 +26,8 @@ namespace cgs
         struct node
         {
             node() :
+                mmesh(nmesh),
+                mmaterial(nmat),
                 mlocal_transform(1.0f),
                 maccum_transform(1.0f),
                 mfirst_child(nnode),
@@ -33,13 +35,14 @@ namespace cgs
                 menabled(true),
                 mused(true) {}
 
-            std::vector<mesh_id> mmeshes;           //!< meshes in this node
-            glm::mat4            mlocal_transform;  //!< node transform relative to the parent
-            glm::mat4            maccum_transform;  //!< node transform relative to the root
-            node_id              mfirst_child;      //!< first child node of this node
-            node_id              mnext_sibling;     //!< next sibling node of this node
-            bool                 menabled;          //!< is this node enabled? (if it is not, all descendants are ignored when rendering)
-            bool                 mused;             //!< is this cell used? (used for soft deletion)
+            mesh_id   mmesh;             //!< mesh contained in this node
+            mat_id    mmaterial;         //!< material of this node
+            glm::mat4 mlocal_transform;  //!< node transform relative to the parent
+            glm::mat4 maccum_transform;  //!< node transform relative to the root
+            node_id   mfirst_child;      //!< first child node of this node
+            node_id   mnext_sibling;     //!< next sibling node of this node
+            bool      menabled;          //!< is this node enabled? (if it is not, all descendants are ignored when rendering)
+            bool      mused;             //!< is this cell used? (used for soft deletion)
         };
 
         typedef std::vector<node> node_vector;
@@ -67,27 +70,12 @@ namespace cgs
 
         typedef std::vector<point_light> point_light_vector;
 
-        // TODO DELETE THIS
-        struct light
-        {
-            light() :
-                mposition{0.0f, 0.0f, 0.0f},
-                mcolor{1.0f, 1.0f, 1.0f},
-                mpower(1.0f) {}
-
-            glm::vec3 mposition;
-            glm::vec3 mcolor;
-            float     mpower;
-        };
-
         struct layer
         {
             layer() :
                 mview(0),
                 menabled(false),
                 mnext_layer(nlayer),
-                // TODO DELETE THIS
-                mlight(light{}),
                 mview_transform{1.0f},
                 mprojection_transform{1.0f},
                 mskybox(ncubemap),
@@ -97,8 +85,6 @@ namespace cgs
             bool               menabled;                          //!< is this layer enabled?
             layer_id           mnext_layer;                       //!< id of the next layer in the view this layer belongs to
             node_vector        mnodes;                            //!< collection of all the nodes in this layer
-            // TODO DELETE THIS
-            light              mlight;                            //!< light source (one for the whole layer)
             glm::mat4          mview_transform;                   //!< the view transform used to render all objects in the layer
             glm::mat4          mprojection_transform;             //!< the projection transform used to render all objects in the layer
             cubemap_id         mskybox;                           //!< the id of the cubemap to use as skybox (can be ncubemap)
@@ -314,12 +300,10 @@ namespace cgs
             auto current = pending_nodes.front();
             pending_nodes.pop();
 
-            std::vector<mesh_id> meshes = get_resource_meshes(current.rid);
-            glm::mat4 local_transform = get_resource_local_transform(current.rid);
-
             node_id n = add_node(l, current.parent);
-            set_node_transform(l, n, local_transform);
-            set_node_meshes(l, n, meshes);
+            set_node_transform(l, n, get_resource_local_transform(current.rid));
+            set_node_mesh(l, n, get_resource_mesh(current.rid));
+            set_node_material(l, n, get_resource_material(current.rid));
             set_node_enabled(l, n, true);
             if (ret == nnode) {
                 ret = n;
@@ -393,13 +377,13 @@ namespace cgs
         *accum_transform = layers[l].mnodes[n].maccum_transform;
     }
 
-    void set_node_meshes(layer_id l, node_id n, const std::vector<mesh_id>& m)
+    void set_node_meshes(layer_id l, node_id n, const std::vector<mesh_id>&)
     {
         if (!(l < layers.size() && n < layers[l].mnodes.size() && layers[l].mnodes[n].mused)) {
             log(LOG_LEVEL_ERROR, "set_node_meshes error: invalid parameters"); return;
         }
 
-        layers[l].mnodes[n].mmeshes = m;
+        //layers[l].mnodes[n].mmeshes = m;
     }
 
     std::vector<mesh_id> get_node_meshes(layer_id l, node_id n)
@@ -408,7 +392,31 @@ namespace cgs
             log(LOG_LEVEL_ERROR, "get_node_meshes error: invalid parameters"); return std::vector<mesh_id>();
         }
 
-        return layers[l].mnodes[n].mmeshes;
+        return std::vector<mesh_id>();
+    }
+
+    void set_node_mesh(layer_id l, node_id n, mesh_id m)
+    {
+        if (l < layers.size() && n < layers[l].mnodes.size() && layers[l].mnodes[n].mused) {
+            layers[l].mnodes[n].mmesh = m;
+        }
+    }
+
+    mesh_id get_node_mesh(layer_id l, node_id n)
+    {
+        return ((l < layers.size() && n < layers[l].mnodes.size() && layers[l].mnodes[n].mused)? layers[l].mnodes[n].mmesh : nmesh);
+    }
+
+    void set_node_material(layer_id l, node_id n, mat_id mat)
+    {
+        if (l < layers.size() && n < layers[l].mnodes.size() && layers[l].mnodes[n].mused) {
+            layers[l].mnodes[n].mmaterial = mat;
+        }
+    }
+
+    mat_id get_node_material(layer_id l, node_id n)
+    {
+        return ((l < layers.size() && n < layers[l].mnodes.size() && layers[l].mnodes[n].mused)? layers[l].mnodes[n].mmaterial : nmat);
     }
 
     void set_node_enabled(layer_id l, node_id n, bool enabled)
@@ -596,61 +604,6 @@ namespace cgs
     {
         if (!(layer < layers.size() && light < layers[layer].mpoint_lights.size())) { return 0.0f; }
         return layers[layer].mpoint_lights[light].mquadratic_attenuation;
-    }
-
-    // TODO DELETE THIS
-    void set_light_position(layer_id l, glm::vec3 position)
-    {
-        if (!(l < layers.size())) {
-            log(LOG_LEVEL_ERROR, "set_light_position error: invalid parameters"); return;
-        }
-
-        layers[l].mlight.mposition = position;
-    }
-
-    glm::vec3 get_light_position(layer_id l)
-    {
-        if (!(l < layers.size())) {
-            log(LOG_LEVEL_ERROR, "get_light_position error: invalid parameters"); return glm::vec3{1.0f};
-        }
-
-        return layers[l].mlight.mposition;
-    }
-
-    void set_light_color(layer_id l, glm::vec3 color)
-    {
-        if (!(l < layers.size())) {
-            log(LOG_LEVEL_ERROR, "set_light_color error: invalid parameters"); return;
-        }
-
-        layers[l].mlight.mcolor = color;
-    }
-
-    glm::vec3 get_light_color(layer_id l)
-    {
-        if (!(l < layers.size())) {
-            log(LOG_LEVEL_ERROR, "get_light_color error: invalid parameters"); return glm::vec3{1.0f};
-        }
-
-        return layers[l].mlight.mcolor;
-    }
-
-    void set_light_power(layer_id l, float power)
-    {
-        if (!(l < layers.size())) {
-            log(LOG_LEVEL_ERROR, "set_light_power error: invalid parameters"); return;
-        }
-
-        layers[l].mlight.mpower = power;
-    }
-
-    float get_light_power(layer_id l)
-    {
-        if (!(l < layers.size())) {
-            log(LOG_LEVEL_ERROR, "get_light_power error: invalid parameters"); return 0.0f;
-        }
-
-        return layers[l].mlight.mpower;
     }
 
 } // namespace cgs

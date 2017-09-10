@@ -62,10 +62,8 @@ TEST_F(resources_loader_test, load_resources_positive1) {
   std::vector<glm::vec2> texture_coords = get_mesh_texture_coords(m);
   std::vector<glm::vec3> normals = get_mesh_normals(m);
   std::vector<vindex> indices = get_mesh_indices(m);
-  mat_id mat = get_mesh_material(m);
 
   ASSERT_EQ(vertices.size(), 150U);
-  ASSERT_EQ(mat, materials_out[0]);
   ASSERT_NEAR(vertices[0][0], 10.93f, 0.1f);
   ASSERT_NEAR(vertices[0][1], 2.96f, 0.1f);
   ASSERT_NEAR(vertices[0][2], 2.37f, 0.1f);

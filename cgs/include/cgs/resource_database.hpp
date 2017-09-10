@@ -127,12 +127,10 @@ namespace cgs
     void set_mesh_texture_coords(mesh_id mesh, const std::vector<glm::vec2>& texture_coords);
     void set_mesh_normals(mesh_id mesh, const std::vector<glm::vec3>& normals);
     void set_mesh_indices(mesh_id mesh, const std::vector<vindex>& indices);
-    void set_mesh_material(mesh_id mesh, mat_id material);
     std::vector<glm::vec3> get_mesh_vertices(mesh_id mesh);
     std::vector<glm::vec2> get_mesh_texture_coords(mesh_id mesh);
     std::vector<glm::vec3> get_mesh_normals(mesh_id mesh);
     std::vector<vindex> get_mesh_indices(mesh_id mesh);
-    mat_id get_mesh_material(mesh_id mesh);
 
     //-----------------------------------------------------------------------------------------------
     //! @brief Returns the id of the first mesh in the sequence of all meshes.
@@ -161,6 +159,10 @@ namespace cgs
     void set_resource_local_transform(resource_id r, const glm::mat4& local_transform);
     std::vector<mesh_id> get_resource_meshes(resource_id r);
     glm::mat4 get_resource_local_transform(resource_id r);
+    void set_resource_mesh(resource_id r, mesh_id m);
+    mesh_id get_resource_mesh(resource_id r);
+    void set_resource_material(resource_id r, mat_id mat);
+    mat_id get_resource_material(resource_id r);
 
     //-----------------------------------------------------------------------------------------------
     //! @brief Returns the id of the first resource node in the children of a given resource node.

@@ -34,14 +34,12 @@ namespace cgs
                 mvertices(),
                 mtexture_coords(),
                 mnormals(),
-                mindices(),
-                mmaterial(nmat) {}
+                mindices() {}
 
             std::vector<glm::vec3> mvertices;        //!< vertex coordinates
             std::vector<glm::vec2> mtexture_coords;  //!< texture coordinates for each vertex
             std::vector<glm::vec3> mnormals;         //!< normals of the mesh
             std::vector<vindex>    mindices;         //!< faces, as a sequence of indexes over the logical vertex array
-            mat_id                 mmaterial;        //!< material associated to the mesh
         };
 
         typedef std::vector<mesh> mesh_vector;
@@ -49,15 +47,17 @@ namespace cgs
         struct resource
         {
             resource() :
-                mmeshes(),
+                mmesh(nmesh),
+                mmaterial(nmat),
                 mlocal_transform(1.0f),
                 mfirst_child(nresource),
                 mnext_sibling(nresource) {}
 
-            std::vector<mesh_id> mmeshes;             //!< meshes contained in this resource
-            glm::mat4            mlocal_transform;    //!< resource transform relative to the parent's reference frame
-            resource_id          mfirst_child;        //!< first child resource of this resource
-            resource_id          mnext_sibling;       //!< next sibling resource of this resource
+            mesh_id     mmesh;               //!< mesh contained in this resource
+            mat_id      mmaterial;           //!< material of this resource
+            glm::mat4   mlocal_transform;    //!< resource transform relative to the parent's reference frame
+            resource_id mfirst_child;        //!< first child resource of this resource
+            resource_id mnext_sibling;       //!< next sibling resource of this resource
         };
 
         typedef std::vector<resource> resource_vector;
@@ -226,15 +226,6 @@ namespace cgs
         meshes[id].mindices = indices;
     }
 
-    void set_mesh_material(mesh_id id, mat_id material)
-    {
-        if (!(id < meshes.size())) {
-            log(LOG_LEVEL_ERROR, "set_mesh_material error: invalid arguments"); return;
-        }
-
-        meshes[id].mmaterial = material;
-    }
-
     std::vector<glm::vec3> get_mesh_vertices(mesh_id id)
     {
         if (!(id < meshes.size())) {
@@ -269,15 +260,6 @@ namespace cgs
         }
 
         return meshes[id].mindices;
-    }
-
-    mat_id get_mesh_material(mesh_id id)
-    {
-        if (!(id < meshes.size())) {
-            log(LOG_LEVEL_ERROR, "get_mesh_material error: invalid arguments"); return nmat;
-        }
-
-        return meshes[id].mmaterial;
     }
 
     mesh_id get_first_mesh()
@@ -320,7 +302,7 @@ namespace cgs
             }
         }
 
-        resources[r].mmeshes = m;
+        //resources[r].mmeshes = m;
     }
 
     void set_resource_local_transform(resource_id r, const glm::mat4& local_transform)
@@ -338,7 +320,7 @@ namespace cgs
             log(LOG_LEVEL_ERROR, "get_resource_meshes error: invalid arguments"); return std::vector<mesh_id>();
         }
 
-        return resources[r].mmeshes;
+        return std::vector<mesh_id>();
     }
 
     glm::mat4 get_resource_local_transform(resource_id r)
@@ -348,6 +330,30 @@ namespace cgs
         }
 
         return resources[r].mlocal_transform;
+    }
+
+    void set_resource_mesh(resource_id r, mesh_id m)
+    {
+        if (r < resources.size() && m < meshes.size()) {
+            resources[r].mmesh = m;
+        }
+    }
+
+    mesh_id get_resource_mesh(resource_id r)
+    {
+        return (r < resources.size()? resources[r].mmesh : nmesh);
+    }
+
+    void set_resource_material(resource_id r, mat_id mat)
+    {
+        if (r < resources.size() && mat < materials.size()) {
+            resources[r].mmaterial = mat;
+        }
+    }
+
+    mat_id get_resource_material(resource_id r)
+    {
+        return (r < resources.size()? resources[r].mmaterial : nmat);
     }
 
     resource_id get_first_child_resource(resource_id r)

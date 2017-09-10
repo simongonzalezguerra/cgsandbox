@@ -1,9 +1,9 @@
 #include "cgs/resource_loader.hpp"
 #include "glm/gtc/type_ptr.hpp"
 #include "assimp/postprocess.h"
-#include "cgs/log.hpp"
 #include "assimp/cimport.h"
 #include "assimp/scene.h"
+#include "cgs/log.hpp"
 #include "glm/glm.hpp"
 
 #include <iomanip>
@@ -27,8 +27,8 @@ namespace cgs
         //---------------------------------------------------------------------------------------------
         // Internal declarations
         //---------------------------------------------------------------------------------------------
-        std::map<std::size_t, mat_id> material_ids;  //!< Map from index in assimp's material array to resource database material_id
-        std::map<std::size_t, mesh_id> mesh_ids;     //!< Map from index in assimp's mesh array to resource database mesh_id
+        std::map<std::size_t, mat_id>  material_ids;  //!< Map from index in assimp's material array to resource database material_id
+        std::map<std::size_t, mesh_id> mesh_ids;      //!< Map from index in assimp's mesh array to resource database mesh_id
 
         //---------------------------------------------------------------------------------------------
         // Helper functions
@@ -89,13 +89,11 @@ namespace cgs
 
         void create_meshes(const struct aiScene* scene, std::vector<mesh_id>* meshes_out)
         {
-
             for (std::size_t i_mesh = 0; i_mesh < scene->mNumMeshes; i_mesh++) {
                 aiMesh* mesh = scene->mMeshes[i_mesh];
 
                 if (material_ids.find(mesh->mMaterialIndex) == material_ids.end()) continue;
                 mesh_id m = add_mesh();
-                set_mesh_material(m, material_ids[mesh->mMaterialIndex]);
 
                 std::vector<glm::vec3> vertices;
                 if (mesh->HasPositions()) {
@@ -140,6 +138,31 @@ namespace cgs
             }
         }
 
+        // Assimp creates a structure with several meshes by node, and each mesh has a material. In
+        // practice though most models have one mesh by node. Our model has one mesh by resource
+        // node, and the material is assigned to the resource not the mesh. We convert Assimp's
+        // structure to our own by translating a node with several meshes into several resource
+        // nodes, all with the same transform, each with one mesh. The children of the node, if any,
+        // are all added recursively as children if the first resource created. Function
+        // map_meshes_to_resources a node with many meshes into a list of resource nodes
+        std::vector<resource_id> map_meshes_to_resources(const struct aiScene* scene, const aiNode* node, resource_id parent)
+        {
+            std::vector<resource_id> new_resources{add_resource(parent)};
+            if (node->mNumMeshes > 0 && mesh_ids.find(node->mMeshes[0]) != mesh_ids.end()) {
+                set_resource_mesh(new_resources[0], mesh_ids[node->mMeshes[0]]);
+                set_resource_material(new_resources[0], material_ids[scene->mMeshes[node->mMeshes[0]]->mMaterialIndex]);
+            }
+            for (std::size_t i = 1U; i < node->mNumMeshes; i++) {
+                if (mesh_ids.find(node->mMeshes[i]) != mesh_ids.end()) {
+                    new_resources.push_back(add_resource(parent));
+                    set_resource_mesh(new_resources[new_resources.size() - 1], mesh_ids[node->mMeshes[i]]);
+                    set_resource_material(new_resources[new_resources.size() - 1], material_ids[scene->mMeshes[node->mMeshes[i]]->mMaterialIndex]);
+                }
+            }
+            
+            return new_resources;
+        }
+
         void create_resources(const struct aiScene* scene, resource_id* added_root)
         {
             // Iterate the scene tree with a breadth-first search creating resources
@@ -150,29 +173,27 @@ namespace cgs
             while (!pending_nodes.empty()) {
                 auto current = pending_nodes.front();
                 pending_nodes.pop();
-                resource_id res = add_resource(current.parent);
 
-                std::vector<mesh_id> meshes;
-                for (std::size_t i = 0; i < current.node->mNumMeshes; i++) {
-                    if (mesh_ids.find(current.node->mMeshes[i]) != mesh_ids.end()) {
-                        meshes.push_back(mesh_ids[current.node->mMeshes[i]]);
-                    }
-                }
-                set_resource_meshes(res, meshes);
+                // Convert the list of meshes into a list of resource nodes
+                std::vector<resource_id> new_resources = map_meshes_to_resources(scene, current.node, current.parent);
 
                 // The aiMatrix4x4 type uses a contiguous layout for its elements, so we can just use its
                 // representation as if it were a float array. But we need to transpose it first, because
                 // assimp uses a row-major layout and we need column-major.
                 aiMatrix4x4 local_transform = current.node->mTransformation;
                 aiTransposeMatrix4(&local_transform);
-                set_resource_local_transform(res, glm::make_mat4((float *) &local_transform));
+                for (auto r : new_resources) {
+                    // All the resource nodes created for the same assimp node have the same local transform
+                    set_resource_local_transform(r, glm::make_mat4((float *) &local_transform));
+                }
 
                 if (*added_root == nresource) {
-                    *added_root = res;
+                    *added_root = new_resources[0];
                 }
 
                 for (std::size_t i = 0; i < current.node->mNumChildren; ++i) {
-                    pending_nodes.push({ current.node->mChildren[i], res });
+                    // Recursion adds children to the first resource node of the list
+                    pending_nodes.push({ current.node->mChildren[i], new_resources[0] });
                 }
             }
         }
@@ -224,7 +245,7 @@ namespace cgs
             float smoothness = get_material_smoothness(m);
             std::ostringstream oss;
             oss << std::setprecision(2) << std::fixed;
-            oss << "\tid: " << m << ", color diffuse: ";
+            oss << "    id: " << m << ", color diffuse: ";
             print_sequence((float*) &diffuse_color, 3U, oss);
             oss << ", color specular: ";
             print_sequence((float*) &specular_color, 3U, oss);
@@ -240,42 +261,61 @@ namespace cgs
             std::vector<glm::vec2> texture_coords = get_mesh_texture_coords(m);
             std::vector<glm::vec3> normals = get_mesh_normals(m);
             std::vector<vindex> indices = get_mesh_indices(m);
-            mat_id mat = get_mesh_material(m);
 
             std::ostringstream oss;
             oss << std::setprecision(2) << std::fixed;
-            oss << "\t" << "id: " << m << ", vertices: " << vertices.size();
+            oss << "    " << "id: " << m << ", vertices: " << vertices.size();
             log(LOG_LEVEL_DEBUG, oss.str().c_str());
 
             oss.str("");
-            oss << "\t\tvertex base: ";
+            oss << "        vertex base: ";
             if (vertices.size()) {
                 preview_sequence(&vertices[0][0], 3 * vertices.size(), oss);
             }
             log(LOG_LEVEL_DEBUG, oss.str().c_str());
 
             oss.str("");
-            oss << "\t\ttexture coords: ";
+            oss << "        texture coords: ";
             if (texture_coords.size()) {
                 preview_sequence(&texture_coords[0][0], 2 * texture_coords.size(), oss);
             }
             log(LOG_LEVEL_DEBUG, oss.str().c_str());
 
             oss.str("");
-            oss << "\t\tindices: ";
+            oss << "        indices: ";
             preview_sequence(&indices[0], indices.size(), oss);
             log(LOG_LEVEL_DEBUG, oss.str().c_str());
 
             oss.str("");
-            oss << "\t\tnormals: ";
+            oss << "        normals: ";
             if (normals.size()) {
                 preview_sequence(&normals[0][0], 3 * normals.size(), oss);
             }
             log(LOG_LEVEL_DEBUG, oss.str().c_str());
+        }
 
-            oss.str("");
-            oss << "\t\tmaterial id: " << mat;
-            log(LOG_LEVEL_DEBUG, oss.str().c_str());
+        std::string format_mesh_id(mesh_id m)
+        {
+            std::ostringstream oss;
+            if (m != nmesh) {
+                oss << m;
+            } else {
+                oss << "nmesh";
+            }
+
+            return oss.str();
+        }
+
+        std::string format_material_id(mat_id m)
+        {
+            std::ostringstream oss;
+            if (m != nmat) {
+                oss << m;
+            } else {
+                oss << "nmat";
+            }
+
+            return oss.str();
         }
 
         void print_resource_tree(resource_id root)
@@ -288,18 +328,17 @@ namespace cgs
                 auto current = pending_nodes.front();
                 pending_nodes.pop();
 
-                std::vector<mesh_id> meshes = get_resource_meshes(current.rid);
                 glm::mat4 local_transform = get_resource_local_transform(current.rid);
 
                 std::ostringstream oss;
                 oss << std::setprecision(2) << std::fixed;
                 for (unsigned int i = 0; i < current.indentation; i++) {
-                    oss << "\t";
+                    oss << "    ";
                 }
                 oss << "[ ";
                 oss << "resource id: " << current.rid;
-                oss << ", meshes: ";
-                print_sequence(&meshes[0], meshes.size(), oss);
+                oss << ", mesh: " << format_mesh_id(get_resource_mesh(current.rid));
+                oss << ", material: " << format_material_id(get_resource_material(current.rid));
                 oss << ", local transform: ";
                 print_sequence(glm::value_ptr(local_transform), 16, oss);
                 oss << " ]";
@@ -321,7 +360,7 @@ namespace cgs
                     print_material(m);
                 }
             } else {
-                log(LOG_LEVEL_DEBUG, "\tno materials found");
+                log(LOG_LEVEL_DEBUG, "    no materials found");
             }
 
             log(LOG_LEVEL_DEBUG, "meshes:");
@@ -330,14 +369,14 @@ namespace cgs
                     print_mesh(m);
                 }
             } else {
-                log(LOG_LEVEL_DEBUG, "\tno meshes found");
+                log(LOG_LEVEL_DEBUG, "    no meshes found");
             }
 
             log(LOG_LEVEL_DEBUG, "resources:");
             if (added_root != nresource) {
                 print_resource_tree(added_root);
             } else {
-                log(LOG_LEVEL_DEBUG, "\tno resources found");
+                log(LOG_LEVEL_DEBUG, "    no resources found");
             }      
 
             log(LOG_LEVEL_DEBUG, "---------------------------------------------------------------------------------------------------");

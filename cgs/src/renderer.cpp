@@ -1,7 +1,7 @@
-#include "cgs/resource_database.hpp"
 #include "glm/gtc/matrix_transform.hpp"
-#include "cgs/renderer.hpp"
+#include "cgs/resource_database.hpp"
 #include "glm/gtc/type_ptr.hpp"
+#include "cgs/renderer.hpp"
 #include "cgs/log.hpp"
 #include "glm/glm.hpp"
 #include "FreeImage.h"
@@ -33,9 +33,12 @@ namespace cgs
             GLuint  muvs_vbo_id;
             GLuint  mnormals_vbo_id;
             GLuint  mindices_vbo_id;
-            GLuint  mtexture_id;
             GLuint  mnum_indices;
-            GLfloat msmoothness;
+        };
+
+        struct material_context
+        {
+            GLuint mtexture_id;
         };
 
         struct skybox_context
@@ -58,6 +61,7 @@ namespace cgs
         typedef std::map<int, event_type>            key_event_type_map;
         typedef key_event_type_map::iterator         event_type_it;
         typedef std::map<int, std::string>           error_code_map;
+        typedef std::map<mat_id, material_context>   material_context_map;
 
         //---------------------------------------------------------------------------------------------
         // Internal data structures
@@ -301,23 +305,24 @@ namespace cgs
             1.0f, -1.0f,  1.0f
         };
 
-        GLFWwindow*         window = nullptr;
-        bool                ok = false;
-        mesh_context_map    mesh_contexts;
-        cubemap_context_map skybox_contexts;
-        GLuint              object_vao_id = 0U;
-        GLuint              object_program_id = 0U;
-        GLuint              skybox_program_id = 0U;
-        GLuint              matrix_id = 0U;
-        GLuint              view_matrix_id = 0U;
-        GLuint              model_matrix_id = 0U;
-        std::vector<event>  events;
-        key_event_type_map  event_types; // map from GLFW key action value to event_type value
-        error_code_map      error_codes;     // map from GLFW error codes to their names
-        float               last_mouse_x = 0.0f;
-        float               last_mouse_y = 0.0f;
-        dirlight_data       dirlight;
-        layer_id            current_layer;
+        GLFWwindow*          window = nullptr;
+        bool                 ok = false;
+        mesh_context_map     mesh_contexts;
+        cubemap_context_map  skybox_contexts;
+        GLuint               object_vao_id = 0U;
+        GLuint               object_program_id = 0U;
+        GLuint               skybox_program_id = 0U;
+        GLuint               matrix_id = 0U;
+        GLuint               view_matrix_id = 0U;
+        GLuint               model_matrix_id = 0U;
+        std::vector<event>   events;
+        key_event_type_map   event_types;     // map from GLFW key action value to event_type value
+        error_code_map       error_codes;     // map from GLFW error codes to their names
+        float                last_mouse_x = 0.0f;
+        float                last_mouse_y = 0.0f;
+        dirlight_data        dirlight;
+        layer_id             current_layer;
+        material_context_map material_contexts;
 
         //---------------------------------------------------------------------------------------------
         // Helper functions
@@ -511,10 +516,13 @@ namespace cgs
             return texture_id;
         }
 
-        void render_mesh(mesh_id mid, const glm::mat4& model_matrix, const glm::mat4& view_matrix, const glm::mat4& projection_matrix)
+        void render_node(layer_id l, node_id n, const glm::mat4& model_matrix, const glm::mat4& view_matrix, const glm::mat4& projection_matrix)
         {
+            // The root node itself has no content to render
+            if (get_node_material(l, n) == nmat) return;
+            std::vector<mesh_id> meshes = get_node_meshes(l, n);
             // Get buffer ids previously created for the mesh
-            auto& context = mesh_contexts[mid];
+            auto& context = mesh_contexts[get_node_mesh(l, n)];
 
             glm::mat4 mvp = projection_matrix * view_matrix * model_matrix;
 
@@ -526,10 +534,10 @@ namespace cgs
 
             // Bind our texture in texture Unit 0
             glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D, context.mtexture_id);
+            glBindTexture(GL_TEXTURE_2D, material_contexts[get_node_material(l, n)].mtexture_id);
             // Set material unform properties from material information
             glUniform1i(glGetUniformLocation(object_program_id, "material.diffuse_sampler"), 0);
-            glUniform1f(glGetUniformLocation(object_program_id, "material.smoothness"), context.msmoothness);
+            glUniform1f(glGetUniformLocation(object_program_id, "material.smoothness"), get_material_smoothness(get_node_material(l, n)));
             // Set dirlight uniform
             glUniform3fv(glGetUniformLocation(object_program_id, "dirlight.ambient_color"),  1, &dirlight.mambient_color[0]);
             glUniform3fv(glGetUniformLocation(object_program_id, "dirlight.diffuse_color"),  1, &dirlight.mdiffuse_color[0]);
@@ -616,17 +624,7 @@ namespace cgs
             glDisableVertexAttribArray(0);
             glDisableVertexAttribArray(1);
             glDisableVertexAttribArray(2);
-        }
 
-        void render_node(layer_id l, node_id n, const glm::mat4& model_matrix, const glm::mat4& view_matrix, const glm::mat4& projection_matrix)
-        {
-            std::vector<mesh_id> meshes = get_node_meshes(l, n);
-            // For each mesh in the node
-            for (std::size_t i = 0U; i < meshes.size(); ++i) {
-                if (mesh_contexts.find(meshes[i]) != mesh_contexts.end()) {
-                    render_mesh(meshes[i], model_matrix, view_matrix, projection_matrix);
-                }
-            }
         }
 
         // loads a cubemap texture from 6 individual texture faces
@@ -783,6 +781,11 @@ namespace cgs
             return false;
         }
 
+        for (mat_id mat = get_first_material(); mat != nmat; mat = get_next_material(mat)) {
+            // Load the texture
+            GLuint texture_id = load_texture(get_material_texture_path(mat).c_str());
+            material_contexts[mat] = material_context{texture_id};
+        }
 
         // Get a handle for our "mvp" uniform
         matrix_id = glGetUniformLocation(object_program_id, "mvp");
@@ -794,10 +797,6 @@ namespace cgs
             std::vector<glm::vec2> texture_coords = get_mesh_texture_coords(mid);
             std::vector<glm::vec3> normals = get_mesh_normals(mid);
             std::vector<vindex> indices = get_mesh_indices(mid);
-            std::string texture_path = get_material_texture_path(get_mesh_material(mid));
-
-            // Load the texture
-            GLuint texture_id = load_texture(texture_path.c_str());
 
             // Load it into a VBO
             GLuint positions_vbo_id = 0U;
@@ -827,9 +826,7 @@ namespace cgs
             context.muvs_vbo_id = uvs_vbo_id;
             context.mnormals_vbo_id = normals_vbo_id;
             context.mindices_vbo_id = indices_vbo_id;
-            context.mtexture_id = texture_id;
             context.mnum_indices = indices.size();
-            context.msmoothness = get_material_smoothness(get_mesh_material(mid));
             mesh_contexts[mid] = context;
         }
 
@@ -876,14 +873,19 @@ namespace cgs
     void close_window()
     {
         if (window) {
+
             for (auto it = mesh_contexts.begin(); it != mesh_contexts.end(); it++) {
                 glDeleteBuffers(1, &it->second.mpositions_vbo_id);
                 glDeleteBuffers(1, &it->second.muvs_vbo_id);
                 glDeleteBuffers(1, &it->second.mnormals_vbo_id);
                 glDeleteBuffers(1, &it->second.mindices_vbo_id);
+            }
+
+            glDeleteProgram(object_program_id);
+
+            for (auto it = material_contexts.begin(); it != material_contexts.end(); it++) {
                 glDeleteTextures(1, &it->second.mtexture_id);
             }
-            glDeleteProgram(object_program_id);
 
             glDeleteProgram(skybox_program_id);
             for (auto it = skybox_contexts.begin(); it != skybox_contexts.end(); it++) {

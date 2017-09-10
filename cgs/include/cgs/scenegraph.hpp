@@ -209,6 +209,11 @@ namespace cgs
     //-----------------------------------------------------------------------------------------------
     std::vector<mesh_id> get_node_meshes(layer_id layer, node_id node);
 
+    void set_node_mesh(layer_id layer, node_id node, mesh_id mesh);
+    mesh_id get_node_mesh(layer_id layer, node_id node);
+    void set_node_material(layer_id layer, node_id node, mat_id mat);
+    mat_id get_node_material(layer_id layer, node_id node);
+
     //-----------------------------------------------------------------------------------------------
     //! @brief Updates the enabled flag of a node, which determines if the node and its descendants
     //!  will be rendered.
@@ -271,14 +276,6 @@ namespace cgs
     float get_point_light_constant_attenuation(layer_id layer, point_light_id light);
     float get_point_light_linear_attenuation(layer_id layer, point_light_id light);
     float get_point_light_quadratic_attenuation(layer_id layer, point_light_id light);
-
-    // TODO DELETE THIS
-    void set_light_position(layer_id layer, glm::vec3 position);
-    glm::vec3 get_light_position(layer_id layer);
-    void set_light_color(layer_id layer, glm::vec3 color);
-    glm::vec3 get_light_color(layer_id layer);
-    void set_light_power(layer_id layer, float power);
-    float get_light_power(layer_id layer);
 } // namespace cgs
 
 #endif // SCENE_GRAPH_HPP
