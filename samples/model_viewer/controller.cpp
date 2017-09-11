@@ -1,12 +1,12 @@
 #include "samples/model_viewer/controller.hpp"
+#include "glm/gtc/matrix_transform.hpp"
 #include "cgs/resource_database.hpp"
 #include "cgs/resource_loader.hpp"
-#include "glm/gtc/matrix_transform.hpp"
+#include "glm/gtx/transform.hpp"
+#include "glm/gtc/type_ptr.hpp"
 #include "cgs/scenegraph.hpp"
 #include "cgs/renderer.hpp"
-#include "glm/gtx/transform.hpp"
 #include "cgs/control.hpp"
-#include "glm/gtc/type_ptr.hpp"
 #include "cgs/utils.hpp"
 #include "cgs/log.hpp"
 #include "glm/glm.hpp"
@@ -23,9 +23,12 @@ namespace samples
             //-----------------------------------------------------------------------------------------------
             // Internal declarations
             //-----------------------------------------------------------------------------------------------
-            cgs::resource_id s_resource_root = cgs::nresource;
-            cgs::cubemap_id  s_skybox_id     = cgs::ncubemap;
-            bool             s_ok            = false;
+            cgs::resource_id s_plane_resource  = cgs::nresource;
+            cgs::resource_id s_teapot_resource = cgs::nresource;
+            cgs::resource_id s_bunny_resource  = cgs::nresource;
+            cgs::resource_id s_dragon_resource = cgs::nresource;
+            cgs::cubemap_id  s_skybox_id       = cgs::ncubemap;
+            bool             s_ok              = false;
         } // anonymous namespace
 
         class controller::controller_impl
@@ -34,7 +37,10 @@ namespace samples
                 controller_impl() :
                     m_view(0U),
                     m_layer(cgs::nlayer),
-                    m_object_root(cgs::nnode),
+                    m_plane_node(cgs::nnode),
+                    m_teapot_node(cgs::nnode),
+                    m_bunny_node(cgs::nnode),
+                    m_dragon_node(cgs::nnode),
                     m_fps_camera_controller(),
                     m_framerate_controller(),
                     m_perspective_controller(),
@@ -54,13 +60,16 @@ namespace samples
                 void update_simulation(float dt)
                 {
                     m_sim_rotation_yaw += m_sim_rotation_speed * dt;
-                    cgs::set_node_transform(m_layer, m_object_root, glm::rotate(m_sim_rotation_yaw, glm::vec3{0.0f, 1.0f, 0.0f}));
+                    cgs::set_node_transform(m_layer, m_plane_node, glm::rotate(m_sim_rotation_yaw, glm::vec3{0.0f, 1.0f, 0.0f}));
                 }
 
                 // Member variables
                 cgs::view_id                  m_view;
                 cgs::layer_id                 m_layer;
-                cgs::node_id                  m_object_root;
+                cgs::node_id                  m_plane_node;
+                cgs::node_id                  m_teapot_node;
+                cgs::node_id                  m_bunny_node;
+                cgs::node_id                  m_dragon_node;
                 cgs::fps_camera_controller    m_fps_camera_controller;
                 cgs::framerate_controller     m_framerate_controller;
                 cgs::perspective_controller   m_perspective_controller;
@@ -79,20 +88,40 @@ namespace samples
 
             std::vector<cgs::mat_id> materials_out;
             std::vector<cgs::mesh_id> meshes_out;
-            // cgs::resource_id s_resource_root = cgs::load_resources("../../resources/sponza/sponza.obj", &materials_out, &meshes_out);
-            s_resource_root = cgs::load_resources("../../../resources/f-14D-super-tomcat/F-14D_SuperTomcatRotated.obj", &materials_out, &meshes_out);
-            // The suzzane model doesn't have the texture path in its material information so we need to insert it manually
-            // if (num_materials_out) {
-            //   float color_diffuse[] = {0.0f, 0.0f, 0.0f};
-            //   float color_spec[] = {0.0f, 0.0f, 0.0f};
-            //   float smoothness = 0.0f;
-            //   const char* texture_path = nullptr;
-            //   cgs::get_material_properties(materials_out[0], color_diffuse, color_spec, smoothness, &texture_path);
-            //  cgs::set_material_properties(materials_out[0], color_diffuse, color_spec, smoothness, "../../resources/suzanne/uvmap.png");
-            // }
-            if (s_resource_root == cgs::nresource) {
+            s_plane_resource = cgs::load_resources("../../../resources/f-14D-super-tomcat/F-14D_SuperTomcatRotated.obj", &materials_out, &meshes_out);
+            if (s_plane_resource == cgs::nresource) {
                 s_ok = false;
             }
+
+            s_teapot_resource = cgs::load_resources("../../../resources/Teapot/Teapot.obj", &materials_out, &meshes_out);
+            if (s_teapot_resource == cgs::nresource) {
+                s_ok = false;
+            }
+            cgs::mat_id teapot_material = cgs::add_material();
+            cgs::set_material_diffuse_color(teapot_material, glm::vec3(1.0f, 0.0f, 0.0f));
+            cgs::set_material_specular_color(teapot_material, glm::vec3(1.0f, 1.0f, 1.0f));
+            cgs::set_material_smoothness(teapot_material, 1.0f);
+            cgs::set_resource_material(cgs::get_first_child_resource(s_teapot_resource), teapot_material);
+
+            s_bunny_resource = cgs::load_resources("../../../resources/stanford-bunny/bun_zipper.ply", &materials_out, &meshes_out);
+            if (s_teapot_resource == cgs::nresource) {
+                s_ok = false;
+            }
+            cgs::mat_id bunny_material = cgs::add_material();
+            cgs::set_material_diffuse_color(bunny_material, glm::vec3(0.0f, 0.0f, 1.0f));
+            cgs::set_material_specular_color(bunny_material, glm::vec3(1.0f, 1.0f, 1.0f));
+            cgs::set_material_smoothness(bunny_material, 1.0f);
+            cgs::set_resource_material(s_bunny_resource, bunny_material);
+
+            s_dragon_resource = cgs::load_resources("../../../resources/stanford-dragon/dragon_vrip_res3.ply", &materials_out, &meshes_out);
+            if (s_dragon_resource == cgs::nresource) {
+                s_ok = false;
+            }
+            cgs::mat_id dragon_material = cgs::add_material();
+            cgs::set_material_diffuse_color(dragon_material, glm::vec3(0.05f, 0.8f, 0.0f));
+            cgs::set_material_specular_color(dragon_material, glm::vec3(1.0f, 1.0f, 1.0f));
+            cgs::set_material_smoothness(dragon_material, 1.0f);
+            cgs::set_resource_material(s_dragon_resource, dragon_material);
 
             s_skybox_id = cgs::add_cubemap();
             std::vector<std::string> skybox_faces
@@ -132,7 +161,21 @@ namespace samples
             cgs::set_directional_light_specular_color(m_impl->m_layer, glm::vec3(0.5f, 0.5f, 0.5f));
             cgs::set_directional_light_direction(m_impl->m_layer, glm::vec3(0.0f, -1.0f, 0.0f));
 
-            m_impl->m_object_root = cgs::add_node(m_impl->m_layer, cgs::root_node, s_resource_root);
+            // Create the plane
+            m_impl->m_plane_node = cgs::add_node(m_impl->m_layer, cgs::root_node, s_plane_resource);
+
+            // Create the teapot
+            m_impl->m_teapot_node = cgs::add_node(m_impl->m_layer, cgs::root_node, s_teapot_resource);
+            cgs::set_node_transform(m_impl->m_layer, m_impl->m_teapot_node, glm::translate(glm::vec3(22.0f, -3.0f, 0.0f)) * glm::scale(glm::vec3(8.0f, 8.0f, 8.0f)));
+
+            // Create the bunny
+            m_impl->m_bunny_node = cgs::add_node(m_impl->m_layer, cgs::root_node, s_bunny_resource);
+            cgs::set_node_transform(m_impl->m_layer, m_impl->m_bunny_node, glm::translate(glm::vec3(45.0f, -4.0f, 0.0f)) * glm::scale(glm::vec3(50.0f, 50.0f, 50.0f)));
+
+            // Create the dragon
+            m_impl->m_dragon_node = cgs::add_node(m_impl->m_layer, cgs::root_node, s_dragon_resource);
+            cgs::set_node_transform(m_impl->m_layer, m_impl->m_dragon_node, glm::translate(glm::vec3(60.0f, -4.0f, 0.0f)) * glm::scale(glm::vec3(50.0f, 50.0f, 50.0f)));
+            
             cgs::point_light_id point_light = cgs::add_point_light(m_impl->m_layer);
             cgs::set_point_light_position(m_impl->m_layer, point_light, glm::vec3(4.0f, 4.0f, 4.0f));
             cgs::set_point_light_ambient_color(m_impl->m_layer, point_light, glm::vec3(0.1f, 0.1f, 0.1f));
@@ -145,10 +188,10 @@ namespace samples
             m_impl->m_last_time = cgs::get_time();
 
             m_impl->m_fps_camera_controller.set_layer(m_impl->m_layer);
-            m_impl->m_fps_camera_controller.set_position(glm::vec3(-2.91f, 15.35f, 26.09f));
-            m_impl->m_fps_camera_controller.set_yaw(-7.07f);
-            m_impl->m_fps_camera_controller.set_pitch(-38.87f);
-            m_impl->m_fps_camera_controller.set_speed(12.0f);
+            m_impl->m_fps_camera_controller.set_position(glm::vec3(-14.28f, 13.71f, 29.35f));
+            m_impl->m_fps_camera_controller.set_yaw(-41.50f);
+            m_impl->m_fps_camera_controller.set_pitch(-20.37f);
+            m_impl->m_fps_camera_controller.set_speed(25.0f);
             m_impl->m_fps_camera_controller.set_mouse_speed(0.1f);
 
             m_impl->m_perspective_controller.set_layer(m_impl->m_layer);

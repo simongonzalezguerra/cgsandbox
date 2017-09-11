@@ -127,6 +127,8 @@ namespace cgs
             struct material_data
             {
                 sampler2D diffuse_sampler;
+                vec3      diffuse_color;
+                vec3      specular_color; 
                 float     smoothness;
             };
 
@@ -180,9 +182,9 @@ namespace cgs
                 vec3 r_cameraspace = reflect(-l_cameraspace, n_cameraspace);
                 float cos_alpha_spec = clamp(dot(v_cameraspace, r_cameraspace), 0, 1);
                 // combine results
-                vec3 ambient = dirlight.ambient_color * vec3(texture(material.diffuse_sampler, tex_coords));
-                vec3 diffuse = dirlight.diffuse_color * cos_theta_diff * vec3(texture(material.diffuse_sampler, tex_coords));
-                vec3 specular = dirlight.specular_color * pow(cos_alpha_spec, material.smoothness);
+                vec3 ambient = dirlight.ambient_color * vec3(texture(material.diffuse_sampler, tex_coords)) * material.diffuse_color;
+                vec3 diffuse = dirlight.diffuse_color * cos_theta_diff * vec3(texture(material.diffuse_sampler, tex_coords)) * material.diffuse_color;
+                vec3 specular = dirlight.specular_color * pow(cos_alpha_spec, material.smoothness) * material.specular_color;
                 return (ambient + diffuse + specular);
             }
 
@@ -205,9 +207,9 @@ namespace cgs
                                            + point_light.linear_attenuation * distance
                                            + point_light.quadratic_attenuation * (distance * distance));    
                 // combine results
-                vec3 ambient  = point_light.ambient_color * vec3(texture(material.diffuse_sampler, tex_coords));
-                vec3 diffuse  = point_light.diffuse_color * cos_theta_diff * vec3(texture(material.diffuse_sampler, tex_coords));
-                vec3 specular = point_light.specular_color * pow(cos_alpha_spec, material.smoothness);
+                vec3 ambient  = point_light.ambient_color * vec3(texture(material.diffuse_sampler, tex_coords)) * material.diffuse_color;
+                vec3 diffuse  = point_light.diffuse_color * cos_theta_diff * vec3(texture(material.diffuse_sampler, tex_coords)) * material.diffuse_color;
+                vec3 specular = point_light.specular_color * pow(cos_alpha_spec, material.smoothness) * material.specular_color;
                 ambient *= attenuation;
                 diffuse *= attenuation;
                 specular *= attenuation;
@@ -323,6 +325,7 @@ namespace cgs
         dirlight_data        dirlight;
         layer_id             current_layer;
         material_context_map material_contexts;
+        GLuint               default_texture_id = 0U;
 
         //---------------------------------------------------------------------------------------------
         // Helper functions
@@ -509,7 +512,7 @@ namespace cgs
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR); 
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
             glGenerateMipmap(GL_TEXTURE_2D);
 
             // Return the ID of the texture we just created
@@ -534,9 +537,18 @@ namespace cgs
 
             // Bind our texture in texture Unit 0
             glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D, material_contexts[get_node_material(l, n)].mtexture_id);
+            mat_id node_material = get_node_material(l, n);
+            GLuint texture_id = default_texture_id;
+            if (material_contexts.find(node_material) != material_contexts.end()) {
+                texture_id = material_contexts[node_material].mtexture_id;
+            }
+            glBindTexture(GL_TEXTURE_2D, texture_id);
             // Set material unform properties from material information
             glUniform1i(glGetUniformLocation(object_program_id, "material.diffuse_sampler"), 0);
+            glm::vec3 diffuse_color = get_material_diffuse_color(node_material);
+            glUniform3fv(glGetUniformLocation(object_program_id, "material.diffuse_color"), 1, &diffuse_color[0]);
+            glm::vec3 specular_color = get_material_specular_color(node_material);
+            glUniform3fv(glGetUniformLocation(object_program_id, "material.specular_color"), 1, &specular_color[0]);
             glUniform1f(glGetUniformLocation(object_program_id, "material.smoothness"), get_material_smoothness(get_node_material(l, n)));
             // Set dirlight uniform
             glUniform3fv(glGetUniformLocation(object_program_id, "dirlight.ambient_color"),  1, &dirlight.mambient_color[0]);
@@ -783,8 +795,10 @@ namespace cgs
 
         for (mat_id mat = get_first_material(); mat != nmat; mat = get_next_material(mat)) {
             // Load the texture
-            GLuint texture_id = load_texture(get_material_texture_path(mat).c_str());
-            material_contexts[mat] = material_context{texture_id};
+            if (!get_material_texture_path(mat).empty()) {
+                GLuint texture_id = load_texture(get_material_texture_path(mat).c_str());
+                material_contexts[mat] = material_context{texture_id};
+            }
         }
 
         // Get a handle for our "mvp" uniform
@@ -866,6 +880,14 @@ namespace cgs
 
             skybox_contexts[cid] = context;
         }
+
+        // Create a default texture to use as diffuse map on objects that don't have a texture
+        glGenTextures(1, &default_texture_id);
+        // "Bind" the newly created texture : all future texture functions will modify this texture
+        glBindTexture(GL_TEXTURE_2D, default_texture_id);
+        std::vector<unsigned char> default_texture_data = {255U, 255U, 255U};
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1, 1, 0, GL_BGR, GL_UNSIGNED_BYTE, &default_texture_data[0]);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 
         return true;
     }
