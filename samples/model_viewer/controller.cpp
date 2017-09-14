@@ -113,13 +113,13 @@ namespace samples
             cgs::set_material_smoothness(bunny_material, 1.0f);
             cgs::set_resource_material(s_bunny_resource, bunny_material);
 
-            s_dragon_resource = cgs::load_resources("../../../resources/stanford-dragon/dragon_vrip_res3.ply", &materials_out, &meshes_out);
+            s_dragon_resource = cgs::load_resources("../../../resources/stanford-dragon2/dragon.obj", &materials_out, &meshes_out);
             if (s_dragon_resource == cgs::nresource) {
                 s_ok = false;
             }
             cgs::mat_id dragon_material = cgs::add_material();
-            cgs::set_material_diffuse_color(dragon_material, glm::vec3(0.05f, 0.8f, 0.0f));
-            cgs::set_material_specular_color(dragon_material, glm::vec3(1.0f, 1.0f, 1.0f));
+            cgs::set_material_diffuse_color(dragon_material, glm::vec3(0.05f, 0.5f, 0.0f));
+            cgs::set_material_specular_color(dragon_material, glm::vec3(0.5f, 0.5f, 0.5f));
             cgs::set_material_smoothness(dragon_material, 1.0f);
             cgs::set_resource_material(s_dragon_resource, dragon_material);
 
@@ -170,11 +170,11 @@ namespace samples
 
             // Create the bunny
             m_impl->m_bunny_node = cgs::add_node(m_impl->m_layer, cgs::root_node, s_bunny_resource);
-            cgs::set_node_transform(m_impl->m_layer, m_impl->m_bunny_node, glm::translate(glm::vec3(45.0f, -4.0f, 0.0f)) * glm::scale(glm::vec3(50.0f, 50.0f, 50.0f)));
+            cgs::set_node_transform(m_impl->m_layer, m_impl->m_bunny_node, glm::translate(glm::vec3(47.0f, -4.0f, 0.0f)) * glm::scale(glm::vec3(55.0f, 55.0f, 55.0f)));
 
             // Create the dragon
             m_impl->m_dragon_node = cgs::add_node(m_impl->m_layer, cgs::root_node, s_dragon_resource);
-            cgs::set_node_transform(m_impl->m_layer, m_impl->m_dragon_node, glm::translate(glm::vec3(60.0f, -4.0f, 0.0f)) * glm::scale(glm::vec3(50.0f, 50.0f, 50.0f)));
+            cgs::set_node_transform(m_impl->m_layer, m_impl->m_dragon_node, glm::translate(glm::vec3(65.0f, -2.0f, 0.0f)));
             
             cgs::point_light_id point_light = cgs::add_point_light(m_impl->m_layer);
             cgs::set_point_light_position(m_impl->m_layer, point_light, glm::vec3(4.0f, 4.0f, 4.0f));
