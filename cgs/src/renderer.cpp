@@ -599,10 +599,10 @@ namespace cgs
                 last_mouse_x = x;
                 last_mouse_y = y;
 
-                std::ostringstream oss;
-                oss << "mouse_move_callback: new delta_mouse_x: " << std::fixed << std::setprecision(2)
-                    << e.delta_mouse_x << ", new delta_mouse_y: " << e.delta_mouse_y;
-                cgs::log(cgs::LOG_LEVEL_DEBUG, oss.str());
+                // std::ostringstream oss;
+                // oss << "mouse_move_callback: new delta_mouse_x: " << std::fixed << std::setprecision(2)
+                //     << e.delta_mouse_x << ", new delta_mouse_y: " << e.delta_mouse_y;
+                // cgs::log(cgs::LOG_LEVEL_DEBUG, oss.str());
             }
         }
 

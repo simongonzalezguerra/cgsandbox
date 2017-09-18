@@ -33,10 +33,10 @@ namespace cgs
 
             void log_position()
             {
-                std::ostringstream oss;
-                oss << "fps_camera_controller: updated position, position: " << std::fixed << std::setprecision(2)
-                    << m_position.x << ", " << m_position.y << ", " << m_position.z;
-                cgs::log(cgs::LOG_LEVEL_DEBUG, oss.str());
+                // std::ostringstream oss;
+                // oss << "fps_camera_controller: updated position, position: " << std::fixed << std::setprecision(2)
+                //     << m_position.x << ", " << m_position.y << ", " << m_position.z;
+                // cgs::log(cgs::LOG_LEVEL_DEBUG, oss.str());
             }
 
             cgs:: layer_id m_layer;
@@ -129,10 +129,10 @@ namespace cgs
                 // increase down, so we use mouse motion to subtract from yaw
                 m_impl->m_pitch = glm::clamp(m_impl->m_pitch - m_impl->m_mouse_speed * it->delta_mouse_y, min_pitch, max_pitch);
 
-                std::ostringstream oss;
-                oss << "fps_camera_controller: updated angles, "<< std::fixed << std::setprecision(2)
-                    << " yaw: " << m_impl->m_yaw << ", pitch: " << m_impl->m_pitch;
-                cgs::log(cgs::LOG_LEVEL_DEBUG, oss.str());
+                // std::ostringstream oss;
+                // oss << "fps_camera_controller: updated angles, "<< std::fixed << std::setprecision(2)
+                //     << " yaw: " << m_impl->m_yaw << ", pitch: " << m_impl->m_pitch;
+                // cgs::log(cgs::LOG_LEVEL_DEBUG, oss.str());
             }
 
             if (it->type == cgs::EVENT_KEY_PRESS) {
