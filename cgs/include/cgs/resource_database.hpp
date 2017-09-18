@@ -91,10 +91,16 @@ namespace cgs
     void set_material_specular_color(mat_id mat, glm::vec3 specular_color);
     void set_material_smoothness(mat_id mat, float smoothness);
     void set_material_texture_path(mat_id mat, const std::string& texture_path);
+    void set_material_reflectivity(mat_id mat, float reflectivity);
+    void set_material_translucency(mat_id mat, float translucency);
+    void set_material_refractive_index(mat_id mat, float refractive_index);
     glm::vec3 get_material_diffuse_color(mat_id mat);
     glm::vec3 get_material_specular_color(mat_id mat);
     float get_material_smoothness(mat_id mat);
     std::string get_material_texture_path(mat_id mat);
+    float get_material_reflectivity(mat_id mat);
+    float get_material_translucency(mat_id mat);
+    float get_material_refractive_index(mat_id mat);
 
     //-----------------------------------------------------------------------------------------------
     //! @brief Returns the id of the first material in the sequence of existing materials.

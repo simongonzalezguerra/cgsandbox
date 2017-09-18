@@ -23,12 +23,15 @@ namespace samples
             //-----------------------------------------------------------------------------------------------
             // Internal declarations
             //-----------------------------------------------------------------------------------------------
-            cgs::resource_id s_plane_resource  = cgs::nresource;
-            cgs::resource_id s_teapot_resource = cgs::nresource;
-            cgs::resource_id s_bunny_resource  = cgs::nresource;
-            cgs::resource_id s_dragon_resource = cgs::nresource;
-            cgs::cubemap_id  s_skybox_id       = cgs::ncubemap;
-            bool             s_ok              = false;
+            cgs::resource_id s_plane_resource             = cgs::nresource;
+            cgs::resource_id s_teapot_resource            = cgs::nresource;
+            cgs::resource_id s_bunny_resource             = cgs::nresource;
+            cgs::resource_id s_dragon_resource            = cgs::nresource;
+            cgs::cubemap_id  s_skybox_id                  = cgs::ncubemap;
+            cgs::mat_id      s_diffuse_teapot_material    = cgs::nmat;
+            cgs::mat_id      s_steel_material             = cgs::nmat;
+            cgs::mat_id      s_glass_material             = cgs::nmat;
+            bool             s_ok                         = false;
         } // anonymous namespace
 
         class controller::controller_impl
@@ -38,9 +41,11 @@ namespace samples
                     m_view(0U),
                     m_layer(cgs::nlayer),
                     m_plane_node(cgs::nnode),
-                    m_teapot_node(cgs::nnode),
+                    m_diffuse_teapot_node(cgs::nnode),
                     m_bunny_node(cgs::nnode),
                     m_dragon_node(cgs::nnode),
+                    m_steel_teapot_node(cgs::nnode),
+                    m_glass_bunny_node(cgs::nnode),
                     m_fps_camera_controller(),
                     m_framerate_controller(),
                     m_perspective_controller(),
@@ -67,9 +72,11 @@ namespace samples
                 cgs::view_id                  m_view;
                 cgs::layer_id                 m_layer;
                 cgs::node_id                  m_plane_node;
-                cgs::node_id                  m_teapot_node;
+                cgs::node_id                  m_diffuse_teapot_node;
                 cgs::node_id                  m_bunny_node;
                 cgs::node_id                  m_dragon_node;
+                cgs::node_id                  m_steel_teapot_node;
+                cgs::node_id                  m_glass_bunny_node;
                 cgs::fps_camera_controller    m_fps_camera_controller;
                 cgs::framerate_controller     m_framerate_controller;
                 cgs::perspective_controller   m_perspective_controller;
@@ -97,11 +104,24 @@ namespace samples
             if (s_teapot_resource == cgs::nresource) {
                 s_ok = false;
             }
-            cgs::mat_id teapot_material = cgs::add_material();
-            cgs::set_material_diffuse_color(teapot_material, glm::vec3(1.0f, 0.0f, 0.0f));
-            cgs::set_material_specular_color(teapot_material, glm::vec3(1.0f, 1.0f, 1.0f));
-            cgs::set_material_smoothness(teapot_material, 1.0f);
-            cgs::set_resource_material(cgs::get_first_child_resource(s_teapot_resource), teapot_material);
+
+            s_diffuse_teapot_material = cgs::add_material();
+            cgs::set_material_diffuse_color(s_diffuse_teapot_material, glm::vec3(1.0f, 0.0f, 0.0f));
+            cgs::set_material_specular_color(s_diffuse_teapot_material, glm::vec3(1.0f, 1.0f, 1.0f));
+            cgs::set_material_smoothness(s_diffuse_teapot_material, 1.0f);
+
+            s_steel_material = cgs::add_material();
+            cgs::set_material_diffuse_color(s_steel_material, glm::vec3(0.8f, 0.8f, 0.8f));
+            cgs::set_material_specular_color(s_steel_material, glm::vec3(0.8f, 0.8f, 0.8f));
+            cgs::set_material_reflectivity(s_steel_material, 1.0f);
+            cgs::set_material_translucency(s_steel_material, 0.0f);
+
+            s_glass_material = cgs::add_material();
+            cgs::set_material_diffuse_color(s_glass_material, glm::vec3(0.5f, 0.5f, 0.5f));
+            cgs::set_material_specular_color(s_glass_material, glm::vec3(0.5f, 0.5f, 0.5f));
+            cgs::set_material_reflectivity(s_glass_material, 0.0f);
+            cgs::set_material_translucency(s_glass_material, 1.0f);
+            cgs::set_material_refractive_index(s_glass_material, 1.52f); // Glass
 
             s_bunny_resource = cgs::load_resources("../../../resources/stanford-bunny/bun_zipper.ply", &materials_out, &meshes_out);
             if (s_teapot_resource == cgs::nresource) {
@@ -164,18 +184,29 @@ namespace samples
             // Create the plane
             m_impl->m_plane_node = cgs::add_node(m_impl->m_layer, cgs::root_node, s_plane_resource);
 
-            // Create the teapot
-            m_impl->m_teapot_node = cgs::add_node(m_impl->m_layer, cgs::root_node, s_teapot_resource);
-            cgs::set_node_transform(m_impl->m_layer, m_impl->m_teapot_node, glm::translate(glm::vec3(22.0f, -3.0f, 0.0f)) * glm::scale(glm::vec3(8.0f, 8.0f, 8.0f)));
+            // Create the diffuse teapot
+            m_impl->m_diffuse_teapot_node = cgs::add_node(m_impl->m_layer, cgs::root_node, s_teapot_resource);
+            cgs::set_node_transform(m_impl->m_layer, m_impl->m_diffuse_teapot_node, glm::translate(glm::vec3(22.0f, -3.0f, 0.0f)) * glm::scale(glm::vec3(8.0f, 8.0f, 8.0f)));
+            cgs::set_node_material(m_impl->m_layer, cgs::get_first_child_node(m_impl->m_layer, m_impl->m_diffuse_teapot_node), s_diffuse_teapot_material);
 
             // Create the bunny
             m_impl->m_bunny_node = cgs::add_node(m_impl->m_layer, cgs::root_node, s_bunny_resource);
-            cgs::set_node_transform(m_impl->m_layer, m_impl->m_bunny_node, glm::translate(glm::vec3(47.0f, -4.0f, 0.0f)) * glm::scale(glm::vec3(55.0f, 55.0f, 55.0f)));
+            cgs::set_node_transform(m_impl->m_layer, m_impl->m_bunny_node, glm::translate(glm::vec3(47.0f, -4.0f, 0.0f)) * glm::scale(glm::vec3(60.0f, 60.0f, 60.0f)));
 
             // Create the dragon
             m_impl->m_dragon_node = cgs::add_node(m_impl->m_layer, cgs::root_node, s_dragon_resource);
             cgs::set_node_transform(m_impl->m_layer, m_impl->m_dragon_node, glm::translate(glm::vec3(65.0f, -2.0f, 0.0f)));
             
+            // Create the steel teapot
+            m_impl->m_steel_teapot_node = cgs::add_node(m_impl->m_layer, cgs::root_node, s_teapot_resource);
+            cgs::set_node_transform(m_impl->m_layer, m_impl->m_steel_teapot_node, glm::translate(glm::vec3(22.0f, -3.0f, -20.0f)) * glm::scale(glm::vec3(8.0f, 8.0f, 8.0f)));
+            cgs::set_node_material(m_impl->m_layer, cgs::get_first_child_node(m_impl->m_layer, m_impl->m_steel_teapot_node), s_steel_material);
+
+            // Create the glass bunny
+            m_impl->m_glass_bunny_node = cgs::add_node(m_impl->m_layer, cgs::root_node, s_bunny_resource);
+            cgs::set_node_transform(m_impl->m_layer, m_impl->m_glass_bunny_node, glm::translate(glm::vec3(47.0f, -4.0f, -20.0f)) * glm::scale(glm::vec3(60.0f, 60.0f, 60.0f)));
+            cgs::set_node_material(m_impl->m_layer, m_impl->m_glass_bunny_node, s_glass_material);
+
             cgs::point_light_id point_light = cgs::add_point_light(m_impl->m_layer);
             cgs::set_point_light_position(m_impl->m_layer, point_light, glm::vec3(4.0f, 4.0f, 4.0f));
             cgs::set_point_light_ambient_color(m_impl->m_layer, point_light, glm::vec3(0.1f, 0.1f, 0.1f));

@@ -18,12 +18,18 @@ namespace cgs
                 mcolor_diffuse({1.0f, 1.0f, 1.0f}),
                 mcolor_spec({1.0f, 1.0f, 1.0f}),
                 msmoothness(1.0f),
-                mtexture_path() {}
+                mtexture_path(),
+                mreflectivity(0.0f),
+                mtranslucency(0.0f),
+                mrefractive_index(1.0f) {}
 
-            glm::vec3   mcolor_diffuse;
-            glm::vec3   mcolor_spec;
-            float       msmoothness;
-            std::string mtexture_path;
+            glm::vec3    mcolor_diffuse;
+            glm::vec3    mcolor_spec;
+            float        msmoothness;
+            std::string  mtexture_path;
+            float        mreflectivity;
+            float        mtranslucency;
+            float        mrefractive_index;
         };
 
         typedef std::vector<material> material_vector;
@@ -138,6 +144,27 @@ namespace cgs
         materials[m].mtexture_path = texture_path;
     }
 
+    void set_material_reflectivity(mat_id m, float reflectivity)
+    {
+        if (m < materials.size()) {
+            materials[m].mreflectivity = reflectivity;
+        }
+    }
+
+    void set_material_translucency(mat_id m, float translucency)
+    {
+        if (m < materials.size()) {
+            materials[m].mtranslucency = translucency;
+        }
+    }
+
+    void set_material_refractive_index(mat_id m, float refractive_index)
+    {
+        if (m < materials.size()) {
+            materials[m].mrefractive_index = refractive_index;
+        }
+    }
+
     glm::vec3 get_material_diffuse_color(mat_id m)
     {
         if (!(m < materials.size())) {
@@ -172,6 +199,22 @@ namespace cgs
         }
 
         return materials[m].mtexture_path;
+    }
+
+    float get_material_reflectivity(mat_id m)
+    {
+        return (m < materials.size())? materials[m].mreflectivity : 0.0f;
+    }
+
+
+    float get_material_translucency(mat_id m)
+    {
+        return (m < materials.size())? materials[m].mtranslucency : 0.0f;
+    }
+
+    float get_material_refractive_index(mat_id m)
+    {
+        return (m < materials.size())? materials[m].mrefractive_index : 0.0f;
     }
 
     mat_id get_first_material()

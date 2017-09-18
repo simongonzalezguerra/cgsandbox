@@ -5,6 +5,7 @@
 #include "glm/glm.hpp"
 
 #include <cstddef> // for size_t
+#include <vector>
 
 namespace cgs
 {
@@ -276,6 +277,8 @@ namespace cgs
     float get_point_light_constant_attenuation(layer_id layer, point_light_id light);
     float get_point_light_linear_attenuation(layer_id layer, point_light_id light);
     float get_point_light_quadratic_attenuation(layer_id layer, point_light_id light);
+
+    std::vector<node_id> get_descendant_nodes(layer_id layer, node_id node);
 } // namespace cgs
 
 #endif // SCENE_GRAPH_HPP

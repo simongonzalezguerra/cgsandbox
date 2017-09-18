@@ -606,4 +606,24 @@ namespace cgs
         return layers[layer].mpoint_lights[light].mquadratic_attenuation;
     }
 
+    std::vector<node_id> get_descendant_nodes(layer_id l, node_id n)
+    {
+        std::vector<node_id> ret;
+        struct node_context{ node_id nid; };
+        std::queue<node_context> pending_nodes;
+        pending_nodes.push({n});
+
+        while (!pending_nodes.empty()) {
+            auto current = pending_nodes.front();
+            pending_nodes.pop();
+            if (!is_node_enabled(l, current.nid)) continue; // note children are pruned
+            ret.push_back(current.nid);
+
+            for (node_id c = get_first_child_node(l, current.nid); c != nnode; c = get_next_sibling_node(l, c)) {
+                pending_nodes.push({c});
+            }
+        }
+
+        return ret;
+    }
 } // namespace cgs

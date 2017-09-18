@@ -2,6 +2,7 @@
 #include "cgs/resource_database.hpp"
 #include "glm/gtc/type_ptr.hpp"
 #include "cgs/renderer.hpp"
+#include "cgs/utils.hpp"
 #include "cgs/log.hpp"
 #include "glm/glm.hpp"
 #include "FreeImage.h"
@@ -43,7 +44,6 @@ namespace cgs
 
         struct skybox_context
         {
-            GLuint mvao_id;
             GLuint mvbo_id;
             GLuint mtexture_id;
         };
@@ -69,7 +69,7 @@ namespace cgs
         // Based on the shaders from
         //     http://www.opengl-tutorial.org/beginners-tutorials/tutorial-8-basic-shading/
         //     https://learnopengl.com/#!Lighting/Multiple-lights
-        const char* object_vertex_shader = R"glsl(
+        const char* phong_vertex_shader = R"glsl(
             #version 330 core
 
             // Input vertex data, different for all executions of this shader.
@@ -112,7 +112,7 @@ namespace cgs
             }
         )glsl";
 
-        const char* object_fragment_shader = R"glsl(
+        const char* phong_fragment_shader = R"glsl(
             // Lighting computations are performed in camera space. This can also be done in worlspace with the same
             // result, what matters is that all vectors are expressed in the same coordinate system. Regardless of this,
             // there are precision advantages to computing in view space (worldspace can have coordinates with large
@@ -231,6 +231,151 @@ namespace cgs
             }
         )glsl";
 
+        const char* reflective_vertex_shader = R"glsl(
+            #version 330 core
+
+            // Input vertex data, different for all executions of this shader.
+            layout(location = 0) in vec3 vertex_position_modelspace;
+            layout(location = 1) in vec2 vertex_tex_coords;
+            layout(location = 2) in vec3 vertex_direction_n_modelspace;
+
+            // Output data ; will be interpolated for each fragment.
+            out vec2 tex_coords;
+            out vec3 position_worldspace;
+            out vec3 direction_n_worldspace;
+
+            // Values that stay constant for the whole mesh.
+            uniform mat4 mvp;
+            uniform mat4 view;
+            uniform mat4 model;
+
+            void main(){
+                // Output position of the vertex, in clip space : mvp * position
+                gl_Position =  mvp * vec4(vertex_position_modelspace,1);
+
+                // Position of the vertex, in worldspace : model * position
+                position_worldspace = (model * vec4(vertex_position_modelspace, 1)).xyz;
+
+                direction_n_worldspace = mat3(transpose(inverse(model))) * vertex_direction_n_modelspace;
+
+                // Texture coordinates of the vertex. No special space for this one.
+                tex_coords = vertex_tex_coords;
+            }
+        )glsl";
+
+        const char* reflective_fragment_shader = R"glsl(
+            // Here lighting computations are performed in world space because we need to sample the
+            // skybox. If we did this in camera space we would always get the same result when the
+            // camera moves, since the skybox is fixed with respect to the camera
+
+            #version 330 core
+
+            #define MAX_POINT_LIGHTS 10
+
+            struct material_data
+            {
+                sampler2D diffuse_sampler;
+                vec3      diffuse_color;
+                vec3      specular_color; 
+                float     smoothness;
+                float     reflectivity;
+                float     translucency;
+                float     refractive_index;
+            };
+
+            struct dirlight_data
+            {
+                vec3 ambient_color;
+                vec3 diffuse_color;
+                vec3 direction_cameraspace;
+            };
+
+            struct point_light_data
+            {
+                vec3  position_cameraspace;
+                vec3  ambient_color;
+                vec3  diffuse_color;
+                float constant_attenuation;
+                float linear_attenuation;
+                float quadratic_attenuation;
+            };
+
+            // Interpolated values from the vertex shaders
+            in vec2 tex_coords;
+            in vec3 position_worldspace;
+            in vec3 position_cameraspace;
+            in vec3 direction_n_worldspace;
+
+            // Ouput data
+            out vec3 color;
+
+            // Values that stay constant for the whole mesh.
+            uniform material_data     material;
+            uniform dirlight_data     dirlight;
+            uniform point_light_data  point_lights[MAX_POINT_LIGHTS];
+            uniform uint              npoint_lights;
+            uniform vec3              camera_position_worldspace;
+            uniform samplerCube       skybox;
+
+            // Calculates the contribution of the directional light
+            vec3 calc_dirlight(dirlight_data dirlight,
+                                vec3 n_cameraspace,
+                                material_data material,
+                                vec2 tex_coords)
+            {
+                vec3 l_cameraspace = normalize(-dirlight.direction_cameraspace);
+                // diffuse shading
+                float cos_theta_diff = clamp(dot(n_cameraspace, l_cameraspace), 0, 1);
+                // combine results
+                vec3 ambient = dirlight.ambient_color * vec3(texture(material.diffuse_sampler, tex_coords)) * material.diffuse_color;
+                vec3 diffuse = dirlight.diffuse_color * cos_theta_diff * vec3(texture(material.diffuse_sampler, tex_coords)) * material.diffuse_color;
+                return (ambient + diffuse);
+            }
+
+            vec3 calc_point_light(point_light_data point_light,
+                                vec3 n_cameraspace,
+                                vec3 position_cameraspace,
+                                material_data material,
+                                vec2 tex_coords)
+            {
+                vec3 l_cameraspace = normalize(point_light.position_cameraspace - position_cameraspace);
+                // diffuse shading
+                float cos_theta_diff = clamp(dot(n_cameraspace, l_cameraspace), 0, 1);
+                // attenuation
+                float distance = length(point_light.position_cameraspace - position_cameraspace);
+                float attenuation = 1.0 / ( point_light.constant_attenuation
+                                           + point_light.linear_attenuation * distance
+                                           + point_light.quadratic_attenuation * (distance * distance));    
+                // combine results
+                vec3 ambient  = point_light.ambient_color * vec3(texture(material.diffuse_sampler, tex_coords)) * material.diffuse_color;
+                vec3 diffuse  = point_light.diffuse_color * cos_theta_diff * vec3(texture(material.diffuse_sampler, tex_coords)) * material.diffuse_color;
+                ambient *= attenuation;
+                diffuse *= attenuation;
+                return (ambient + diffuse);
+            }
+
+            void main()
+            {
+                // Normal of the computed fragment, in camera space
+                vec3 n_cameraspace = normalize(direction_n_worldspace);
+                // Phase 1: directional lighting
+                color = calc_dirlight(dirlight, n_cameraspace, material, tex_coords);
+                // Phase 2: point lights
+                for (uint i = 0U; i < npoint_lights; i++) {
+                    color += calc_point_light(point_lights[i], n_cameraspace, position_cameraspace, material, tex_coords); 
+                }
+                // Phase 3: reflective component
+                vec3 i_worldspace = normalize(position_worldspace - camera_position_worldspace);
+                vec3 reflection_worldspace = reflect(i_worldspace, normalize(direction_n_worldspace));
+                vec3 specular = vec3(texture(skybox, reflection_worldspace)) * material.specular_color * material.reflectivity;
+                color += specular;
+                // Phase 4: refraction component
+                vec3 refraction_worldspace = refract(i_worldspace, normalize(direction_n_worldspace), 1.0 / material.refractive_index);
+                vec3 refraction = vec3(texture(skybox, refraction_worldspace)) * material.translucency;
+                color += refraction;
+            }
+        )glsl";
+
         const char* skybox_vertex_shader = R"glsl(
             #version 330 core
             layout (location = 0) in vec3 a_pos;
@@ -307,25 +452,28 @@ namespace cgs
             1.0f, -1.0f,  1.0f
         };
 
-        GLFWwindow*          window = nullptr;
-        bool                 ok = false;
-        mesh_context_map     mesh_contexts;
-        cubemap_context_map  skybox_contexts;
-        GLuint               object_vao_id = 0U;
-        GLuint               object_program_id = 0U;
-        GLuint               skybox_program_id = 0U;
-        GLuint               matrix_id = 0U;
-        GLuint               view_matrix_id = 0U;
-        GLuint               model_matrix_id = 0U;
-        std::vector<event>   events;
-        key_event_type_map   event_types;     // map from GLFW key action value to event_type value
-        error_code_map       error_codes;     // map from GLFW error codes to their names
-        float                last_mouse_x = 0.0f;
-        float                last_mouse_y = 0.0f;
-        dirlight_data        dirlight;
-        layer_id             current_layer;
-        material_context_map material_contexts;
-        GLuint               default_texture_id = 0U;
+        GLFWwindow*              window = nullptr;
+        bool                     ok = false;
+        mesh_context_map         mesh_contexts;
+        cubemap_context_map      skybox_contexts;
+        GLuint                   object_vao_id = 0U;
+        GLuint                   phong_program_id = 0U;
+        GLuint                   reflective_program_id = 0U;
+        GLuint                   skybox_program_id = 0U;
+        GLuint                   matrix_id = 0U;
+        GLuint                   view_matrix_id = 0U;
+        GLuint                   model_matrix_id = 0U;
+        std::vector<event>       events;
+        key_event_type_map       event_types;     // map from GLFW key action value to event_type value
+        error_code_map           error_codes;     // map from GLFW error codes to their names
+        float                    last_mouse_x = 0.0f;
+        float                    last_mouse_y = 0.0f;
+        dirlight_data            dirlight;
+        layer_id                 current_layer;
+        material_context_map     material_contexts;
+        GLuint                   default_texture_id = 0U;
+        std::vector<node_id>     nodes_to_render;
+        glm::vec3                camera_position_worldspace;
 
         //---------------------------------------------------------------------------------------------
         // Helper functions
@@ -519,7 +667,7 @@ namespace cgs
             return texture_id;
         }
 
-        void render_node(layer_id l, node_id n, const glm::mat4& model_matrix, const glm::mat4& view_matrix, const glm::mat4& projection_matrix)
+        void render_node_phong(layer_id l, node_id n, const glm::mat4& model_matrix, const glm::mat4& view_matrix, const glm::mat4& projection_matrix)
         {
             // The root node itself has no content to render
             if (get_node_material(l, n) == nmat) return;
@@ -536,7 +684,7 @@ namespace cgs
             glUniformMatrix4fv(view_matrix_id, 1, GL_FALSE, &view_matrix[0][0]);
 
             // Bind our texture in texture Unit 0
-            glActiveTexture(GL_TEXTURE0);
+            //glActiveTexture(GL_TEXTURE0);
             mat_id node_material = get_node_material(l, n);
             GLuint texture_id = default_texture_id;
             if (material_contexts.find(node_material) != material_contexts.end()) {
@@ -544,18 +692,18 @@ namespace cgs
             }
             glBindTexture(GL_TEXTURE_2D, texture_id);
             // Set material unform properties from material information
-            glUniform1i(glGetUniformLocation(object_program_id, "material.diffuse_sampler"), 0);
+            glUniform1i(glGetUniformLocation(phong_program_id, "material.diffuse_sampler"), 0);
             glm::vec3 diffuse_color = get_material_diffuse_color(node_material);
-            glUniform3fv(glGetUniformLocation(object_program_id, "material.diffuse_color"), 1, &diffuse_color[0]);
+            glUniform3fv(glGetUniformLocation(phong_program_id, "material.diffuse_color"), 1, &diffuse_color[0]);
             glm::vec3 specular_color = get_material_specular_color(node_material);
-            glUniform3fv(glGetUniformLocation(object_program_id, "material.specular_color"), 1, &specular_color[0]);
-            glUniform1f(glGetUniformLocation(object_program_id, "material.smoothness"), get_material_smoothness(get_node_material(l, n)));
+            glUniform3fv(glGetUniformLocation(phong_program_id, "material.specular_color"), 1, &specular_color[0]);
+            glUniform1f(glGetUniformLocation(phong_program_id, "material.smoothness"), get_material_smoothness(get_node_material(l, n)));
             // Set dirlight uniform
-            glUniform3fv(glGetUniformLocation(object_program_id, "dirlight.ambient_color"),  1, &dirlight.mambient_color[0]);
-            glUniform3fv(glGetUniformLocation(object_program_id, "dirlight.diffuse_color"),  1, &dirlight.mdiffuse_color[0]);
-            glUniform3fv(glGetUniformLocation(object_program_id, "dirlight.specular_color"), 1, &dirlight.mspecular_color[0]);
+            glUniform3fv(glGetUniformLocation(phong_program_id, "dirlight.ambient_color"),  1, &dirlight.mambient_color[0]);
+            glUniform3fv(glGetUniformLocation(phong_program_id, "dirlight.diffuse_color"),  1, &dirlight.mdiffuse_color[0]);
+            glUniform3fv(glGetUniformLocation(phong_program_id, "dirlight.specular_color"), 1, &dirlight.mspecular_color[0]);
             glm::vec3 direction_cameraspace(view_matrix * glm::vec4(dirlight.mdirection, 0.0f));
-            glUniform3fv(glGetUniformLocation(object_program_id, "dirlight.direction_cameraspace"), 1, &direction_cameraspace[0]);
+            glUniform3fv(glGetUniformLocation(phong_program_id, "dirlight.direction_cameraspace"), 1, &direction_cameraspace[0]);
 
             // Set point light uniform
             std::size_t sent_point_lights = 0U;
@@ -574,69 +722,144 @@ namespace cgs
                 std::ostringstream oss;
                 oss << "point_lights[" << sent_point_lights << "]";
                 std::string uniform_prefix = oss.str();
-                glUniform3fv(glGetUniformLocation(object_program_id, (uniform_prefix + ".position_cameraspace").c_str()), 1, &position_cameraspace[0]);
-                glUniform3fv(glGetUniformLocation(object_program_id, (uniform_prefix + ".ambient_color").c_str()), 1, &ambient_color[0]);
-                glUniform3fv(glGetUniformLocation(object_program_id, (uniform_prefix + ".diffuse_color").c_str()), 1, &diffuse_color[0]);
-                glUniform3fv(glGetUniformLocation(object_program_id, (uniform_prefix + ".specular_color").c_str()), 1, &specular_color[0]);
-                glUniform1f(glGetUniformLocation(object_program_id,  (uniform_prefix + ".constant_attenuation").c_str()), constant_attenuation);
-                glUniform1f(glGetUniformLocation(object_program_id,  (uniform_prefix + ".linear_attenuation").c_str()), linear_attenuation);
-                glUniform1f(glGetUniformLocation(object_program_id,  (uniform_prefix + ".quadratic_attenuation").c_str()), quadratic_attenuation);
+                glUniform3fv(glGetUniformLocation(phong_program_id, (uniform_prefix + ".position_cameraspace").c_str()), 1, &position_cameraspace[0]);
+                glUniform3fv(glGetUniformLocation(phong_program_id, (uniform_prefix + ".ambient_color").c_str()), 1, &ambient_color[0]);
+                glUniform3fv(glGetUniformLocation(phong_program_id, (uniform_prefix + ".diffuse_color").c_str()), 1, &diffuse_color[0]);
+                glUniform3fv(glGetUniformLocation(phong_program_id, (uniform_prefix + ".specular_color").c_str()), 1, &specular_color[0]);
+                glUniform1f(glGetUniformLocation(phong_program_id,  (uniform_prefix + ".constant_attenuation").c_str()), constant_attenuation);
+                glUniform1f(glGetUniformLocation(phong_program_id,  (uniform_prefix + ".linear_attenuation").c_str()), linear_attenuation);
+                glUniform1f(glGetUniformLocation(phong_program_id,  (uniform_prefix + ".quadratic_attenuation").c_str()), quadratic_attenuation);
 
                 sent_point_lights++;
             }
-            glUniform1ui(glGetUniformLocation(object_program_id, "npoint_lights"), sent_point_lights);
+            glUniform1ui(glGetUniformLocation(phong_program_id, "npoint_lights"), sent_point_lights);
 
             // 1rst attribute buffer : vertices
             glEnableVertexAttribArray(0);
             glBindBuffer(GL_ARRAY_BUFFER, context.mpositions_vbo_id);
-            glVertexAttribPointer(
-                    0,                  // attribute
-                    3,                  // size
-                    GL_FLOAT,           // type
-                    GL_FALSE,           // normalized?
-                    0,                  // stride
-                    (void*)0            // array buffer offset
-                    );
+            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*) 0);
 
             // 2nd attribute buffer : UVs
             glEnableVertexAttribArray(1);
             glBindBuffer(GL_ARRAY_BUFFER, context.muvs_vbo_id);
-            glVertexAttribPointer(
-                    1,                                // attribute
-                    2,                                // size
-                    GL_FLOAT,                         // type
-                    GL_FALSE,                         // normalized?
-                    0,                                // stride
-                    (void*)0                          // array buffer offset
-                    );
+            glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, (void*) 0);
 
             // 3rd attribute buffer : normals
             glEnableVertexAttribArray(2);
             glBindBuffer(GL_ARRAY_BUFFER, context.mnormals_vbo_id);
-            glVertexAttribPointer(
-                    2,                                // attribute
-                    3,                                // size
-                    GL_FLOAT,                         // type
-                    GL_FALSE,                         // normalized?
-                    0,                                // stride
-                    (void*)0                          // array buffer offset
-                    );
+            glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 0, (void*) 0);
 
             // Index buffer
             glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, context.mindices_vbo_id);
 
             // Draw the triangles !
-            glDrawElements(
-                    GL_TRIANGLES,      // mode
-                    context.mnum_indices, // count
-                    GL_UNSIGNED_SHORT,   // type
-                    (void*)0           // element array buffer offset
-                    );
+            glDrawElements(GL_TRIANGLES, context.mnum_indices, GL_UNSIGNED_SHORT, (void*) 0);
 
             glDisableVertexAttribArray(0);
             glDisableVertexAttribArray(1);
             glDisableVertexAttribArray(2);
 
+        }
+
+        void render_node_reflective(layer_id l, node_id n, const glm::mat4& model_matrix, const glm::mat4& view_matrix, const glm::mat4& projection_matrix, const glm::vec3& camera_position_worldspace)
+        {
+            // The root node itself has no content to render
+            if (get_node_material(l, n) == nmat) return;
+            std::vector<mesh_id> meshes = get_node_meshes(l, n);
+            // Get buffer ids previously created for the mesh
+            auto& context = mesh_contexts[get_node_mesh(l, n)];
+
+            glm::mat4 mvp = projection_matrix * view_matrix * model_matrix;
+
+            // Send our transformation to the currently bound shader, 
+            // in the "mvp" uniform
+            glUniformMatrix4fv(matrix_id, 1, GL_FALSE, &mvp[0][0]);
+            glUniformMatrix4fv(model_matrix_id, 1, GL_FALSE, &model_matrix[0][0]);
+            glUniformMatrix4fv(view_matrix_id, 1, GL_FALSE, &view_matrix[0][0]);
+
+            // Bind our texture in texture Unit 0 in the GL_TEXTURE_2D target
+            glActiveTexture(GL_TEXTURE0);
+            mat_id node_material = get_node_material(l, n);
+            GLuint texture_id = default_texture_id;
+            if (material_contexts.find(node_material) != material_contexts.end()) {
+                texture_id = material_contexts[node_material].mtexture_id;
+            }
+            glBindTexture(GL_TEXTURE_2D, texture_id);
+            // Set material unform properties from material information
+            mat_id mat = get_node_material(l, n);
+            glUniform1i(glGetUniformLocation(reflective_program_id, "material.diffuse_sampler"), 0);
+            glm::vec3 diffuse_color = get_material_diffuse_color(node_material);
+            glUniform3fv(glGetUniformLocation(reflective_program_id, "material.diffuse_color"), 1, &diffuse_color[0]);
+            glm::vec3 specular_color = get_material_specular_color(node_material);
+            glUniform3fv(glGetUniformLocation(reflective_program_id, "material.specular_color"), 1, &specular_color[0]);
+            glUniform1f(glGetUniformLocation(reflective_program_id, "material.smoothness"), get_material_smoothness(mat));
+            glUniform1f(glGetUniformLocation(reflective_program_id, "material.reflectivity"), get_material_reflectivity(mat));
+            glUniform1f(glGetUniformLocation(reflective_program_id, "material.translucency"), get_material_translucency(mat));
+            glUniform1f(glGetUniformLocation(reflective_program_id, "material.refractive_index"), get_material_refractive_index(mat));
+            glUniform3fv(glGetUniformLocation(reflective_program_id, "camera_position_worldspace"), 1, &camera_position_worldspace[0]);
+            // Set dirlight uniform
+            glUniform3fv(glGetUniformLocation(reflective_program_id, "dirlight.ambient_color"),  1, &dirlight.mambient_color[0]);
+            glUniform3fv(glGetUniformLocation(reflective_program_id, "dirlight.diffuse_color"),  1, &dirlight.mdiffuse_color[0]);
+            glm::vec3 direction_cameraspace(view_matrix * glm::vec4(dirlight.mdirection, 0.0f));
+            glUniform3fv(glGetUniformLocation(reflective_program_id, "dirlight.direction_cameraspace"), 1, &direction_cameraspace[0]);
+
+            // Set point light uniform
+            std::size_t sent_point_lights = 0U;
+            for (point_light_id point_light = get_first_point_light(current_layer); point_light != npoint_light; point_light = get_next_point_light(current_layer, point_light)) {
+                if (sent_point_lights >= MAX_POINT_LIGHTS) { break; }
+
+                glm::vec3 position_worldspace = get_point_light_position(current_layer, point_light);
+                glm::vec3 position_cameraspace(view_matrix * glm::vec4(position_worldspace, 0.0f));
+                glm::vec3 ambient_color = get_point_light_ambient_color(current_layer, point_light);
+                glm::vec3 diffuse_color = get_point_light_diffuse_color(current_layer, point_light);
+                float constant_attenuation = get_point_light_constant_attenuation(current_layer, point_light);
+                float linear_attenuation = get_point_light_linear_attenuation(current_layer, point_light);
+                float quadratic_attenuation = get_point_light_quadratic_attenuation(current_layer, point_light);
+
+                std::ostringstream oss;
+                oss << "point_lights[" << sent_point_lights << "]";
+                std::string uniform_prefix = oss.str();
+                glUniform3fv(glGetUniformLocation(reflective_program_id, (uniform_prefix + ".position_cameraspace").c_str()), 1, &position_cameraspace[0]);
+                glUniform3fv(glGetUniformLocation(reflective_program_id, (uniform_prefix + ".ambient_color").c_str()), 1, &ambient_color[0]);
+                glUniform3fv(glGetUniformLocation(reflective_program_id, (uniform_prefix + ".diffuse_color").c_str()), 1, &diffuse_color[0]);
+                glUniform1f(glGetUniformLocation(reflective_program_id,  (uniform_prefix + ".constant_attenuation").c_str()), constant_attenuation);
+                glUniform1f(glGetUniformLocation(reflective_program_id,  (uniform_prefix + ".linear_attenuation").c_str()), linear_attenuation);
+                glUniform1f(glGetUniformLocation(reflective_program_id,  (uniform_prefix + ".quadratic_attenuation").c_str()), quadratic_attenuation);
+
+                sent_point_lights++;
+            }
+            glUniform1ui(glGetUniformLocation(reflective_program_id, "npoint_lights"), sent_point_lights);
+
+            glUniform1i(glGetUniformLocation(reflective_program_id, "skybox"), 0);
+            cubemap_context_map::iterator it = skybox_contexts.find(l);
+            // Bind our cubemap texture in texture unit 0 in the GL_TEXTURE_CUBE_MAP target
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_CUBE_MAP, it->second.mtexture_id);
+
+            // 1rst attribute buffer : vertices
+            glEnableVertexAttribArray(0);
+            glBindBuffer(GL_ARRAY_BUFFER, context.mpositions_vbo_id);
+            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*) 0);
+
+            // 2nd attribute buffer : UVs
+            glEnableVertexAttribArray(1);
+            glBindBuffer(GL_ARRAY_BUFFER, context.muvs_vbo_id);
+            glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, (void*) 0);
+
+            // 3rd attribute buffer : normals
+            glEnableVertexAttribArray(2);
+            glBindBuffer(GL_ARRAY_BUFFER, context.mnormals_vbo_id);
+            glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 0, (void*) 0);
+
+            // Index buffer
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, context.mindices_vbo_id);
+
+            // Draw the triangles !
+            glDrawElements(GL_TRIANGLES, context.mnum_indices, GL_UNSIGNED_SHORT, (void*) 0);
+
+            glDisableVertexAttribArray(0);
+            glDisableVertexAttribArray(1);
+            glDisableVertexAttribArray(2);
         }
 
         // loads a cubemap texture from 6 individual texture faces
@@ -784,11 +1007,12 @@ namespace cgs
         // number of OpenGL calls before glDrawArrays/Elements(). Since OpenGL 3 Core, they are
         // compulsory, but you may use only one and modify it permanently.
         glGenVertexArrays(1, &object_vao_id);
+        glBindVertexArray(object_vao_id);
 
         // Create and compile our GLSL program from the shaders
-        bool ok = load_shaders(object_vertex_shader, object_fragment_shader, &object_program_id);
+        bool ok = load_shaders(phong_vertex_shader, phong_fragment_shader, &phong_program_id);
         if (!ok) {
-            log(LOG_LEVEL_ERROR, "open_window: failed to load object shaders");
+            log(LOG_LEVEL_ERROR, "open_window: failed to load phong object shaders");
             glfwTerminate();
             return false;
         }
@@ -802,9 +1026,9 @@ namespace cgs
         }
 
         // Get a handle for our "mvp" uniform
-        matrix_id = glGetUniformLocation(object_program_id, "mvp");
-        view_matrix_id = glGetUniformLocation(object_program_id, "view");
-        model_matrix_id = glGetUniformLocation(object_program_id, "model");
+        matrix_id = glGetUniformLocation(phong_program_id, "mvp");
+        view_matrix_id = glGetUniformLocation(phong_program_id, "view");
+        model_matrix_id = glGetUniformLocation(phong_program_id, "model");
 
         for (mesh_id mid = get_first_mesh(); mid != nmesh; mid = get_next_mesh(mid)) {
             std::vector<glm::vec3> vertices = get_mesh_vertices(mid);
@@ -845,7 +1069,17 @@ namespace cgs
         }
 
         // Get a handle for our "LightPosition" uniform
-        glUseProgram(object_program_id);
+        glUseProgram(phong_program_id);
+
+        ////////////////////////////////////////////////////////////////////////////////////
+        // Reflective program initialization
+        ////////////////////////////////////////////////////////////////////////////////////
+        ok = load_shaders(reflective_vertex_shader, reflective_fragment_shader, &reflective_program_id);
+        if (!ok) {
+            log(LOG_LEVEL_ERROR, "open_window: failed to load reflective object shaders");
+            glfwTerminate();
+            return false;
+        }
 
         ////////////////////////////////////////////////////////////////////////////////////
         // Skybox initialization
@@ -862,9 +1096,7 @@ namespace cgs
         for (cubemap_id cid = get_first_cubemap(); cid != ncubemap; cid = get_next_cubemap(cid)) {
             // skybox VAO and VBO
             skybox_context context;
-            glGenVertexArrays(1, &context.mvao_id);
             glGenBuffers(1, &context.mvbo_id);
-            glBindVertexArray(context.mvao_id);
             glBindBuffer(GL_ARRAY_BUFFER, context.mvbo_id);
             glBufferData(GL_ARRAY_BUFFER, sizeof(skybox_vertices), &skybox_vertices, GL_STATIC_DRAW);
             glEnableVertexAttribArray(0);
@@ -903,7 +1135,7 @@ namespace cgs
                 glDeleteBuffers(1, &it->second.mindices_vbo_id);
             }
 
-            glDeleteProgram(object_program_id);
+            glDeleteProgram(phong_program_id);
 
             for (auto it = material_contexts.begin(); it != material_contexts.end(); it++) {
                 glDeleteTextures(1, &it->second.mtexture_id);
@@ -912,7 +1144,6 @@ namespace cgs
             glDeleteProgram(skybox_program_id);
             for (auto it = skybox_contexts.begin(); it != skybox_contexts.end(); it++) {
                 glDeleteBuffers(1, &it->second.mvbo_id);
-                glDeleteVertexArrays(1, &it->second.mvao_id);
                 glDeleteTextures(1, &it->second.mtexture_id);
             }
 
@@ -921,7 +1152,7 @@ namespace cgs
             ok = false;
             mesh_contexts.clear();
             object_vao_id = 0U;
-            object_program_id = 0U;
+            phong_program_id = 0U;
             skybox_program_id = 0U;
             matrix_id = 0U;
             view_matrix_id = 0U;
@@ -939,17 +1170,20 @@ namespace cgs
             log(LOG_LEVEL_ERROR, "render: view is not enabled"); return;
         }
 
+        struct node_context{ node_id nid; };
+
         // For each layer in the view
         for (layer_id l = get_first_layer(v); l != nlayer && is_layer_enabled(l); l = get_next_layer(l)) {
             current_layer = l;
+            // Convert tree into list and filter out non-enabled nodes
+            nodes_to_render = get_descendant_nodes(l, root_node);
+
+
+            // Read directional light properties for the layer
             dirlight.mambient_color = get_directional_light_ambient_color(l);
             dirlight.mdiffuse_color = get_directional_light_diffuse_color(l);
             dirlight.mspecular_color = get_directional_light_specular_color(l);
             dirlight.mdirection = get_directional_light_direction(l);
-
-            // Use our shader
-            glUseProgram(object_program_id);
-            glBindVertexArray(object_vao_id);
 
             // Get view and projection matrices for the layer
             glm::mat4 projection_matrix;
@@ -957,29 +1191,39 @@ namespace cgs
             glm::mat4 view_matrix;
             get_layer_view_transform(l, &view_matrix);
 
-            struct context{ node_id nid; };
-            std::queue<context> pending_nodes;
-            pending_nodes.push({root_node});
-            // For each node in the layer
-            while (!pending_nodes.empty()) {
-                auto current = pending_nodes.front();
-                pending_nodes.pop();
+            camera_position_worldspace = camera_position_worldspace_from_view_matrix(view_matrix);
 
-                if (is_node_enabled(l, current.nid)) {
+            // Render nodes that are neither reflective nor tranlucent with the phong model
+            glUseProgram(phong_program_id);
+            for (auto n : nodes_to_render) {
+                mat_id mat = get_node_material(l, n);
+                float reflectivity = get_material_reflectivity(mat);
+                float translucency = get_material_translucency(mat);
+                if (reflectivity == 0.0f && translucency == 0.0f) {
                     glm::mat4 local_transform;
                     glm::mat4 accum_transform;
-                    get_node_transform(l, current.nid, &local_transform, &accum_transform);
-                    render_node(l, current.nid, accum_transform, view_matrix, projection_matrix);
-
-                    for (node_id child = get_first_child_node(l, current.nid); child != nnode; child = get_next_sibling_node(l, child)) {
-                        pending_nodes.push({child});
-                    }
+                    get_node_transform(l, n, &local_transform, &accum_transform);
+                    render_node_phong(l, n, accum_transform, view_matrix, projection_matrix);
                 }
             }
 
+            // Render reflective or translucent nodes
+            glUseProgram(reflective_program_id);
+            for (auto n : nodes_to_render) {
+                mat_id mat = get_node_material(l, n);
+                float reflectivity = get_material_reflectivity(mat);
+                float translucency = get_material_translucency(mat);
+                if (reflectivity > 0.0f || translucency > 0.0f) {
+                    glm::mat4 local_transform;
+                    glm::mat4 accum_transform;
+                    get_node_transform(l, n, &local_transform, &accum_transform);
+                    render_node_reflective(l, n, accum_transform, view_matrix, projection_matrix, camera_position_worldspace);
+                }
+            }
+
+            // Render the skybox
             cubemap_id skybox_id = get_layer_skybox(l);
             if (skybox_id != ncubemap) {
-                // Render the skybox
                 glUseProgram(skybox_program_id);
                 glUniform1i(glGetUniformLocation(skybox_program_id, "skybox"), 0);
                 glDepthFunc(GL_LEQUAL);  // change depth function so depth test passes when values are equal to depth buffer's content
@@ -988,15 +1232,15 @@ namespace cgs
                 glUniformMatrix4fv(glGetUniformLocation(skybox_program_id, "projection"), 1, GL_FALSE, &projection_matrix[0][0]);
                 // skybox cube
                 cubemap_context_map::iterator it = skybox_contexts.find(l);
-                glBindVertexArray(it->second.mvao_id);
+                glBindBuffer(GL_ARRAY_BUFFER, it->second.mvbo_id);
+                glEnableVertexAttribArray(0);
+                glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
                 glActiveTexture(GL_TEXTURE0);
                 glBindTexture(GL_TEXTURE_CUBE_MAP, it->second.mtexture_id);
                 glDrawArrays(GL_TRIANGLES, 0, 36);
-                glBindVertexArray(0);
                 glDepthFunc(GL_LESS); // set depth function back to default
             }
         }
-
 
         // Swap buffers
         glfwSwapBuffers(window);
