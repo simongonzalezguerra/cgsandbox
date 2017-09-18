@@ -43,7 +43,8 @@ namespace samples
                     m_plane_node(cgs::nnode),
                     m_diffuse_teapot_node(cgs::nnode),
                     m_bunny_node(cgs::nnode),
-                    m_dragon_node(cgs::nnode),
+                    m_diffuse_dragon_node(cgs::nnode),
+                    m_steel_dragon_node(cgs::nnode),
                     m_steel_teapot_node(cgs::nnode),
                     m_glass_bunny_node(cgs::nnode),
                     m_fps_camera_controller(),
@@ -74,7 +75,8 @@ namespace samples
                 cgs::node_id                  m_plane_node;
                 cgs::node_id                  m_diffuse_teapot_node;
                 cgs::node_id                  m_bunny_node;
-                cgs::node_id                  m_dragon_node;
+                cgs::node_id                  m_diffuse_dragon_node;
+                cgs::node_id                  m_steel_dragon_node;
                 cgs::node_id                  m_steel_teapot_node;
                 cgs::node_id                  m_glass_bunny_node;
                 cgs::fps_camera_controller    m_fps_camera_controller;
@@ -186,20 +188,25 @@ namespace samples
 
             // Create the diffuse teapot
             m_impl->m_diffuse_teapot_node = cgs::add_node(m_impl->m_layer, cgs::root_node, s_teapot_resource);
-            cgs::set_node_transform(m_impl->m_layer, m_impl->m_diffuse_teapot_node, glm::translate(glm::vec3(22.0f, -3.0f, 0.0f)) * glm::scale(glm::vec3(8.0f, 8.0f, 8.0f)));
+            cgs::set_node_transform(m_impl->m_layer, m_impl->m_diffuse_teapot_node, glm::translate(glm::vec3(22.0f, -3.0f, -20.0f)) * glm::scale(glm::vec3(8.0f, 8.0f, 8.0f)));
             cgs::set_node_material(m_impl->m_layer, cgs::get_first_child_node(m_impl->m_layer, m_impl->m_diffuse_teapot_node), s_diffuse_teapot_material);
 
             // Create the bunny
             m_impl->m_bunny_node = cgs::add_node(m_impl->m_layer, cgs::root_node, s_bunny_resource);
             cgs::set_node_transform(m_impl->m_layer, m_impl->m_bunny_node, glm::translate(glm::vec3(47.0f, -4.0f, 0.0f)) * glm::scale(glm::vec3(60.0f, 60.0f, 60.0f)));
 
-            // Create the dragon
-            m_impl->m_dragon_node = cgs::add_node(m_impl->m_layer, cgs::root_node, s_dragon_resource);
-            cgs::set_node_transform(m_impl->m_layer, m_impl->m_dragon_node, glm::translate(glm::vec3(65.0f, -2.0f, 0.0f)));
+            // Create the diffuse dragon
+            m_impl->m_diffuse_dragon_node = cgs::add_node(m_impl->m_layer, cgs::root_node, s_dragon_resource);
+            cgs::set_node_transform(m_impl->m_layer, m_impl->m_diffuse_dragon_node, glm::translate(glm::vec3(65.0f, -2.0f, 0.0f)));
             
+            // Create the steel dragon
+            m_impl->m_steel_dragon_node = cgs::add_node(m_impl->m_layer, cgs::root_node, s_dragon_resource);
+            cgs::set_node_transform(m_impl->m_layer, m_impl->m_steel_dragon_node, glm::translate(glm::vec3(65.0f, -2.0f, -20.0f)));
+            cgs::set_node_material(m_impl->m_layer, cgs::get_first_child_node(m_impl->m_layer, m_impl->m_steel_dragon_node), s_steel_material);
+
             // Create the steel teapot
             m_impl->m_steel_teapot_node = cgs::add_node(m_impl->m_layer, cgs::root_node, s_teapot_resource);
-            cgs::set_node_transform(m_impl->m_layer, m_impl->m_steel_teapot_node, glm::translate(glm::vec3(22.0f, -3.0f, -20.0f)) * glm::scale(glm::vec3(8.0f, 8.0f, 8.0f)));
+            cgs::set_node_transform(m_impl->m_layer, m_impl->m_steel_teapot_node, glm::translate(glm::vec3(22.0f, -3.0f, 0.0f)) * glm::scale(glm::vec3(8.0f, 8.0f, 8.0f)));
             cgs::set_node_material(m_impl->m_layer, cgs::get_first_child_node(m_impl->m_layer, m_impl->m_steel_teapot_node), s_steel_material);
 
             // Create the glass bunny
