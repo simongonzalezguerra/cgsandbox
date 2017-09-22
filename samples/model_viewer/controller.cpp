@@ -115,7 +115,16 @@ namespace model_viewer
             m_sim_rotation_yaw += m_sim_rotation_speed * dt;
             cgs::set_node_transform(m_layer, m_plane_node, glm::rotate(m_sim_rotation_yaw, glm::vec3{0.0f, 1.0f, 0.0f}));
 
-            cgs::set_node_transform(m_layer, m_steel_dragon_node, glm::translate(glm::vec3(65.0f, -3.0f, -20.0f)) * glm::rotate(m_sim_rotation_yaw, glm::vec3{0.0f, 1.0f, 0.0f}));
+            cgs::set_node_transform(m_layer, m_steel_dragon_node, glm::translate(glm::vec3(65.0f, -3.0f, -20.0f))
+                                           * glm::rotate(m_sim_rotation_yaw, glm::vec3{0.0f, 1.0f, 0.0f}));
+
+            cgs::set_node_transform(m_layer, m_glass_bunny_node, glm::translate(glm::vec3(47.0f, -5.0f, -20.0f))
+                                           * glm::rotate(m_sim_rotation_yaw, glm::vec3{0.0f, 1.0f, 0.0f})
+                                           * glm::scale(glm::vec3(60.0f, 60.0f, 60.0f)));
+
+            cgs::set_node_transform(m_layer, m_steel_teapot_node, glm::translate(glm::vec3(22.0f, -3.0f, 0.0f))
+                                           * glm::rotate(m_sim_rotation_yaw, glm::vec3{0.0f, 1.0f, 0.0f})
+                                           * glm::scale(glm::vec3(8.0f, 8.0f, 8.0f)));
         }
 
         // Member variables
@@ -210,7 +219,7 @@ namespace model_viewer
         };
         cgs::set_cubemap_faces(s_skybox_id, skybox_faces);
 
-        bool window_ok = cgs::open_window(1920, 1080, true);
+        bool window_ok = cgs::open_window(1600, 900, false);
         if (!window_ok) {
             s_ok = false;
             return;
@@ -262,12 +271,10 @@ namespace model_viewer
 
         // Create the steel teapot
         m_impl->m_steel_teapot_node = cgs::add_node(m_impl->m_layer, cgs::root_node, s_teapot_resource);
-        cgs::set_node_transform(m_impl->m_layer, m_impl->m_steel_teapot_node, glm::translate(glm::vec3(22.0f, -3.0f, 0.0f)) * glm::scale(glm::vec3(8.0f, 8.0f, 8.0f)));
         cgs::set_node_material(m_impl->m_layer, cgs::get_first_child_node(m_impl->m_layer, m_impl->m_steel_teapot_node), s_steel_material);
 
         // Create the glass bunny
         m_impl->m_glass_bunny_node = cgs::add_node(m_impl->m_layer, cgs::root_node, s_bunny_resource);
-        cgs::set_node_transform(m_impl->m_layer, m_impl->m_glass_bunny_node, glm::translate(glm::vec3(47.0f, -5.0f, -20.0f)) * glm::scale(glm::vec3(60.0f, 60.0f, 60.0f)));
         cgs::set_node_material(m_impl->m_layer, m_impl->m_glass_bunny_node, s_glass_material);
 
         cgs::point_light_id point_light = cgs::add_point_light(m_impl->m_layer);
