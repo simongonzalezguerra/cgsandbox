@@ -18,37 +18,37 @@ namespace cgs
 
     class fps_camera_controller::fps_camera_controller_impl
     {
-        public:
-            fps_camera_controller_impl() :
-                m_layer(cgs::nlayer),
-                m_position{0.0f},
-                m_yaw(0.0f),
-                m_pitch(0.0f),
-                m_speed(0.0f),
-                m_mouse_speed(0.0f),
-                m_moving_forward(false),
-                m_moving_backward(false),
-                m_moving_right(false),
-                m_moving_left(false) {}
+    public:
+        fps_camera_controller_impl() :
+            m_layer(cgs::nlayer),
+            m_position{0.0f},
+            m_yaw(0.0f),
+            m_pitch(0.0f),
+            m_speed(0.0f),
+            m_mouse_speed(0.0f),
+            m_moving_forward(false),
+            m_moving_backward(false),
+            m_moving_right(false),
+            m_moving_left(false) {}
 
-            void log_position()
-            {
-                // std::ostringstream oss;
-                // oss << "fps_camera_controller: updated position, position: " << std::fixed << std::setprecision(2)
-                //     << m_position.x << ", " << m_position.y << ", " << m_position.z;
-                // cgs::log(cgs::LOG_LEVEL_DEBUG, oss.str());
-            }
+        void log_position()
+        {
+            // std::ostringstream oss;
+            // oss << "fps_camera_controller: updated position, position: " << std::fixed << std::setprecision(2)
+            //     << m_position.x << ", " << m_position.y << ", " << m_position.z;
+            // cgs::log(cgs::LOG_LEVEL_DEBUG, oss.str());
+        }
 
-            cgs:: layer_id m_layer;
-            glm::vec3      m_position;
-            float          m_yaw;
-            float          m_pitch;
-            float          m_speed;
-            float          m_mouse_speed;
-            bool           m_moving_forward;
-            bool           m_moving_backward;
-            bool           m_moving_right;
-            bool           m_moving_left;
+        cgs:: layer_id m_layer;
+        glm::vec3      m_position;
+        float          m_yaw;
+        float          m_pitch;
+        float          m_speed;
+        float          m_mouse_speed;
+        bool           m_moving_forward;
+        bool           m_moving_backward;
+        bool           m_moving_right;
+        bool           m_moving_left;
     };
 
     fps_camera_controller::fps_camera_controller() :
@@ -205,76 +205,80 @@ namespace cgs
 
     class perspective_controller::perspective_controller_impl
     {
-        public:
-            perspective_controller_impl() :
-                m_layer(nlayer),
-                m_window_width(0.0f),
-                m_window_height(0.0f),
-                m_increasing_fov(false),
-                m_decreasing_fov(false),
-                m_fov_speed(0.0f),
-                m_fov_radians(0.0f) {}
+    public:
+        perspective_controller_impl() :
+            m_layer(nlayer),
+            m_window_width(0.0f),
+            m_window_height(0.0f),
+            m_increasing_fov(false),
+            m_decreasing_fov(false),
+            m_fov_speed(0.0f),
+            m_fov_radians(0.0f),
+            m_near(0.1f),
+            m_far(100.0f) {}
 
-            void set_fov_radians(float fov_radians)
-            {
-                m_fov_radians = glm::clamp(fov_radians, min_fov_radians, max_fov_radians);
+        void set_fov_radians(float fov_radians)
+        {
+            m_fov_radians = glm::clamp(fov_radians, min_fov_radians, max_fov_radians);
 
-                std::ostringstream oss;
-                oss << std::fixed << std::setprecision(2);
-                oss << "perspective_controller, fov degrees: "
-                    << glm::degrees(m_fov_radians)
-                    << ", fovy degrees: "
-                    << glm::degrees(cgs::fov_to_fovy(m_fov_radians, m_window_width, m_window_height));
-                cgs::log(cgs::LOG_LEVEL_DEBUG, oss.str());
-            }
+            std::ostringstream oss;
+            oss << std::fixed << std::setprecision(2);
+            oss << "perspective_controller, fov degrees: "
+                << glm::degrees(m_fov_radians)
+                << ", fovy degrees: "
+                << glm::degrees(cgs::fov_to_fovy(m_fov_radians, m_window_width, m_window_height));
+            cgs::log(cgs::LOG_LEVEL_DEBUG, oss.str());
+        }
 
-            void process(float dt, const std::vector<cgs::event>& events)
-            {
-                for (auto it = events.cbegin(); it != events.cend(); it++) {
-                    if (it->type == cgs::EVENT_KEY_PRESS) {
-                        if (it->value == cgs::KEY_9) {
-                            m_increasing_fov = false;
-                            m_decreasing_fov = true;
-                        } else if (it->value == cgs::KEY_0) {
-                            m_increasing_fov = true;
-                            m_decreasing_fov = false;
-                        }
-                    } else if (it->type == cgs::EVENT_KEY_RELEASE) {
-                        if (it->value == cgs::KEY_9 || it->value == cgs::KEY_0) {
-                            m_increasing_fov = false;
-                            m_decreasing_fov = false; 
-                        }
+        void process(float dt, const std::vector<cgs::event>& events)
+        {
+            for (auto it = events.cbegin(); it != events.cend(); it++) {
+                if (it->type == cgs::EVENT_KEY_PRESS) {
+                    if (it->value == cgs::KEY_9) {
+                        m_increasing_fov = false;
+                        m_decreasing_fov = true;
+                    } else if (it->value == cgs::KEY_0) {
+                        m_increasing_fov = true;
+                        m_decreasing_fov = false;
+                    }
+                } else if (it->type == cgs::EVENT_KEY_RELEASE) {
+                    if (it->value == cgs::KEY_9 || it->value == cgs::KEY_0) {
+                        m_increasing_fov = false;
+                        m_decreasing_fov = false; 
                     }
                 }
-
-                if (m_increasing_fov) {
-                    set_fov_radians(m_fov_radians + m_fov_speed * dt);
-                } else if (m_decreasing_fov) {
-                    set_fov_radians(m_fov_radians - m_fov_speed * dt);
-                }
-
-                // The fovy parameter to glm::perspective is the full vertical fov, not the half! the reason
-                // they usually use 45 is that 90.0 would look weird. 90 would be ok for horizontal fov, not
-                // vertical
-                // https://www.opengl.org/discussion_boards/showthread.php/171227-glm-perspective-fovy-question
-                // Also, the fovy parameter is in radians, not degrees! there are some old versions
-                // of the glm documentation that state this depends on a preprocessor symbol, but
-                // version 0.9.7 states explicitly that it's in radians:
-                // http://glm.g-truc.net/0.9.7/api/a00174.html#gac3613dcb6c6916465ad5b7ad5a786175
-                // This is why our utility function fov_to_fovy takes radians and returns radians
-                float fovy_radians = cgs::fov_to_fovy(m_fov_radians, m_window_width, m_window_height);
-                glm::mat4 projection_transform = glm::perspective(fovy_radians, m_window_width / m_window_height, 0.1f, 100.0f);
-                cgs::set_layer_projection_transform(m_layer, projection_transform);
             }
 
-            // Member variables
-            cgs::layer_id   m_layer;
-            float           m_window_width;
-            float           m_window_height;
-            bool            m_increasing_fov;
-            bool            m_decreasing_fov;
-            float           m_fov_speed;
-            float           m_fov_radians;
+            if (m_increasing_fov) {
+                set_fov_radians(m_fov_radians + m_fov_speed * dt);
+            } else if (m_decreasing_fov) {
+                set_fov_radians(m_fov_radians - m_fov_speed * dt);
+            }
+
+            // The fovy parameter to glm::perspective is the full vertical fov, not the half! the reason
+            // they usually use 45 is that 90.0 would look weird. 90 would be ok for horizontal fov, not
+            // vertical
+            // https://www.opengl.org/discussion_boards/showthread.php/171227-glm-perspective-fovy-question
+            // Also, the fovy parameter is in radians, not degrees! there are some old versions
+            // of the glm documentation that state this depends on a preprocessor symbol, but
+            // version 0.9.7 states explicitly that it's in radians:
+            // http://glm.g-truc.net/0.9.7/api/a00174.html#gac3613dcb6c6916465ad5b7ad5a786175
+            // This is why our utility function fov_to_fovy takes radians and returns radians
+            float fovy_radians = cgs::fov_to_fovy(m_fov_radians, m_window_width, m_window_height);
+            glm::mat4 projection_transform = glm::perspective(fovy_radians, m_window_width / m_window_height, m_near, m_far);
+            cgs::set_layer_projection_transform(m_layer, projection_transform);
+        }
+
+        // Member variables
+        cgs::layer_id m_layer;
+        float         m_window_width;
+        float         m_window_height;
+        bool          m_increasing_fov;
+        bool          m_decreasing_fov;
+        float         m_fov_speed;
+        float         m_fov_radians;
+        float         m_near;
+        float         m_far;
     };
 
     perspective_controller::perspective_controller() :
@@ -307,6 +311,16 @@ namespace cgs
         m_impl->set_fov_radians(fov);
     }
 
+    void perspective_controller::set_near(float near)
+    {
+        m_impl->m_near = near;
+    }
+
+    void perspective_controller::set_far(float far)
+    {
+        m_impl->m_far = far;
+    }
+
     float perspective_controller::get_fov_speed()
     {
         return m_impl->m_fov_speed;
@@ -332,6 +346,16 @@ namespace cgs
         return m_impl->m_window_height;
     }
 
+    float perspective_controller::get_near()
+    {
+        return m_impl->m_near;
+    }
+
+    float perspective_controller::get_far()
+    {
+        return m_impl->m_far;
+    }
+
     void perspective_controller::process(float dt, const std::vector<cgs::event>& events)
     {
         m_impl->process(dt, events);
@@ -343,35 +367,35 @@ namespace cgs
 
     class framerate_controller::framerate_controller_impl
     {
-        public:
-            framerate_controller_impl() :
-                m_n_frames(0U),
-                m_framerate_sample_time(0.0f),
-                m_minimum_framerate(0.0f),
-                m_maximum_framerate(0.0f),
-                m_average_framerate(0.0f) {}
+    public:
+        framerate_controller_impl() :
+            m_n_frames(0U),
+            m_framerate_sample_time(0.0f),
+            m_minimum_framerate(0.0f),
+            m_maximum_framerate(0.0f),
+            m_average_framerate(0.0f) {}
 
-            void process(float dt)
-            {
-                // Framerate calculation
-                m_n_frames++;
-                m_framerate_sample_time += dt;
-                if (m_framerate_sample_time >= 1.0) {
-                    float framerate = ((float) m_n_frames / m_framerate_sample_time);
-                    m_minimum_framerate = (framerate < m_minimum_framerate || m_minimum_framerate == 0.0f)? framerate : m_minimum_framerate;
-                    m_maximum_framerate = (framerate > m_maximum_framerate || m_maximum_framerate == 0.0f)? framerate : m_maximum_framerate;
-                    m_average_framerate = (m_average_framerate == 0.0f)?  framerate : (0.5f * m_average_framerate + 0.5 * framerate);
-                    m_n_frames = 0U;
-                    m_framerate_sample_time = 0.0f;
-                }
+        void process(float dt)
+        {
+            // Framerate calculation
+            m_n_frames++;
+            m_framerate_sample_time += dt;
+            if (m_framerate_sample_time >= 1.0) {
+                float framerate = ((float) m_n_frames / m_framerate_sample_time);
+                m_minimum_framerate = (framerate < m_minimum_framerate || m_minimum_framerate == 0.0f)? framerate : m_minimum_framerate;
+                m_maximum_framerate = (framerate > m_maximum_framerate || m_maximum_framerate == 0.0f)? framerate : m_maximum_framerate;
+                m_average_framerate = (m_average_framerate == 0.0f)?  framerate : (0.5f * m_average_framerate + 0.5 * framerate);
+                m_n_frames = 0U;
+                m_framerate_sample_time = 0.0f;
             }
+        }
 
-            // Member variables
-            unsigned int    m_n_frames;
-            float           m_framerate_sample_time;
-            float           m_minimum_framerate;
-            float           m_maximum_framerate;
-            float           m_average_framerate;
+        // Member variables
+        unsigned int m_n_frames;
+        float        m_framerate_sample_time;
+        float        m_minimum_framerate;
+        float        m_maximum_framerate;
+        float        m_average_framerate;
     };
 
     framerate_controller::framerate_controller() :
