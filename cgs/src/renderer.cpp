@@ -653,7 +653,7 @@ namespace cgs
             // Linux) and uses a RGB[A] pixel layout under a Big Endian processor (Mac OS X or any Big
             // Endian Linux / Unix). This choice was made to ease the use of FreeImage with graphics API.
             // When runing on Linux, FreeImage stores data in BGRA format.
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_BGRA, GL_UNSIGNED_BYTE, &data[0]);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, depth == 3U? GL_BGR : GL_BGRA, GL_UNSIGNED_BYTE, &data[0]);
             // OpenGL has now copied the data. Free our own version
 
             // Trilinear filtering.
@@ -671,7 +671,6 @@ namespace cgs
         {
             // The root node itself has no content to render
             if (get_node_material(l, n) == nmat) return;
-            std::vector<mesh_id> meshes = get_node_meshes(l, n);
             // Get buffer ids previously created for the mesh
             auto& context = mesh_contexts[get_node_mesh(l, n)];
 
@@ -765,7 +764,6 @@ namespace cgs
         {
             // The root node itself has no content to render
             if (get_node_material(l, n) == nmat) return;
-            std::vector<mesh_id> meshes = get_node_meshes(l, n);
             // Get buffer ids previously created for the mesh
             auto& context = mesh_contexts[get_node_mesh(l, n)];
 
@@ -918,7 +916,7 @@ namespace cgs
                 // Endian Linux / Unix). This choice was made to ease the use of FreeImage with graphics API.
                 // When runing on Linux, FreeImage stores data in BGR format.
                 // The format (7th argument) argument specifies the format of the data we pass in, stored in client memory
-                glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB, width, height, 0, GL_BGR, GL_UNSIGNED_BYTE, &data[0]);
+                glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB, width, height, 0, depth == 3U? GL_BGR : GL_BGRA, GL_UNSIGNED_BYTE, &data[0]);
             }
 
             glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
