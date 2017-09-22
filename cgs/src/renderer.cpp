@@ -460,9 +460,6 @@ namespace cgs
         GLuint                   phong_program_id = 0U;
         GLuint                   reflective_program_id = 0U;
         GLuint                   skybox_program_id = 0U;
-        GLuint                   matrix_id = 0U;
-        GLuint                   view_matrix_id = 0U;
-        GLuint                   model_matrix_id = 0U;
         std::vector<event>       events;
         key_event_type_map       event_types;     // map from GLFW key action value to event_type value
         error_code_map           error_codes;     // map from GLFW error codes to their names
@@ -678,9 +675,9 @@ namespace cgs
 
             // Send our transformation to the currently bound shader, 
             // in the "mvp" uniform
-            glUniformMatrix4fv(matrix_id, 1, GL_FALSE, &mvp[0][0]);
-            glUniformMatrix4fv(model_matrix_id, 1, GL_FALSE, &model_matrix[0][0]);
-            glUniformMatrix4fv(view_matrix_id, 1, GL_FALSE, &view_matrix[0][0]);
+            glUniformMatrix4fv(glGetUniformLocation(phong_program_id, "mvp"), 1, GL_FALSE, &mvp[0][0]);
+            glUniformMatrix4fv(glGetUniformLocation(phong_program_id, "model"), 1, GL_FALSE, &model_matrix[0][0]);
+            glUniformMatrix4fv(glGetUniformLocation(phong_program_id, "view"), 1, GL_FALSE, &view_matrix[0][0]);
 
             // Bind our texture in texture Unit 0
             //glActiveTexture(GL_TEXTURE0);
@@ -771,9 +768,9 @@ namespace cgs
 
             // Send our transformation to the currently bound shader, 
             // in the "mvp" uniform
-            glUniformMatrix4fv(matrix_id, 1, GL_FALSE, &mvp[0][0]);
-            glUniformMatrix4fv(model_matrix_id, 1, GL_FALSE, &model_matrix[0][0]);
-            glUniformMatrix4fv(view_matrix_id, 1, GL_FALSE, &view_matrix[0][0]);
+            glUniformMatrix4fv(glGetUniformLocation(reflective_program_id, "mvp"), 1, GL_FALSE, &mvp[0][0]);
+            glUniformMatrix4fv(glGetUniformLocation(reflective_program_id, "model"), 1, GL_FALSE, &model_matrix[0][0]);
+            glUniformMatrix4fv(glGetUniformLocation(reflective_program_id, "view"), 1, GL_FALSE, &view_matrix[0][0]);
 
             // Bind our texture in texture Unit 0 in the GL_TEXTURE_2D target
             glActiveTexture(GL_TEXTURE0);
@@ -1023,11 +1020,6 @@ namespace cgs
             }
         }
 
-        // Get a handle for our "mvp" uniform
-        matrix_id = glGetUniformLocation(phong_program_id, "mvp");
-        view_matrix_id = glGetUniformLocation(phong_program_id, "view");
-        model_matrix_id = glGetUniformLocation(phong_program_id, "model");
-
         for (mesh_id mid = get_first_mesh(); mid != nmesh; mid = get_next_mesh(mid)) {
             std::vector<glm::vec3> vertices = get_mesh_vertices(mid);
             std::vector<glm::vec2> texture_coords = get_mesh_texture_coords(mid);
@@ -1152,9 +1144,6 @@ namespace cgs
             object_vao_id = 0U;
             phong_program_id = 0U;
             skybox_program_id = 0U;
-            matrix_id = 0U;
-            view_matrix_id = 0U;
-            model_matrix_id = 0U;
             events.clear();
         }
     }
