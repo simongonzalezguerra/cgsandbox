@@ -2,6 +2,7 @@
 #define SYSTEM_HPP
 
 #include <memory>
+#include <string>
 #include <vector>
 
 namespace cgs

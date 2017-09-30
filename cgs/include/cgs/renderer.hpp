@@ -3,9 +3,6 @@
 
 #include "cgs/scenegraph.hpp"
 
-#include <cstddef>  // for std::size_t
-#include <vector>
-
 namespace cgs
 {
     //-----------------------------------------------------------------------------------------------

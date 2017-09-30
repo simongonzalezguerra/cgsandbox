@@ -11,11 +11,8 @@
 
 #include <iomanip>
 #include <sstream>
-#include <fstream>
-#include <cstring>
 #include <vector>
 #include <string>
-#include <queue>
 #include <map>
 
 namespace cgs

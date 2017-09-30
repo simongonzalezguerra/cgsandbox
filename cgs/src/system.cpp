@@ -1,16 +1,9 @@
 #include "cgs/system.hpp"
-#include "cgs/utils.hpp"
 #include "cgs/log.hpp"
 #include "FreeImage.h"
 #include "glfw3.h"
 
-#include <iomanip>
 #include <sstream>
-#include <fstream>
-#include <cstring>
-#include <vector>
-#include <string>
-#include <queue>
 #include <map>
 
 namespace cgs
