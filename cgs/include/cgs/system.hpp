@@ -174,6 +174,7 @@ namespace cgs
         image();
         ~image();
         void load(const std::string& path);
+        void flip_vertical();
         bool ok();
         unsigned int get_width();
         unsigned int get_height();

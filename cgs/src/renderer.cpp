@@ -790,6 +790,11 @@ namespace cgs
                 image img;
                 img.load(faces[i]);
                 if (!img.ok()) return false;
+                // In the image class, images are store upside-down in memory. For normal textures
+                // this is matches what OpenGL expects, but for cubemaps OpenGL follows the
+                // RenderMan criteria, which requires flipping the images. You can flip the images
+                // on disk, or by software. Here we opted for the second approach.
+                img.flip_vertical();
                 // Give the image to OpenGL
                 initialize_image_formats();
                 // The format (7th argument) argument specifies the format of the data we pass in, stored in client memory

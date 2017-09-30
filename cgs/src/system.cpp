@@ -153,6 +153,17 @@ namespace cgs
         }
     }
 
+    void image::flip_vertical()
+    {
+        // In FreeImage, images are stored upside-down in memory (see the PDF doc about pixel
+        // access). For normal textures this is matches what OpenGL expects, but for cubemaps
+        // OpenGL follows the RenderMan criteria, which requires flipping the images. You can flip
+        // the images on disk, or by software. Here we opted for the second approach.
+        if (m_impl->m_img != nullptr) {
+            FreeImage_FlipVertical(m_impl->m_img);
+        }
+    }
+
     bool image::ok()
     {
         return (m_impl->m_img != nullptr);
