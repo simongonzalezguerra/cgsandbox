@@ -6,7 +6,6 @@
 #include "cgs/utils.hpp"
 #include "cgs/log.hpp"
 #include "glm/glm.hpp"
-#include "FreeImage.h"
 #include "GL/glew.h"
 
 #include <iomanip>
@@ -56,6 +55,7 @@ namespace cgs
         typedef std::map<mesh_id, mesh_context>      mesh_context_map;
         typedef std::map<cubemap_id, skybox_context> cubemap_context_map;
         typedef std::map<mat_id, material_context>   material_context_map;
+        typedef std::map<image_format, GLenum>       image_format_map;
 
         //---------------------------------------------------------------------------------------------
         // Internal data structures
@@ -459,10 +459,22 @@ namespace cgs
         GLuint                   default_texture_id = 0U;
         std::vector<node_id>     nodes_to_render;
         glm::vec3                camera_position_worldspace;
+        image_format_map         image_formats;
 
         //---------------------------------------------------------------------------------------------
         // Helper functions
         //---------------------------------------------------------------------------------------------
+        void initialize_image_formats()
+        {
+            if (image_formats.empty()) {
+                image_formats[image_format::none] = GL_RGB;
+                image_formats[image_format::rgb]  = GL_RGB;
+                image_formats[image_format::rgba] = GL_RGBA;
+                image_formats[image_format::bgr]  = GL_BGR;
+                image_formats[image_format::bgra] = GL_BGRA;
+            }
+        }
+
         bool load_shaders(const char* vertex_shader_source, const char* fragment_shader_source, GLuint* program_id)
         {
             // Create the shaders
@@ -533,45 +545,24 @@ namespace cgs
         }
 
         // Path must be relative to the curent directory
-        GLuint load_texture(const char* path)
+        GLuint load_texture(const std::string& path)
         {
             log(LOG_LEVEL_DEBUG, "load_texture: loading texture from path " + std::string(path));
 
-            FREE_IMAGE_FORMAT format = FreeImage_GetFileType(path, 0); // automatically detects the format(from over 20 formats!)
-            FIBITMAP* image = FreeImage_Load(format, path);
-            unsigned int width = FreeImage_GetWidth(image);
-            unsigned int height = FreeImage_GetHeight(image);
-            unsigned int depth = FreeImage_GetBPP(image) / 8;
-            unsigned int red_mask = FreeImage_GetRedMask(image);
-            unsigned int green_mask = FreeImage_GetGreenMask(image);
-            unsigned int blue_mask = FreeImage_GetBlueMask(image);
-            char* fi_data = (char*) FreeImage_GetBits(image);
-            std::vector<char> data(depth * width * height);
-            std::memcpy(&data[0], fi_data, depth * width * height);
-            FreeImage_Unload(image);
-
-            std::ostringstream oss;
-            oss << "load_texture: loaded image of (width x height) = " << width << " x " << height
-                << " pixels, " << depth * width * height << " bytes in total" << ", bytes by pixel: " << depth
-                << std::hex << ", red mask: " << red_mask << ", green mask: " << green_mask << ", blue mask: " << blue_mask;
-            log(LOG_LEVEL_DEBUG, oss.str());
+            image img;
+            img.load(path);
+            if (!img.ok()) return 0;
 
             // Create one OpenGL texture
             GLuint texture_id;
             glGenTextures(1, &texture_id);
             // "Bind" the newly created texture : all future texture functions will modify this texture
             glBindTexture(GL_TEXTURE_2D, texture_id);
-
             // Give the image to OpenGL
-            // Note about image format: when running in another OS you may need to change RGB to BGR for
-            // the raw data to be interpreted correctly. From the FreeImage doc: However, the pixel layout
-            // used by this model is OS dependant. Using a byte by byte memory order to label the pixel
-            // layout, then FreeImage uses a BGR[A] pixel layout under a Little Endian processor (Windows,
-            // Linux) and uses a RGB[A] pixel layout under a Big Endian processor (Mac OS X or any Big
-            // Endian Linux / Unix). This choice was made to ease the use of FreeImage with graphics API.
-            // When runing on Linux, FreeImage stores data in BGRA format.
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, depth == 3U? GL_BGR : GL_BGRA, GL_UNSIGNED_BYTE, &data[0]);
-            // OpenGL has now copied the data. Free our own version
+            initialize_image_formats();
+            // The format (7th argument) argument specifies the format of the data we pass in, stored in client memory
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img.get_width(), img.get_height(), 0, image_formats[img.get_format()], GL_UNSIGNED_BYTE, img.get_data());
+            // OpenGL has now copied the data, we can delete our image object
 
             // Trilinear filtering.
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -796,44 +787,14 @@ namespace cgs
             {
                 log(LOG_LEVEL_DEBUG, "load_cubemap: loading image from path " + faces[i]);
 
-                FREE_IMAGE_FORMAT format = FreeImage_GetFileType(faces[i].c_str(), 0); // automatically detects the format(from over 20 formats!)
-                FIBITMAP* image = FreeImage_Load(format, faces[i].c_str());
-                if (image == nullptr) {
-                    log(LOG_LEVEL_ERROR, "load_cubemap: could not find image in path " + faces[i]);
-                    FreeImage_Unload(image);
-                    return false;
-                }
-                // In FreeImage, images are store upside-down in memory (see the PDF doc about pixel
-                // access). For normal textures this is matches what OpenGL expects, but for cubemaps
-                // OpenGL follows the RenderMan criteria, which requires flipping the images. You can flip
-                // the images on disk, or by software. Here we opted for the second approach.
-                FreeImage_FlipVertical(image);
-                unsigned int width = FreeImage_GetWidth(image);
-                unsigned int height = FreeImage_GetHeight(image);
-                unsigned int depth = FreeImage_GetBPP(image) / 8;
-                unsigned int red_mask = FreeImage_GetRedMask(image);
-                unsigned int green_mask = FreeImage_GetGreenMask(image);
-                unsigned int blue_mask = FreeImage_GetBlueMask(image);
-                char* fi_data = (char*) FreeImage_GetBits(image);
-                std::vector<char> data(depth * width * height);
-                std::memcpy(&data[0], fi_data, depth * width * height);
-                FreeImage_Unload(image);
-
-                std::ostringstream oss;
-                oss << "load_cubemap: loaded image of (width x height) = " << width << " x " << height
-                    << " pixels, " << depth * width * height << " bytes in total" << ", bytes by pixel: " << depth
-                    << std::hex << ", red mask: " << red_mask << ", green mask: " << green_mask << ", blue mask: " << blue_mask;
-                log(LOG_LEVEL_DEBUG, oss.str());
-
-                // Note about image format: when running in another OS you may need to change RGB to BGR for
-                // the raw data to be interpreted correctly. From the FreeImage doc: However, the pixel layout
-                // used by this model is OS dependant. Using a byte by byte memory order to label the pixel
-                // layout, then FreeImage uses a BGR[A] pixel layout under a Little Endian processor (Windows,
-                // Linux) and uses a RGB[A] pixel layout under a Big Endian processor (Mac OS X or any Big
-                // Endian Linux / Unix). This choice was made to ease the use of FreeImage with graphics API.
-                // When runing on Linux, FreeImage stores data in BGR format.
+                image img;
+                img.load(faces[i]);
+                if (!img.ok()) return false;
+                // Give the image to OpenGL
+                initialize_image_formats();
                 // The format (7th argument) argument specifies the format of the data we pass in, stored in client memory
-                glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB, width, height, 0, depth == 3U? GL_BGR : GL_BGRA, GL_UNSIGNED_BYTE, &data[0]);
+                glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB, img.get_width(), img.get_height(), 0, image_formats[img.get_format()], GL_UNSIGNED_BYTE, img.get_data());
+                // OpenGL has now copied the data, we can delete our image object
             }
 
             glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -892,8 +853,10 @@ namespace cgs
         for (mat_id mat = get_first_material(); mat != nmat; mat = get_next_material(mat)) {
             // Load the texture
             if (!get_material_texture_path(mat).empty()) {
-                GLuint texture_id = load_texture(get_material_texture_path(mat).c_str());
-                material_contexts[mat] = material_context{texture_id};
+                GLuint texture_id = load_texture(get_material_texture_path(mat));
+                if (texture_id) {
+                    material_contexts[mat] = material_context{texture_id};
+                }
             }
         }
 

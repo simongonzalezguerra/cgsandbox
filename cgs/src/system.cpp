@@ -104,6 +104,89 @@ namespace cgs
     //-----------------------------------------------------------------------------------------------
     // Public functions
     //-----------------------------------------------------------------------------------------------
+    class image::image_impl
+    {   
+    public:
+        image_impl() :
+            m_img(nullptr) {}
+
+        void log_image_properties()
+        {
+            auto width = FreeImage_GetWidth(m_img);
+            auto height = FreeImage_GetHeight(m_img);
+            auto depth = FreeImage_GetBPP(m_img) / 8;
+            auto red_mask = FreeImage_GetRedMask(m_img);
+            auto green_mask = FreeImage_GetGreenMask(m_img);
+            auto blue_mask = FreeImage_GetBlueMask(m_img);
+            std::ostringstream oss;
+            oss << "loaded image of (width x height) = " << width << " x " << height << " pixels"
+                << ", bytes in total: " << depth * width * height
+                << ", bytes by pixel: " << depth
+                << ", red mask: " << std::hex << red_mask
+                << ", green mask: " << std::hex << green_mask
+                << ", blue mask: " << std::hex << blue_mask;
+            log(LOG_LEVEL_DEBUG, oss.str());
+        }
+
+        FIBITMAP* m_img;
+    };
+
+    image::image() :
+        m_impl(std::make_unique<image_impl>()) {}
+
+    image::~image() {
+        if (m_impl->m_img != nullptr) {
+            FreeImage_Unload(m_impl->m_img);
+        }
+    }
+
+    void image::load(const std::string& path)
+    {
+        if (m_impl->m_img == nullptr) {
+            FREE_IMAGE_FORMAT format = FreeImage_GetFileType(path.c_str(), 0); // automatically detects the format(from over 20 formats!)
+            m_impl->m_img = FreeImage_Load(format, path.c_str());
+            if (m_impl->m_img == nullptr) {
+                log(LOG_LEVEL_ERROR, "could not find image in path " + path);
+                return;
+            }
+            m_impl->log_image_properties();
+        }
+    }
+
+    bool image::ok()
+    {
+        return (m_impl->m_img != nullptr);
+    }
+
+    unsigned int image::get_width()
+    {
+        return (m_impl->m_img != nullptr? FreeImage_GetWidth(m_impl->m_img) : 0U);
+    }
+
+    unsigned int image::get_height()
+    {
+        return (m_impl->m_img != nullptr? FreeImage_GetHeight(m_impl->m_img) : 0U);
+    }
+
+    image_format image::get_format()
+    {
+        if (m_impl->m_img == nullptr) return image_format::none;
+
+        // From the FreeImage doc: the pixel layout used by this model is OS dependant. Using a byte
+        // by byte memory order to label the pixel layout, then FreeImage uses a BGR[A] pixel layout
+        // under a Little Endian processor (Windows, Linux) and uses a RGB[A] pixel layout under a
+        // Big Endian processor (Mac OS X or any Big Endian Linux / Unix). This choice was made to
+        // ease the use of FreeImage with graphics API. When runing on Linux, FreeImage stores data
+        // in BGR / BGRA format.
+        unsigned int depth = FreeImage_GetBPP(m_impl->m_img) / 8U;
+        return (depth == 3U? image_format::bgr : image_format::bgra);
+    }
+
+    const unsigned char* image::get_data()
+    {
+        return (m_impl->m_img != nullptr? FreeImage_GetBits(m_impl->m_img) : nullptr);
+    }
+
     bool open_window(std::size_t width, std::size_t height, bool fullscreen)
     {
         // Initialise GLFW

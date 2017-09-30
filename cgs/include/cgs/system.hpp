@@ -161,10 +161,11 @@ namespace cgs
 
     enum class image_format
     {
-        RGB,
-        RGBA,
-        BGR,
-        BGRA
+        none,
+        rgb,
+        rgba,
+        bgr,
+        bgra
     };
 
     class image
@@ -173,9 +174,11 @@ namespace cgs
         image();
         ~image();
         void load(const std::string& path);
+        bool ok();
         unsigned int get_width();
         unsigned int get_height();
         image_format get_format();
+        const unsigned char* get_data();
 
     private:
         class image_impl;
