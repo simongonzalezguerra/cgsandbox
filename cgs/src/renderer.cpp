@@ -2,12 +2,12 @@
 #include "cgs/resource_database.hpp"
 #include "glm/gtc/type_ptr.hpp"
 #include "cgs/renderer.hpp"
+#include "cgs/system.hpp"
 #include "cgs/utils.hpp"
 #include "cgs/log.hpp"
 #include "glm/glm.hpp"
 #include "FreeImage.h"
 #include "GL/glew.h"
-#include "glfw3.h"
 
 #include <iomanip>
 #include <sstream>
@@ -58,9 +58,6 @@ namespace cgs
 
         typedef std::map<mesh_id, mesh_context>      mesh_context_map;
         typedef std::map<cubemap_id, skybox_context> cubemap_context_map;
-        typedef std::map<int, event_type>            key_event_type_map;
-        typedef key_event_type_map::iterator         event_type_it;
-        typedef std::map<int, std::string>           error_code_map;
         typedef std::map<mat_id, material_context>   material_context_map;
 
         //---------------------------------------------------------------------------------------------
@@ -452,7 +449,6 @@ namespace cgs
             1.0f, -1.0f,  1.0f
         };
 
-        GLFWwindow*              window = nullptr;
         bool                     ok = false;
         mesh_context_map         mesh_contexts;
         cubemap_context_map      skybox_contexts;
@@ -460,11 +456,6 @@ namespace cgs
         GLuint                   phong_program_id = 0U;
         GLuint                   reflective_program_id = 0U;
         GLuint                   skybox_program_id = 0U;
-        std::vector<event>       events;
-        key_event_type_map       event_types;     // map from GLFW key action value to event_type value
-        error_code_map           error_codes;     // map from GLFW error codes to their names
-        float                    last_mouse_x = 0.0f;
-        float                    last_mouse_y = 0.0f;
         dirlight_data            dirlight;
         layer_id                 current_layer;
         material_context_map     material_contexts;
@@ -542,74 +533,6 @@ namespace cgs
             glDeleteShader(fragment_shader_id);
 
             return true;
-        }
-
-        void fill_error_code_map()
-        {
-            if (error_codes.empty()) {
-                error_codes[GLFW_NOT_INITIALIZED]     = "GLFW_NOT_INITIALIZED";
-                error_codes[GLFW_NO_CURRENT_CONTEXT]  = "GLFW_NO_CURRENT_CONTEXT";
-                error_codes[GLFW_INVALID_ENUM]        = "GLFW_INVALID_ENUM";
-                error_codes[GLFW_INVALID_VALUE]       = "GLFW_INVALID_VALUE";
-                error_codes[GLFW_OUT_OF_MEMORY]       = "GLFW_OUT_OF_MEMORY";
-                error_codes[GLFW_API_UNAVAILABLE]     = "GLFW_API_UNAVAILABLE";
-                error_codes[GLFW_VERSION_UNAVAILABLE] = "GLFW_VERSION_UNAVAILABLE";
-                error_codes[GLFW_PLATFORM_ERROR]      = "GLFW_PLATFORM_ERROR";
-                error_codes[GLFW_FORMAT_UNAVAILABLE]  = "GLFW_FORMAT_UNAVAILABLE";
-                //error_codes[GLFW_NO_WINDOW_CONTEXT]   = "GLFW_NO_WINDOW_CONTEXT"; Not defined in our version of GLFW
-            }
-        }
-
-        void fill_event_type_map() {
-            if (event_types.empty()) {
-                event_types[GLFW_PRESS]   = EVENT_KEY_PRESS;
-                event_types[GLFW_REPEAT]  = EVENT_KEY_HOLD;
-                event_types[GLFW_RELEASE] = EVENT_KEY_RELEASE;
-            }
-        }
-
-        void key_callback(GLFWwindow*, int key, int, int action, int)
-        {
-            if (ok && window) {
-                // Our key code is the same value that GLFW gives us. This works because we have defined our
-                // keycode constants with the same values as GLFW's constants. If we update GLFW and its
-                // key constants change, we need to update our keycode constants accordingly.
-                key_code key_code = key;
-
-                // Translate GLFW key action value to an event type
-                fill_event_type_map();
-                event_type event_type = EVENT_KEY_PRESS;
-                event_type_it eit = event_types.find(action);
-                if (eit != event_types.end()) {
-                    event_type = eit->second;
-                    event e = {event_type, key_code, 0.0f, 0.0f, 0.0f, 0.0f};
-                    events.push_back(e);
-                }
-            }
-        }
-
-        void mouse_move_callback(GLFWwindow*, double x, double y)
-        {
-            if (ok && window) {
-                event e{EVENT_MOUSE_MOVE, KEY_UNKNOWN, (float) x, (float) y, (float) x - last_mouse_x, (float) y - last_mouse_y};
-                events.push_back(e);
-                last_mouse_x = x;
-                last_mouse_y = y;
-
-                // std::ostringstream oss;
-                // oss << "mouse_move_callback: new delta_mouse_x: " << std::fixed << std::setprecision(2)
-                //     << e.delta_mouse_x << ", new delta_mouse_y: " << e.delta_mouse_y;
-                // cgs::log(cgs::LOG_LEVEL_DEBUG, oss.str());
-            }
-        }
-
-        void error_callback(int error_code, const char* description)
-        {
-            fill_error_code_map();
-            log(LOG_LEVEL_ERROR, "GLFW error callback");
-            std::ostringstream oss;
-            oss << "GLFW error " << error_codes[error_code] << ", " << description;
-            log(LOG_LEVEL_ERROR, oss.str());
         }
 
         // Path must be relative to the curent directory
@@ -930,64 +853,22 @@ namespace cgs
     //-----------------------------------------------------------------------------------------------
     // Public functions
     //-----------------------------------------------------------------------------------------------
-    bool open_window(std::size_t width, std::size_t height, bool fullscreen)
+    bool initialize_renderer()
     {
-        // Initialise GLFW
-        if(!glfwInit())
-        {
-            log(LOG_LEVEL_ERROR, "open_window: failed to initialize GLFW.");
-            return -1;
-        }
-
-        glfwWindowHint(GLFW_SAMPLES, 4);
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-        glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); // To make MacOS happy; should not be needed
-        glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-
-        // Open a window and create its OpenGL context
-        window = glfwCreateWindow(width, height, "cgs", fullscreen? glfwGetPrimaryMonitor() : nullptr, nullptr);
-        if(window == nullptr){
-            log(LOG_LEVEL_ERROR, "open_window: failed to open GLFW window. If you have an Intel GPU prior to HD 4000, they are not OpenGL 3.3 compatible.");
-            glfwTerminate();
+        if (!is_context_created()) {
+            log(LOG_LEVEL_ERROR, "initialize_renderer: error, trying to initialize renderer but a context hasn't been created");
             return false;
         }
-        ok = true;
-        glfwMakeContextCurrent(window);
 
-        // Register callbacks
-        glfwSetErrorCallback(error_callback);
-        glfwSetKeyCallback(window, key_callback);
-        glfwSetCursorPosCallback(window, mouse_move_callback);
-
-        // Disable vertical synchronization (results in a noticeable fps gain). This needs to be done
-        // after calling glfwMakeContextCurrent, since it acts on the current context, and the context
-        // created with glfwCreateWindow is not current until we make it explicitly so with
-        // glfwMakeContextCurrent
-        glfwSwapInterval(1);
+        // Black background
+        glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 
         // Initialize GLEW
         glewExperimental = true; // Needed for core profile
         if (glewInit() != GLEW_OK) {
-            log(LOG_LEVEL_ERROR, "open_window: failed to initialize GLEW");
-            glfwTerminate();
+            log(LOG_LEVEL_ERROR, "initialize_renderer: failed to initialize GLEW");
             return false;
         }
-
-        last_mouse_x = (float) width / 2.0f;
-        last_mouse_y = (float) height / 2.0f;
-
-        // Ensure we can capture the escape key being pressed below
-        glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
-        // Hide the mouse and enable unlimited mouvement
-        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-
-        // Set the mouse at the center of the screen
-        glfwPollEvents();
-        glfwSetCursorPos(window, width / 2, height / 2);
-
-        // Black background
-        glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 
         // Enable depth test
         glEnable(GL_DEPTH_TEST);
@@ -1007,8 +888,7 @@ namespace cgs
         // Create and compile our GLSL program from the shaders
         bool ok = load_shaders(phong_vertex_shader, phong_fragment_shader, &phong_program_id);
         if (!ok) {
-            log(LOG_LEVEL_ERROR, "open_window: failed to load phong object shaders");
-            glfwTerminate();
+            log(LOG_LEVEL_ERROR, "initialize_renderer: failed to load phong object shaders");
             return false;
         }
 
@@ -1066,8 +946,7 @@ namespace cgs
         ////////////////////////////////////////////////////////////////////////////////////
         ok = load_shaders(reflective_vertex_shader, reflective_fragment_shader, &reflective_program_id);
         if (!ok) {
-            log(LOG_LEVEL_ERROR, "open_window: failed to load reflective object shaders");
-            glfwTerminate();
+            log(LOG_LEVEL_ERROR, "initialize_renderer: failed to load reflective object shaders");
             return false;
         }
 
@@ -1078,8 +957,7 @@ namespace cgs
         // Create and compile our GLSL program from the shaders
         ok = load_shaders(skybox_vertex_shader, skybox_fragment_shader, &skybox_program_id);
         if (!ok) {
-            log(LOG_LEVEL_ERROR, "open_window: failed to load skybox shaders");
-            glfwTerminate();
+            log(LOG_LEVEL_ERROR, "initialize_renderer: failed to load skybox shaders");
             return false;
         }
 
@@ -1095,8 +973,7 @@ namespace cgs
             std::vector<std::string> faces = get_cubemap_faces(cid);
             ok = load_cubemap(faces, &context.mtexture_id);
             if (!ok) {
-                log(LOG_LEVEL_ERROR, "open_window: failed to load skybox textures");
-                glfwTerminate();
+                log(LOG_LEVEL_ERROR, "initialize_renderer: failed to load skybox textures");
                 return false;
             }
 
@@ -1114,38 +991,32 @@ namespace cgs
         return true;
     }
 
-    void close_window()
+    void finalize_renderer()
     {
-        if (window) {
-
-            for (auto it = mesh_contexts.begin(); it != mesh_contexts.end(); it++) {
-                glDeleteBuffers(1, &it->second.mpositions_vbo_id);
-                glDeleteBuffers(1, &it->second.muvs_vbo_id);
-                glDeleteBuffers(1, &it->second.mnormals_vbo_id);
-                glDeleteBuffers(1, &it->second.mindices_vbo_id);
-            }
-
-            glDeleteProgram(phong_program_id);
-
-            for (auto it = material_contexts.begin(); it != material_contexts.end(); it++) {
-                glDeleteTextures(1, &it->second.mtexture_id);
-            }
-
-            glDeleteProgram(skybox_program_id);
-            for (auto it = skybox_contexts.begin(); it != skybox_contexts.end(); it++) {
-                glDeleteBuffers(1, &it->second.mvbo_id);
-                glDeleteTextures(1, &it->second.mtexture_id);
-            }
-
-            glfwTerminate();
-            window = nullptr;
-            ok = false;
-            mesh_contexts.clear();
-            object_vao_id = 0U;
-            phong_program_id = 0U;
-            skybox_program_id = 0U;
-            events.clear();
+        for (auto it = mesh_contexts.begin(); it != mesh_contexts.end(); it++) {
+            glDeleteBuffers(1, &it->second.mpositions_vbo_id);
+            glDeleteBuffers(1, &it->second.muvs_vbo_id);
+            glDeleteBuffers(1, &it->second.mnormals_vbo_id);
+            glDeleteBuffers(1, &it->second.mindices_vbo_id);
         }
+
+        glDeleteProgram(phong_program_id);
+
+        for (auto it = material_contexts.begin(); it != material_contexts.end(); it++) {
+            glDeleteTextures(1, &it->second.mtexture_id);
+        }
+
+        glDeleteProgram(skybox_program_id);
+        for (auto it = skybox_contexts.begin(); it != skybox_contexts.end(); it++) {
+            glDeleteBuffers(1, &it->second.mvbo_id);
+            glDeleteTextures(1, &it->second.mtexture_id);
+        }
+
+        ok = false;
+        mesh_contexts.clear();
+        object_vao_id = 0U;
+        phong_program_id = 0U;
+        skybox_program_id = 0U;
     }
 
     void render(view_id v)
@@ -1228,21 +1099,5 @@ namespace cgs
                 glDepthFunc(GL_LESS); // set depth function back to default
             }
         }
-
-        // Swap buffers
-        glfwSwapBuffers(window);
-    }
-
-    std::vector<cgs::event> poll_events()
-    {
-        events.clear();
-        glfwPollEvents();
-
-        return events;
-    }
-
-    float get_time()
-    {
-        return (float) glfwGetTime();
     }
 } // namespace cgs

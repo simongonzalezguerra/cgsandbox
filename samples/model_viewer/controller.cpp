@@ -7,6 +7,7 @@
 #include "cgs/scenegraph.hpp"
 #include "cgs/renderer.hpp"
 #include "cgs/control.hpp"
+#include "cgs/system.hpp"
 #include "cgs/utils.hpp"
 #include "cgs/log.hpp"
 #include "glm/glm.hpp"
@@ -192,7 +193,7 @@ namespace model_viewer
             s_ok = false;
         }
         cgs::mat_id bunny_material = cgs::add_material();
-        cgs::set_material_diffuse_color(bunny_material, glm::vec3(0.0f, 0.0f, 1.0f));
+        cgs::set_material_diffuse_color(bunny_material, glm::vec3(0.0f, 0.2f, 0.4f));
         cgs::set_material_specular_color(bunny_material, glm::vec3(1.0f, 1.0f, 1.0f));
         cgs::set_material_smoothness(bunny_material, 1.0f);
         cgs::set_resource_material(s_bunny_resource, bunny_material);
@@ -225,11 +226,18 @@ namespace model_viewer
             return;
         }
 
+        bool renderer_ok = cgs::initialize_renderer();
+        if (!renderer_ok) {
+            s_ok = false;
+            return;
+        }
+
         s_ok = true;
     }
 
     void controller::finalize()
     {
+        cgs::finalize_renderer();
         cgs::close_window();
         cgs::detach_all_logstreams();
     }
@@ -338,6 +346,7 @@ namespace model_viewer
 
         // Render the scene
         cgs::render(m_impl->m_view);
+        cgs::swap_buffers();
 
         // Control framerate
         m_impl->m_framerate_controller.process(dt, events);
