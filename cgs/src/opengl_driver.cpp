@@ -102,10 +102,10 @@ namespace cgs
         }
 
         void new_texture(unsigned int width,
-                          unsigned int height,
-                          image_format format,
-                          const unsigned char* data,
-                          gl_texture_id* id)
+                        unsigned int height,
+                        image_format format,
+                        const unsigned char* data,
+                        gl_texture_id* id)
         {
             // Create one OpenGL texture
             GLuint texture_id;

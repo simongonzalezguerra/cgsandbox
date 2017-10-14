@@ -3,6 +3,7 @@
 #include "cgs/system.hpp"
 #include "cgs/log.hpp"
 
+#include <algorithm>
 #include <sstream>
 #include <memory>
 #include <vector>
@@ -14,66 +15,78 @@ namespace cgs
         //---------------------------------------------------------------------------------------------
         // Internal declarations
         //---------------------------------------------------------------------------------------------
-        std::vector<node_id> nodes_to_render;
-        glm::vec3            camera_position_worldspace;
-        gl_driver            driver;
-        gl_driver_context    driver_context;
-        gl_texture_id        default_texture_id = 0U;
-        gl_program_id        phong_program = 0U;
-        gl_program_id        environment_mapping_program = 0U;
-        gl_program_id        skybox_program = 0U;
-        gl_buffer_id         skybox_position_buffer = 0U;
-        gl_buffer_id         skybox_index_buffer = 0U;
-        cubemap_id           skybox_id = ncubemap;
-        bool                 gl_driver_set = false;
+        std::vector<node_id>   nodes_to_render;
+        glm::vec3              camera_position_worldspace;
+        gl_driver              driver;
+        gl_driver_context      driver_context;
+        cubemap_id             skybox_id = ncubemap;
+        default_texture_vector default_textures;                    // placeholder, only contains one element
+        texture_vector         textures;
+        buffer_vector          buffers;
+        cubemap_vector         cubemaps;
+        buffer_vector          cubemap_position_buffers;            // placeholder, only contains one element
+        buffer_vector          cubemap_index_buffers;               // placeholder, only contains one element
+        program_vector         phong_programs;                      // placeholder, only contains one element
+        program_vector         environment_mapping_programs;        // placeholder, only contains one element
+        program_vector         skybox_programs;                     // placeholder, only contains one element
+        bool                   gl_driver_set = false;
+        layer_id               current_layer = nlayer;
 
         //---------------------------------------------------------------------------------------------
         // Helper functions
         //---------------------------------------------------------------------------------------------
-        void finalize_shaders()
-        {
-            driver.delete_program(phong_program);
-            driver.delete_program(environment_mapping_program);
-            driver.delete_program(skybox_program);
-        }
-
         bool initialize_shaders()
         {
             // Load our shaders
             log(LOG_LEVEL_DEBUG, "initialize_renderer: loading shaders");
-            driver.new_program(program_type::phong, &phong_program);
-            driver.new_program(program_type::environment_mapping, &environment_mapping_program);
-            driver.new_program(program_type::skybox, &skybox_program);
-            if (!(phong_program && environment_mapping_program && skybox_program)) {
-                log(LOG_LEVEL_ERROR, "initialize_renderer: could not load shaders");
-                finalize_shaders();
-                return false;
+            if (phong_programs.empty()) {
+                auto phong_program = make_program(driver, program_type::phong);
+                gl_program_id phong_program_id = phong_program.get();
+                if (!phong_program_id) {
+                    log(LOG_LEVEL_ERROR, "initialize_renderer: could not phong shaders");
+                    return false;
+                }
+                phong_programs.push_back(std::move(phong_program));
             }
+
+            if (environment_mapping_programs.empty()) {
+                auto environment_mapping_program = make_program(driver, program_type::environment_mapping);
+                gl_program_id environment_mapping_program_id = environment_mapping_program.get();
+                if (!environment_mapping_program_id) {
+                    log(LOG_LEVEL_ERROR, "initialize_renderer: could not environment mapping shaders");
+                    return false;
+                }
+                environment_mapping_programs.push_back(std::move(environment_mapping_program));           
+            }
+            if (skybox_programs.empty()) {
+                auto skybox_program = make_program(driver, program_type::skybox);
+                gl_program_id skybox_program_id = skybox_program.get();
+                if (!skybox_program_id) {
+                    log(LOG_LEVEL_ERROR, "initialize_renderer: could not load skybox shaders");
+                    return false;
+                }
+                skybox_programs.push_back(std::move(skybox_program));
+            }
+
             log(LOG_LEVEL_DEBUG, "initialize_renderer: shaders loaded successfully");
             return true;
-        }
-
-        void finalize_textures()
-        {
-            for (mat_id mat = get_first_material(); mat != nmat; mat = get_next_material(mat)) {
-                gl_texture_id texture_id = get_material_texture_id(mat);
-                if (texture_id) {
-                    driver.delete_texture(texture_id);
-                }
-            }
-
-            driver.delete_default_texture(default_texture_id);
         }
 
         bool initialize_textures()
         {
             // Create a default texture to use as diffuse map on objects that don't have a texture
-            driver.new_default_texture(&default_texture_id);
+            // The custom deleter in unique_default_texture makes it impossible to declare an empty
+            // handlers (there would no driver to initialize the deleter with) so we declare a vector
+            // and only insert one element
+            if (default_textures.empty()) {
+                default_textures.push_back(make_default_texture(driver));
+            }
 
             // Load all textures
+            texture_vector new_textures;
             log(LOG_LEVEL_DEBUG, "initialize_renderer: loading textures");
             for (mat_id mat = get_first_material(); mat != nmat; mat = get_next_material(mat)) {
-                gl_texture_id texture_id = default_texture_id;
+                set_material_texture_id(mat, default_textures[0].get());
                 if (!get_material_texture_path(mat).empty()) {
                     // Load the texture into memory            
                     image img;
@@ -82,38 +95,20 @@ namespace cgs
                         std::ostringstream oss;
                         oss << "initialize_renderer: error loading texture from " << get_material_texture_path(mat);
                         log(LOG_LEVEL_ERROR, oss.str());
-                        finalize_textures();
                         return false;
                     }
                     // Load the texture into the graphics API
-                    driver.new_texture(img.get_width(), img.get_height(), img.get_format(), img.get_data(), &texture_id);
+                    auto tex = make_texture(driver,img.get_width(), img.get_height(), img.get_format(), img.get_data());
+                    set_material_texture_id(mat, tex.get());
+                    new_textures.push_back(std::move(tex));
                 }
-                set_material_texture_id(mat, texture_id);
             }
+
+            textures.insert(textures.end(),
+                    make_move_iterator(new_textures.begin()),
+                    make_move_iterator(new_textures.end()));
             log(LOG_LEVEL_DEBUG, "initialize_renderer: textures loaded successfully");
             return true;
-        }
-
-        void finalize_meshes()
-        {
-            for (mesh_id mid = get_first_mesh(); mid != nmesh; mid = get_next_mesh(mid)) {
-                gl_buffer_id positions_buffer_id = get_mesh_position_buffer_id(mid);
-                if (positions_buffer_id) {
-                    driver.delete_buffer(positions_buffer_id);
-                }
-                gl_buffer_id uv_buffer_id = get_mesh_uv_buffer_id(mid);
-                if (uv_buffer_id) {
-                    driver.delete_buffer(uv_buffer_id);
-                }
-                gl_buffer_id normal_buffer_id = get_mesh_normal_buffer_id(mid);
-                if (normal_buffer_id) {
-                    driver.delete_buffer(normal_buffer_id);
-                }
-                gl_buffer_id index_buffer_id = get_mesh_index_buffer_id(mid);
-                if (index_buffer_id) {
-                    driver.delete_buffer(index_buffer_id);
-                }
-            }
         }
 
         bool initialize_meshes()
@@ -121,41 +116,27 @@ namespace cgs
             // Load all meshes
             log(LOG_LEVEL_DEBUG, "initialize_renderer: loading meshes");
             for (mesh_id mid = get_first_mesh(); mid != nmesh; mid = get_next_mesh(mid)) {
-                gl_buffer_id position_buffer_id = 0;
-                driver.new_3d_buffer(get_mesh_vertices(mid), &position_buffer_id);
-                gl_buffer_id uv_buffer_id = 0;
-                driver.new_2d_buffer(get_mesh_texture_coords(mid), &uv_buffer_id);
-                gl_buffer_id normal_buffer_id = 0;
-                driver.new_3d_buffer(get_mesh_normals(mid), &normal_buffer_id);
-                gl_buffer_id index_buffer_id = 0;
-                driver.new_index_buffer(get_mesh_indices(mid), &index_buffer_id);
-                if (!(position_buffer_id && uv_buffer_id && normal_buffer_id && index_buffer_id)) {
-                    std::ostringstream oss;
-                    oss << "initialize_renderer: error loading meshes for mesh " << mid;
-                    log(LOG_LEVEL_ERROR, oss.str());
-                    finalize_meshes();
-                    return false;
-                }
-                set_mesh_position_buffer_id(mid, position_buffer_id);
-                set_mesh_uv_buffer_id(mid, uv_buffer_id);
-                set_mesh_normal_buffer_id(mid, normal_buffer_id);
-                set_mesh_index_buffer_id(mid, index_buffer_id);
+                auto position_buffer = make_3d_buffer(driver, get_mesh_vertices(mid));
+                auto uv_buffer = make_2d_buffer(driver, get_mesh_texture_coords(mid));
+                auto normal_buffer = make_3d_buffer(driver, get_mesh_normals(mid));
+                auto index_buffer = make_index_buffer(driver, get_mesh_indices(mid));
+
+                set_mesh_position_buffer_id(mid, position_buffer.get());
+                set_mesh_uv_buffer_id(mid, uv_buffer.get());
+                set_mesh_normal_buffer_id(mid, normal_buffer.get());
+                set_mesh_index_buffer_id(mid, index_buffer.get());
+
+                buffers.push_back(std::move(position_buffer));
+                buffers.push_back(std::move(uv_buffer));
+                buffers.push_back(std::move(normal_buffer));
+                buffers.push_back(std::move(index_buffer));
             }
+
             log(LOG_LEVEL_DEBUG, "initialize_renderer: meshes loaded succesfully");
             return true;
         }
 
-        void finalize_cubemaps()
-        {
-            for (cubemap_id cid = get_first_cubemap(); cid != ncubemap; cid = get_next_cubemap(cid)) {
-                gl_cubemap_id glcid = get_cubemap_gl_cubemap_id(cid);
-                if (glcid) {
-                    driver.delete_cubemap(glcid);
-                }
-            }            
-        }
-
-        bool initialize_cubemaps()
+        std::vector<glm::vec3> make_skybox_positions()
         {
             std::vector<glm::vec3> skybox_positions =
             {
@@ -168,8 +149,12 @@ namespace cgs
                 { 1.0f, -1.0f,  1.0f},
                 { 1.0f,  1.0f,  1.0f}
             };
-            driver.new_3d_buffer(skybox_positions, &skybox_position_buffer);
+            
+            return skybox_positions;
+        }
 
+        std::vector<unsigned short> make_skybox_indices()
+        {
             std::vector<unsigned short> skybox_indices =
             {
                 0, 1, 2,
@@ -185,34 +170,57 @@ namespace cgs
                 1, 4, 2,
                 2, 4, 6
             };
-            driver.new_index_buffer(skybox_indices, &skybox_index_buffer);
+            
+            return skybox_indices;
+        }
+
+        bool load_cubemap_faces(cubemap_id cid, std::vector<std::unique_ptr<image>>* faces)
+        {
+            for (auto path : get_cubemap_faces(cid)) {
+                auto face_ptr = std::make_unique<image>();
+                face_ptr->load(path);
+                if (!face_ptr->ok()) {
+                    std::ostringstream oss;
+                    oss << "load_cubemap_faces: error loading cubemap texture from " << path;
+                    log(LOG_LEVEL_ERROR, oss.str());
+                    return false;
+                }
+                faces->push_back(std::move(face_ptr));
+            }
+
+            if (faces->size() < 6) {
+                log(LOG_LEVEL_ERROR, "load_cubemap_faces: invalid cubemap data, faces unavailable");
+                return false;
+            }
+        
+            return true;
+        }
+
+        bool initialize_cubemaps()
+        {
+            if (cubemap_position_buffers.empty()) {
+                cubemap_position_buffers.push_back(make_3d_buffer(driver, make_skybox_positions()));
+            }
+
+            if (cubemap_index_buffers.empty()) {
+                cubemap_index_buffers.push_back(make_index_buffer(driver, make_skybox_indices()));
+            }
 
             log(LOG_LEVEL_DEBUG, "initialize_renderer: loading cubemaps");
             for (cubemap_id cid = get_first_cubemap(); cid != ncubemap; cid = get_next_cubemap(cid)) {
                 std::vector<const unsigned char*> faces_data;
                 std::vector<std::unique_ptr<image>> faces;
-                for (auto path : get_cubemap_faces(cid)) {
-                    auto face_ptr = std::make_unique<image>();
-                    face_ptr->load(path);
-                    if (!face_ptr->ok()) {
-                        std::ostringstream oss;
-                        oss << "initialize_renderer: error loading cubemap texture from " << path;
-                        log(LOG_LEVEL_ERROR, oss.str());
-                        finalize_cubemaps();
-                        return false;
-                    }
-                    faces_data.push_back(face_ptr->get_data());
-                    faces.push_back(std::move(face_ptr));
-                }
-                if (faces.size() < 6) {
-                    log(LOG_LEVEL_ERROR, "initialize_renderer: invalid cubemap data, faces unavailable");
-                    finalize_cubemaps();
+                if (!load_cubemap_faces(cid, &faces)) {
                     return false;
                 }
-                gl_cubemap_id glcid = 0U;
-                driver.new_cubemap(faces[0]->get_width(), faces[0]->get_height(), faces[0]->get_format(), faces_data, &glcid);
-                set_cubemap_gl_cubemap_id(cid, glcid);
+                std::for_each(faces.begin(), faces.end(), [&](const std::unique_ptr<image>& i) {
+                    faces_data.push_back(i->get_data());
+                });
+                auto cubemap = make_cubemap(driver, faces[0]->get_width(), faces[0]->get_height(), faces[0]->get_format(), faces_data);
+                set_cubemap_gl_cubemap_id(cid, cubemap.get());
+                cubemaps.push_back(std::move(cubemap));
             }
+
             log(LOG_LEVEL_DEBUG, "initialize_renderer: cubemaps loaded successfully");
             return true;
         }
@@ -248,22 +256,16 @@ namespace cgs
         
         ok = initialize_textures();
         if (!ok) {
-            finalize_shaders();
             return false;
         }
 
         ok = initialize_meshes();
         if (!ok) {
-            finalize_textures();
-            finalize_shaders();
             return false;
         }
 
         ok = initialize_cubemaps();
         if (!ok) {
-            finalize_meshes();
-            finalize_textures();
-            finalize_shaders();
             return false;
         }
 
@@ -272,10 +274,15 @@ namespace cgs
 
     void finalize_renderer()
     {
-        finalize_cubemaps();
-        finalize_meshes();
-        finalize_textures();
-        finalize_shaders();
+        default_textures.clear();
+        textures.clear();
+        buffers.clear();
+        cubemaps.clear();
+        cubemap_position_buffers.clear();
+        cubemap_index_buffers.clear();
+        phong_programs.clear();
+        environment_mapping_programs.clear();
+        skybox_programs.clear();
     }
 
     void get_layer_properties(layer_id l)
@@ -339,6 +346,55 @@ namespace cgs
         driver_context.m_node.m_model = accum_transform;
     }
 
+    void render_phong_nodes()
+    {
+        // Render nodes that are neither reflective nor tranlucent with the phong model
+        driver_context.m_program = phong_programs[0].get();
+        for (auto n : nodes_to_render) {
+            mat_id mat = get_node_material(current_layer, n);
+            float reflectivity = get_material_reflectivity(mat);
+            float translucency = get_material_translucency(mat);
+            if (get_node_material(current_layer, n) != nmat && reflectivity == 0.0f && translucency == 0.0f) {
+                driver_context.m_node = gl_node_context();
+                get_node_properties(current_layer, n);
+                driver.draw(driver_context);
+            }
+        }
+    }
+
+    void render_environment_mapping_nodes()
+    {
+        // Render reflective or translucent nodes
+        driver_context.m_program = environment_mapping_programs[0].get();
+        for (auto n : nodes_to_render) {
+            mat_id mat = get_node_material(current_layer, n);
+            float reflectivity = get_material_reflectivity(mat);
+            float translucency = get_material_translucency(mat);
+            if (reflectivity > 0.0f || translucency > 0.0f) {
+                driver_context.m_node = gl_node_context();
+                get_node_properties(current_layer, n);
+                driver.draw(driver_context);
+            }
+        }
+    }
+
+    void render_skybox()
+    {
+        // Render the skybox
+        if (skybox_id != ncubemap) {
+            driver_context.m_program = skybox_programs[0].get();
+            driver_context.m_node = gl_node_context();
+            // Change depth function so depth test passes when values are equal to depth buffer's content
+            driver_context.m_depth_func = depth_func::lequal;
+            // Remove translation from the view matrix
+            driver_context.m_view = glm::mat4(glm::mat3(driver_context.m_view));
+            driver_context.m_node.m_position_buffer = cubemap_position_buffers[0].get();
+            driver_context.m_node.m_index_buffer = cubemap_index_buffers[0].get();
+            driver_context.m_node.m_num_indices = 36U;
+            driver.draw(driver_context);
+        }
+    }
+
     void render(view_id v)
     {
         if (!is_view_enabled(v)) {
@@ -346,57 +402,21 @@ namespace cgs
         }
 
         driver.initialize_frame();
-
         struct node_context{ node_id nid; };
 
         // For each layer in the view
         for (layer_id l = get_first_layer(v); l != nlayer && is_layer_enabled(l); l = get_next_layer(l)) {
             // Convert tree into list and filter out non-enabled nodes
             nodes_to_render = get_descendant_nodes(l, root_node);
-
             driver_context = gl_driver_context();
-
+            current_layer = l;
             get_layer_properties(l);
 
-            // Render nodes that are neither reflective nor tranlucent with the phong model
-            driver_context.m_program = phong_program;
-            for (auto n : nodes_to_render) {
-                mat_id mat = get_node_material(l, n);
-                float reflectivity = get_material_reflectivity(mat);
-                float translucency = get_material_translucency(mat);
-                if (get_node_material(l, n) != nmat && reflectivity == 0.0f && translucency == 0.0f) {
-                    driver_context.m_node = gl_node_context();
-                    get_node_properties(l, n);
-                    driver.draw(driver_context);
-                }
-            }
+            render_phong_nodes();
 
-            // Render reflective or translucent nodes
-            driver_context.m_program = environment_mapping_program;
-            for (auto n : nodes_to_render) {
-                mat_id mat = get_node_material(l, n);
-                float reflectivity = get_material_reflectivity(mat);
-                float translucency = get_material_translucency(mat);
-                if (reflectivity > 0.0f || translucency > 0.0f) {
-                    driver_context.m_node = gl_node_context();
-                    get_node_properties(l, n);
-                    driver.draw(driver_context);
-                }
-            }
+            render_environment_mapping_nodes();
 
-            // Render the skybox
-            if (skybox_id != ncubemap) {
-                driver_context.m_program = skybox_program;
-                driver_context.m_node = gl_node_context();
-                // Change depth function so depth test passes when values are equal to depth buffer's content
-                driver_context.m_depth_func = depth_func::lequal;
-                // Remove translation from the view matrix
-                driver_context.m_view = glm::mat4(glm::mat3(driver_context.m_view));
-                driver_context.m_node.m_position_buffer = skybox_position_buffer;
-                driver_context.m_node.m_index_buffer = skybox_index_buffer;
-                driver_context.m_node.m_num_indices = 36U;
-                driver.draw(driver_context);
-            }
+            render_skybox();
         }
     }
 } // namespace cgs

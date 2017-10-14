@@ -127,10 +127,10 @@ namespace cgs
     //!  vertically flipped (the first scanline in memory is the bottom of the image)
     //-----------------------------------------------------------------------------------------------
     typedef void (*new_texture_func)(unsigned int width,
-                                      unsigned int height,
-                                      image_format format,
-                                      const unsigned char* data,
-                                      gl_texture_id* id);
+                                    unsigned int height,
+                                    image_format format,
+                                    const unsigned char* data,
+                                    gl_texture_id* id);
 
     //-----------------------------------------------------------------------------------------------
     //! @brief Function type used to delete a texture from the graphics API.
@@ -141,19 +141,19 @@ namespace cgs
     //! @brief Function type used to create a 3d buffer in the graphics API.
     //-----------------------------------------------------------------------------------------------
     typedef void (*new_3d_buffer_func)(const std::vector<glm::vec3>& data,
-                                       gl_buffer_id* buffer_id);
+                                    gl_buffer_id* buffer_id);
 
     //-----------------------------------------------------------------------------------------------
     //! @brief Function type used to create a 2d buffer in the graphics API.
     //-----------------------------------------------------------------------------------------------
     typedef void (*new_2d_buffer_func)(const std::vector<glm::vec2>& data,
-                                       gl_buffer_id* buffer_id);
+                                    gl_buffer_id* buffer_id);
 
     //-----------------------------------------------------------------------------------------------
     //! @brief Function type used to create an index buffer in the graphics API.
     //-----------------------------------------------------------------------------------------------
     typedef void (*new_index_buffer_func)(const std::vector<unsigned short>& data,
-                                          gl_buffer_id* buffer_id);
+                                    gl_buffer_id* buffer_id);
 
     //-----------------------------------------------------------------------------------------------
     //! @brief Function type used to delete a buffer from the graphics API.
@@ -164,10 +164,10 @@ namespace cgs
     //! @brief Function type used to create a cubemap in the graphics API.
     //-----------------------------------------------------------------------------------------------
     typedef void (*new_cubemap_func)(unsigned int width,
-                                      unsigned int height,
-                                      image_format format,
-                                      const std::vector<const unsigned char*>& faces_data,
-                                      gl_cubemap_id* id);
+                                    unsigned int height,
+                                    image_format format,
+                                    const std::vector<const unsigned char*>& faces_data,
+                                    gl_cubemap_id* id);
 
     //-----------------------------------------------------------------------------------------------
     //! @brief Function type used to delete a cubemap from the graphics API.
