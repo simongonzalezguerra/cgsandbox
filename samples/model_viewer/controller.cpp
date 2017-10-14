@@ -3,6 +3,7 @@
 #include "cgs/resource_database.hpp"
 #include "cgs/resource_loader.hpp"
 #include "glm/gtx/transform.hpp"
+#include "cgs/opengl_driver.hpp"
 #include "glm/gtc/type_ptr.hpp"
 #include "cgs/scenegraph.hpp"
 #include "cgs/renderer.hpp"
@@ -220,12 +221,13 @@ namespace model_viewer
         };
         cgs::set_cubemap_faces(s_skybox_id, skybox_faces);
 
-        bool window_ok = cgs::open_window(1600, 900, false);
+        bool window_ok = cgs::open_window(1920, 1080, false);
         if (!window_ok) {
             s_ok = false;
             return;
         }
 
+        cgs::set_gl_driver(cgs::get_opengl_driver());
         bool renderer_ok = cgs::initialize_renderer();
         if (!renderer_ok) {
             s_ok = false;

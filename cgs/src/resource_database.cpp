@@ -21,15 +21,17 @@ namespace cgs
                 mtexture_path(),
                 mreflectivity(0.0f),
                 mtranslucency(0.0f),
-                mrefractive_index(1.0f) {}
+                mrefractive_index(1.0f),
+                mtexture_id(0U) {}
 
-            glm::vec3    mcolor_diffuse;
-            glm::vec3    mcolor_spec;
-            float        msmoothness;
-            std::string  mtexture_path;
-            float        mreflectivity;
-            float        mtranslucency;
-            float        mrefractive_index;
+            glm::vec3     mcolor_diffuse;
+            glm::vec3     mcolor_spec;
+            float         msmoothness;
+            std::string   mtexture_path;
+            float         mreflectivity;
+            float         mtranslucency;
+            float         mrefractive_index;
+            gl_texture_id mtexture_id;
         };
 
         typedef std::vector<material> material_vector;
@@ -40,12 +42,20 @@ namespace cgs
                 mvertices(),
                 mtexture_coords(),
                 mnormals(),
-                mindices() {}
+                mindices(),
+                mposition_buffer_id(0U),
+                muv_buffer_id(0U),
+                mnormal_buffer_id(0U),
+                mindex_buffer_id(0U) {}
 
-            std::vector<glm::vec3> mvertices;        //!< vertex coordinates
-            std::vector<glm::vec2> mtexture_coords;  //!< texture coordinates for each vertex
-            std::vector<glm::vec3> mnormals;         //!< normals of the mesh
-            std::vector<vindex>    mindices;         //!< faces, as a sequence of indexes over the logical vertex array
+            std::vector<glm::vec3> mvertices;            //!< vertex coordinates
+            std::vector<glm::vec2> mtexture_coords;      //!< texture coordinates for each vertex
+            std::vector<glm::vec3> mnormals;             //!< normals of the mesh
+            std::vector<vindex>    mindices;             //!< faces, as a sequence of indexes over the logical vertex array
+            gl_buffer_id           mposition_buffer_id;  //!< id of the position buffer in the graphics API
+            gl_buffer_id           muv_buffer_id;        //!< id of the uv buffer in the graphics API
+            gl_buffer_id           mnormal_buffer_id;    //!< id of the normal buffer in the graphics API
+            gl_buffer_id           mindex_buffer_id;     //!< id of the index buffer in the graphics API
         };
 
         typedef std::vector<mesh> mesh_vector;
@@ -73,6 +83,7 @@ namespace cgs
             cubemap() : mfaces() {}
 
             std::vector<std::string> mfaces;          //!< paths to image files containing the six faces of the cubemap
+            gl_cubemap_id            m_gl_cubemap_id;  //!< id of this cubemap in the graphics API
         };
 
         typedef std::vector<cubemap> cubemap_vector;
@@ -165,6 +176,13 @@ namespace cgs
         }
     }
 
+    void set_material_texture_id(mat_id m, gl_texture_id texture_id)
+    {
+        if (m < materials.size()) {
+            materials[m].mtexture_id = texture_id;
+        }
+    }
+
     glm::vec3 get_material_diffuse_color(mat_id m)
     {
         if (!(m < materials.size())) {
@@ -215,6 +233,11 @@ namespace cgs
     float get_material_refractive_index(mat_id m)
     {
         return (m < materials.size())? materials[m].mrefractive_index : 0.0f;
+    }
+
+    gl_texture_id get_material_texture_id(mat_id m)
+    {
+        return (m < materials.size()? materials[m].mtexture_id : 0U);
     }
 
     mat_id get_first_material()
@@ -269,6 +292,34 @@ namespace cgs
         meshes[id].mindices = indices;
     }
 
+    void set_mesh_position_buffer_id(mesh_id m, gl_buffer_id id)
+    {
+        if (m < meshes.size()) {
+            meshes[m].mposition_buffer_id = id;
+        }
+    }
+
+    void set_mesh_uv_buffer_id(mesh_id m, gl_buffer_id id)
+    {
+        if (m < meshes.size()) {
+            meshes[m].muv_buffer_id = id;
+        }
+    }
+
+    void set_mesh_normal_buffer_id(mesh_id m, gl_buffer_id id)
+    {
+        if (m < meshes.size()) {
+            meshes[m].mnormal_buffer_id = id;
+        }
+    }
+
+    void set_mesh_index_buffer_id(mesh_id m, gl_buffer_id id)
+    {
+        if (m < meshes.size()) {
+            meshes[m].mindex_buffer_id = id;
+        }
+    }
+
     std::vector<glm::vec3> get_mesh_vertices(mesh_id id)
     {
         if (!(id < meshes.size())) {
@@ -303,6 +354,26 @@ namespace cgs
         }
 
         return meshes[id].mindices;
+    }
+
+    gl_buffer_id get_mesh_position_buffer_id(mesh_id m)
+    {
+        return (m < meshes.size() ? meshes[m].mposition_buffer_id : 0U);
+    }
+
+    gl_buffer_id get_mesh_uv_buffer_id(mesh_id m)
+    {
+        return (m < meshes.size() ? meshes[m].muv_buffer_id : 0U);
+    }
+
+    gl_buffer_id get_mesh_normal_buffer_id(mesh_id m)
+    {
+        return (m < meshes.size() ? meshes[m].mnormal_buffer_id : 0U);
+    }
+
+    gl_buffer_id get_mesh_index_buffer_id(mesh_id m)
+    {
+        return (m < meshes.size() ? meshes[m].mindex_buffer_id : 0U);
     }
 
     mesh_id get_first_mesh()
@@ -432,6 +503,13 @@ namespace cgs
         cubemaps[id].mfaces = faces;
     }
 
+    void set_cubemap_gl_cubemap_id(cubemap_id cid, gl_cubemap_id gl_id)
+    {
+        if (cid < cubemaps.size()) {
+            cubemaps[cid].m_gl_cubemap_id = gl_id;
+        }
+    }
+
     std::vector<std::string> get_cubemap_faces(cubemap_id id)
     {
         if (!(id < cubemaps.size())) {
@@ -439,6 +517,11 @@ namespace cgs
         }
 
         return cubemaps[id].mfaces;
+    }
+
+    gl_cubemap_id get_cubemap_gl_cubemap_id(cubemap_id cid)
+    {
+        return (cid < cubemaps.size() ? cubemaps[cid].m_gl_cubemap_id : 0U);
     }
 
     cubemap_id get_first_cubemap()

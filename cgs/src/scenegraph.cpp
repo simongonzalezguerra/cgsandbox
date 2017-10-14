@@ -617,7 +617,11 @@ namespace cgs
             auto current = pending_nodes.front();
             pending_nodes.pop();
             if (!is_node_enabled(l, current.nid)) continue; // note children are pruned
-            ret.push_back(current.nid);
+
+            // Nodes without meshes or without materials are ignored
+            if (get_node_mesh(l, current.nid) != nmesh && get_node_material(l, current.nid) != nmat) {
+              ret.push_back(current.nid);
+            }
 
             for (node_id c = get_first_child_node(l, current.nid); c != nnode; c = get_next_sibling_node(l, c)) {
                 pending_nodes.push({c});

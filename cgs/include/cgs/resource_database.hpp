@@ -1,6 +1,7 @@
 #ifndef RESOURCE_DATABASE_HPP
 #define RESOURCE_DATABASE_HPP
 
+#include "cgs/cgs_common.hpp"
 #include "glm/glm.hpp"
 
 #include <cstddef> // for size_t
@@ -94,6 +95,7 @@ namespace cgs
     void set_material_reflectivity(mat_id mat, float reflectivity);
     void set_material_translucency(mat_id mat, float translucency);
     void set_material_refractive_index(mat_id mat, float refractive_index);
+    void set_material_texture_id(mat_id mat, gl_texture_id texture_id);
     glm::vec3 get_material_diffuse_color(mat_id mat);
     glm::vec3 get_material_specular_color(mat_id mat);
     float get_material_smoothness(mat_id mat);
@@ -101,6 +103,7 @@ namespace cgs
     float get_material_reflectivity(mat_id mat);
     float get_material_translucency(mat_id mat);
     float get_material_refractive_index(mat_id mat);
+    gl_texture_id get_material_texture_id(mat_id mat);
 
     //-----------------------------------------------------------------------------------------------
     //! @brief Returns the id of the first material in the sequence of existing materials.
@@ -132,11 +135,19 @@ namespace cgs
     void set_mesh_vertices(mesh_id mesh, const std::vector<glm::vec3>& vertices);
     void set_mesh_texture_coords(mesh_id mesh, const std::vector<glm::vec2>& texture_coords);
     void set_mesh_normals(mesh_id mesh, const std::vector<glm::vec3>& normals);
-    void set_mesh_indices(mesh_id mesh, const std::vector<vindex>& indices);
+    void set_mesh_indices(mesh_id mesh, const std::vector<vindex>& indices);    
+    void set_mesh_position_buffer_id(mesh_id mesh, gl_buffer_id position_buffer_id);
+    void set_mesh_uv_buffer_id(mesh_id mesh, gl_buffer_id uv_buffer_id);
+    void set_mesh_normal_buffer_id(mesh_id mesh, gl_buffer_id normal_buffer_id);
+    void set_mesh_index_buffer_id(mesh_id mesh, gl_buffer_id index_buffer_id);
     std::vector<glm::vec3> get_mesh_vertices(mesh_id mesh);
     std::vector<glm::vec2> get_mesh_texture_coords(mesh_id mesh);
     std::vector<glm::vec3> get_mesh_normals(mesh_id mesh);
     std::vector<vindex> get_mesh_indices(mesh_id mesh);
+    gl_buffer_id get_mesh_position_buffer_id(mesh_id mesh);
+    gl_buffer_id get_mesh_uv_buffer_id(mesh_id mesh);
+    gl_buffer_id get_mesh_normal_buffer_id(mesh_id mesh);
+    gl_buffer_id get_mesh_index_buffer_id(mesh_id mesh);
 
     //-----------------------------------------------------------------------------------------------
     //! @brief Returns the id of the first mesh in the sequence of all meshes.
@@ -185,8 +196,10 @@ namespace cgs
     resource_id get_next_sibling_resource(resource_id resource);
 
     cubemap_id add_cubemap();
-    void set_cubemap_faces(cubemap_id id, const std::vector<std::string>& faces);
+    void set_cubemap_faces(cubemap_id cid, const std::vector<std::string>& faces);
+    void set_cubemap_gl_cubemap_id(cubemap_id cid, gl_cubemap_id gl_id);
     std::vector<std::string> get_cubemap_faces(cubemap_id id);
+    gl_cubemap_id get_cubemap_gl_cubemap_id(cubemap_id cid);
     cubemap_id get_first_cubemap();
     cubemap_id get_next_cubemap(cubemap_id id);
 } // namespace cgs

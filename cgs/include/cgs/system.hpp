@@ -1,6 +1,8 @@
 #ifndef SYSTEM_HPP
 #define SYSTEM_HPP
 
+#include "cgs/cgs_common.hpp"
+
 #include <memory>
 #include <string>
 #include <vector>
@@ -157,15 +159,6 @@ namespace cgs
         float abs_mouse_y;
         float delta_mouse_x;
         float delta_mouse_y;
-    };
-
-    enum class image_format
-    {
-        none,
-        rgb,
-        rgba,
-        bgr,
-        bgra
     };
 
     class image
