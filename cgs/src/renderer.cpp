@@ -285,39 +285,39 @@ namespace cgs
         skybox_programs.clear();
     }
 
-    void get_layer_properties(layer_id l)
+    void get_layer_properties()
     {
         // Set view and projection matrices for the layer
-        get_layer_projection_transform(l, &driver_context.m_projection);
-        get_layer_view_transform(l, &driver_context.m_view);
+        get_layer_projection_transform(current_layer, &driver_context.m_projection);
+        get_layer_view_transform(current_layer, &driver_context.m_view);
 
         // Set directional light properties
-        driver_context.m_dirlight.m_ambient_color = get_directional_light_ambient_color(l);
-        driver_context.m_dirlight.m_diffuse_color = get_directional_light_diffuse_color(l);
-        driver_context.m_dirlight.m_specular_color = get_directional_light_specular_color(l);
+        driver_context.m_dirlight.m_ambient_color = get_directional_light_ambient_color(current_layer);
+        driver_context.m_dirlight.m_diffuse_color = get_directional_light_diffuse_color(current_layer);
+        driver_context.m_dirlight.m_specular_color = get_directional_light_specular_color(current_layer);
         // TODO is this correct? The conversion from vec4 to vec3 discards the w component, which is not necessarily 1
-        glm::vec3 direction_cameraspace(driver_context.m_view * glm::vec4(get_directional_light_direction(l), 0.0f));
+        glm::vec3 direction_cameraspace(driver_context.m_view * glm::vec4(get_directional_light_direction(current_layer), 0.0f));
         driver_context.m_dirlight.m_direction_cameraspace = direction_cameraspace;
 
         // Set the cubemap texture to use
         driver_context.m_cubemap = 0U;
-        skybox_id = get_layer_skybox(l);
+        skybox_id = get_layer_skybox(current_layer);
         if (skybox_id != ncubemap) {
             driver_context.m_cubemap = get_cubemap_gl_cubemap_id(skybox_id);
         }
 
         // Set point light data
-        for (point_light_id pl = get_first_point_light(l); pl != npoint_light; pl = get_next_point_light(l, pl)) {
+        for (point_light_id pl = get_first_point_light(current_layer); pl != npoint_light; pl = get_next_point_light(current_layer, pl)) {
             point_light_data pl_data;
             // TODO is this correct? The conversion from vec4 to vec3 discards the w component, which is not necessarily 1
-            glm::vec3 position_cameraspace(driver_context.m_view * glm::vec4(get_point_light_position(l, pl), 0.0f));
+            glm::vec3 position_cameraspace(driver_context.m_view * glm::vec4(get_point_light_position(current_layer, pl), 0.0f));
             pl_data.m_position_cameraspace = position_cameraspace;
-            pl_data.m_ambient_color = get_point_light_ambient_color(l, pl);
-            pl_data.m_diffuse_color = get_point_light_diffuse_color(l, pl);
-            pl_data.m_specular_color = get_point_light_specular_color(l, pl);
-            pl_data.m_constant_attenuation = get_point_light_constant_attenuation(l, pl);
-            pl_data.m_linear_attenuation = get_point_light_linear_attenuation(l, pl);
-            pl_data.m_quadratic_attenuation = get_point_light_quadratic_attenuation(l, pl);
+            pl_data.m_ambient_color = get_point_light_ambient_color(current_layer, pl);
+            pl_data.m_diffuse_color = get_point_light_diffuse_color(current_layer, pl);
+            pl_data.m_specular_color = get_point_light_specular_color(current_layer, pl);
+            pl_data.m_constant_attenuation = get_point_light_constant_attenuation(current_layer, pl);
+            pl_data.m_linear_attenuation = get_point_light_linear_attenuation(current_layer, pl);
+            pl_data.m_quadratic_attenuation = get_point_light_quadratic_attenuation(current_layer, pl);
             driver_context.m_point_lights.push_back(pl_data);
         }
 
@@ -400,22 +400,16 @@ namespace cgs
         if (!is_view_enabled(v)) {
             log(LOG_LEVEL_ERROR, "render_old: view is not enabled"); return;
         }
-
         driver.initialize_frame();
-        struct node_context{ node_id nid; };
-
         // For each layer in the view
         for (layer_id l = get_first_layer(v); l != nlayer && is_layer_enabled(l); l = get_next_layer(l)) {
             // Convert tree into list and filter out non-enabled nodes
-            nodes_to_render = get_descendant_nodes(l, root_node);
-            driver_context = gl_driver_context();
             current_layer = l;
-            get_layer_properties(l);
-
+            nodes_to_render = get_descendant_nodes(current_layer, root_node);
+            driver_context = gl_driver_context();
+            get_layer_properties();
             render_phong_nodes();
-
             render_environment_mapping_nodes();
-
             render_skybox();
         }
     }
