@@ -10,7 +10,7 @@ namespace cgs
     // Public functions
     //-----------------------------------------------------------------------------------------------
     void set_gl_driver(const gl_driver& driver);
-    bool initialize_renderer();
+    void initialize_renderer();
     void finalize_renderer();
     void render(view_id view);
 } // namespace cgs

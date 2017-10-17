@@ -6,6 +6,7 @@
 #include "cgs/log.hpp"
 #include "GL/glew.h"
 
+#include <stdexcept>
 #include <sstream>
 #include <string>
 #include <map>
@@ -63,8 +64,7 @@ namespace cgs
             // Initialize GLEW
             glewExperimental = true; // Needed for core profile
             if (glewInit() != GLEW_OK) {
-                log(LOG_LEVEL_ERROR, "opengl_driver_init: failed to initialize GLEW");
-                return;
+                throw std::runtime_error("opengl_driver_init: failed to initialize GLEW");
             }
             // Enable depth test
             glEnable(GL_DEPTH_TEST);
@@ -251,8 +251,8 @@ namespace cgs
             if (result == GL_FALSE){
                 std::vector<char> error_message(info_log_length + 1);
                 glGetShaderInfoLog(vertex_shader_id, info_log_length, nullptr, &error_message[0]);
-                log(LOG_LEVEL_ERROR, &error_message[0]);
-                return;
+                glDeleteShader(vertex_shader_id);
+                throw std::runtime_error("Error when compiling vertex shader: " + std::string(&error_message[0]));
             }
             log(LOG_LEVEL_DEBUG, "vertex shader compiled successfully");
 
@@ -268,7 +268,9 @@ namespace cgs
                 std::vector<char> fragment_shader_error_message(info_log_length + 1);
                 glGetShaderInfoLog(fragment_shader_id, info_log_length, nullptr, &fragment_shader_error_message[0]);
                 log(LOG_LEVEL_ERROR, &fragment_shader_error_message[0]);
-                return;
+                glDeleteShader(vertex_shader_id);
+                glDeleteShader(fragment_shader_id);
+                throw std::runtime_error("Error when compiling fragment shader: " + std::string(&fragment_shader_error_message[0]));
             }
             log(LOG_LEVEL_DEBUG, "fragment shader compiled successfully");
 
@@ -285,8 +287,11 @@ namespace cgs
             if (result == GL_FALSE) {
                 std::vector<char> program_error_message(info_log_length + 1);
                 glGetProgramInfoLog(new_program_id, info_log_length, nullptr, &program_error_message[0]);
-                log(LOG_LEVEL_ERROR, &program_error_message[0]);
-                return;
+                glDetachShader(new_program_id, vertex_shader_id);
+                glDetachShader(new_program_id, fragment_shader_id);
+                glDeleteShader(vertex_shader_id);
+                glDeleteShader(fragment_shader_id);
+                throw std::runtime_error("Error when linking shaders: " + std::string(&program_error_message[0]));
             }
             log(LOG_LEVEL_DEBUG, "program linked successfully");
 

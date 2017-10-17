@@ -3,6 +3,7 @@
 #include "FreeImage.h"
 #include "glfw3.h"
 
+#include <stdexcept>
 #include <sstream>
 #include <map>
 
@@ -146,8 +147,7 @@ namespace cgs
             FREE_IMAGE_FORMAT format = FreeImage_GetFileType(path.c_str(), 0); // automatically detects the format(from over 20 formats!)
             m_impl->m_img = FreeImage_Load(format, path.c_str());
             if (m_impl->m_img == nullptr) {
-                log(LOG_LEVEL_ERROR, "could not find image in path " + path);
-                return;
+                throw std::runtime_error(std::string("could not find image in path ") + path);
             }
             m_impl->log_image_properties();
         }

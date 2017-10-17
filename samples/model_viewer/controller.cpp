@@ -228,11 +228,7 @@ namespace model_viewer
         }
 
         cgs::set_gl_driver(cgs::get_opengl_driver());
-        bool renderer_ok = cgs::initialize_renderer();
-        if (!renderer_ok) {
-            s_ok = false;
-            return;
-        }
+        cgs::initialize_renderer();
 
         s_ok = true;
     }

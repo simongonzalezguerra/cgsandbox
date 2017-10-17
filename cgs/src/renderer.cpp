@@ -35,44 +35,25 @@ namespace cgs
         //---------------------------------------------------------------------------------------------
         // Helper functions
         //---------------------------------------------------------------------------------------------
-        bool initialize_shaders()
+        void initialize_shaders()
         {
             // Load our shaders
             log(LOG_LEVEL_DEBUG, "initialize_renderer: loading shaders");
             if (phong_programs.empty()) {
-                auto phong_program = make_program(driver, program_type::phong);
-                gl_program_id phong_program_id = phong_program.get();
-                if (!phong_program_id) {
-                    log(LOG_LEVEL_ERROR, "initialize_renderer: could not phong shaders");
-                    return false;
-                }
-                phong_programs.push_back(std::move(phong_program));
+                phong_programs.push_back(make_program(driver, program_type::phong));
             }
 
             if (environment_mapping_programs.empty()) {
-                auto environment_mapping_program = make_program(driver, program_type::environment_mapping);
-                gl_program_id environment_mapping_program_id = environment_mapping_program.get();
-                if (!environment_mapping_program_id) {
-                    log(LOG_LEVEL_ERROR, "initialize_renderer: could not environment mapping shaders");
-                    return false;
-                }
-                environment_mapping_programs.push_back(std::move(environment_mapping_program));           
+                environment_mapping_programs.push_back(make_program(driver, program_type::environment_mapping));
             }
             if (skybox_programs.empty()) {
-                auto skybox_program = make_program(driver, program_type::skybox);
-                gl_program_id skybox_program_id = skybox_program.get();
-                if (!skybox_program_id) {
-                    log(LOG_LEVEL_ERROR, "initialize_renderer: could not load skybox shaders");
-                    return false;
-                }
-                skybox_programs.push_back(std::move(skybox_program));
+                skybox_programs.push_back(make_program(driver, program_type::skybox));
             }
 
             log(LOG_LEVEL_DEBUG, "initialize_renderer: shaders loaded successfully");
-            return true;
         }
 
-        bool initialize_textures()
+        void initialize_textures()
         {
             // Create a default texture to use as diffuse map on objects that don't have a texture
             // The custom deleter in unique_default_texture makes it impossible to declare an empty
@@ -91,12 +72,6 @@ namespace cgs
                     // Load the texture into memory            
                     image img;
                     img.load(get_material_texture_path(mat));
-                    if (!img.ok()) {
-                        std::ostringstream oss;
-                        oss << "initialize_renderer: error loading texture from " << get_material_texture_path(mat);
-                        log(LOG_LEVEL_ERROR, oss.str());
-                        return false;
-                    }
                     // Load the texture into the graphics API
                     auto tex = make_texture(driver,img.get_width(), img.get_height(), img.get_format(), img.get_data());
                     set_material_texture_id(mat, tex.get());
@@ -104,14 +79,11 @@ namespace cgs
                 }
             }
 
-            textures.insert(textures.end(),
-                    make_move_iterator(new_textures.begin()),
-                    make_move_iterator(new_textures.end()));
+            textures.insert(textures.end(), make_move_iterator(new_textures.begin()), make_move_iterator(new_textures.end()));
             log(LOG_LEVEL_DEBUG, "initialize_renderer: textures loaded successfully");
-            return true;
         }
 
-        bool initialize_meshes()
+        void initialize_meshes()
         {
             // Load all meshes
             log(LOG_LEVEL_DEBUG, "initialize_renderer: loading meshes");
@@ -133,7 +105,6 @@ namespace cgs
             }
 
             log(LOG_LEVEL_DEBUG, "initialize_renderer: meshes loaded succesfully");
-            return true;
         }
 
         std::vector<glm::vec3> make_skybox_positions()
@@ -174,29 +145,8 @@ namespace cgs
             return skybox_indices;
         }
 
-        bool load_cubemap_faces(cubemap_id cid, std::vector<std::unique_ptr<image>>* faces)
-        {
-            for (auto path : get_cubemap_faces(cid)) {
-                auto face_ptr = std::make_unique<image>();
-                face_ptr->load(path);
-                if (!face_ptr->ok()) {
-                    std::ostringstream oss;
-                    oss << "load_cubemap_faces: error loading cubemap texture from " << path;
-                    log(LOG_LEVEL_ERROR, oss.str());
-                    return false;
-                }
-                faces->push_back(std::move(face_ptr));
-            }
 
-            if (faces->size() < 6) {
-                log(LOG_LEVEL_ERROR, "load_cubemap_faces: invalid cubemap data, faces unavailable");
-                return false;
-            }
-        
-            return true;
-        }
-
-        bool initialize_cubemaps()
+        void initialize_cubemaps()
         {
             if (cubemap_position_buffers.empty()) {
                 cubemap_position_buffers.push_back(make_3d_buffer(driver, make_skybox_positions()));
@@ -210,8 +160,13 @@ namespace cgs
             for (cubemap_id cid = get_first_cubemap(); cid != ncubemap; cid = get_next_cubemap(cid)) {
                 std::vector<const unsigned char*> faces_data;
                 std::vector<std::unique_ptr<image>> faces;
-                if (!load_cubemap_faces(cid, &faces)) {
-                    return false;
+                for (auto path : get_cubemap_faces(cid)) {
+                    auto face_ptr = std::make_unique<image>();
+                    face_ptr->load(path);
+                    faces.push_back(std::move(face_ptr));
+                }
+                if (faces.size() < 6) {
+                    throw std::runtime_error("load_cubemap_faces: invalid cubemap data, faces unavailable");
                 }
                 std::for_each(faces.begin(), faces.end(), [&](const std::unique_ptr<image>& i) {
                     faces_data.push_back(i->get_data());
@@ -222,7 +177,6 @@ namespace cgs
             }
 
             log(LOG_LEVEL_DEBUG, "initialize_renderer: cubemaps loaded successfully");
-            return true;
         }
     } // anonymous namespace
 
@@ -235,41 +189,22 @@ namespace cgs
         gl_driver_set = true;
     }
 
-    bool initialize_renderer()
+    void initialize_renderer()
     {
         if (!is_context_created()) {
-            log(LOG_LEVEL_ERROR, "initialize_renderer: error, trying to initialize renderer but a context hasn't been created");
-            return false;
+            throw std::logic_error("initialize_renderer: error, trying to initialize renderer but a context hasn't been created");
         }
 
         if (!gl_driver_set) {
-            log(LOG_LEVEL_ERROR, "initialize_renderer: error, trying to initialize renderer but a driver hasn't been set");
-            return false;   
+            throw std::logic_error("initialize_renderer: error, trying to initialize renderer but a driver hasn't been set");
         }
 
         // Initialize the graphics API
         driver.gl_driver_init();
-        bool ok = initialize_shaders();
-        if (!ok) {
-            return false;
-        }
-        
-        ok = initialize_textures();
-        if (!ok) {
-            return false;
-        }
-
-        ok = initialize_meshes();
-        if (!ok) {
-            return false;
-        }
-
-        ok = initialize_cubemaps();
-        if (!ok) {
-            return false;
-        }
-
-        return true;
+        initialize_shaders();
+        initialize_textures();
+        initialize_meshes();
+        initialize_cubemaps();
     }
 
     void finalize_renderer()
