@@ -182,7 +182,7 @@ namespace cgs
     //-----------------------------------------------------------------------------------------------
     // Public functions
     //-----------------------------------------------------------------------------------------------
-    bool open_window(std::size_t width, std::size_t height, bool fullscreen);
+    void open_window(std::size_t width, std::size_t height, bool fullscreen);
     void close_window();
     bool is_context_created();
     std::vector<event> poll_events();

@@ -147,7 +147,8 @@ namespace cgs
             FREE_IMAGE_FORMAT format = FreeImage_GetFileType(path.c_str(), 0); // automatically detects the format(from over 20 formats!)
             m_impl->m_img = FreeImage_Load(format, path.c_str());
             if (m_impl->m_img == nullptr) {
-                throw std::runtime_error(std::string("could not find image in path ") + path);
+                log(LOG_LEVEL_ERROR, std::string("could not find image in path ") + path);
+                throw std::runtime_error("");
             }
             m_impl->log_image_properties();
         }
@@ -198,13 +199,13 @@ namespace cgs
         return (m_impl->m_img != nullptr? FreeImage_GetBits(m_impl->m_img) : nullptr);
     }
 
-    bool open_window(std::size_t width, std::size_t height, bool fullscreen)
+    void open_window(std::size_t width, std::size_t height, bool fullscreen)
     {
         // Initialise GLFW
         if(!glfwInit())
         {
             log(LOG_LEVEL_ERROR, "open_window: failed to initialize GLFW.");
-            return -1;
+            throw std::runtime_error("");
         }
 
         glfwWindowHint(GLFW_SAMPLES, 4);
@@ -218,7 +219,7 @@ namespace cgs
         if(window == nullptr){
             log(LOG_LEVEL_ERROR, "open_window: failed to open GLFW window. If you have an Intel GPU prior to HD 4000, they are not OpenGL 3.3 compatible.");
             glfwTerminate();
-            return false;
+            throw std::runtime_error("");
         }
         ok = true;
         glfwMakeContextCurrent(window);
@@ -245,8 +246,6 @@ namespace cgs
         // Set the mouse at the center of the screen
         glfwPollEvents();
         glfwSetCursorPos(window, width / 2, height / 2);
-
-        return true;
     }
 
     void close_window()

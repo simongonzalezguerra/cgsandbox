@@ -6,6 +6,7 @@
 #include "cgs/log.hpp"
 #include "glm/glm.hpp"
 
+#include <stdexcept>
 #include <iomanip>
 #include <cstring>
 #include <sstream>
@@ -391,7 +392,8 @@ namespace cgs
             std::vector<mesh_id>* meshes_out)
     {
         if (!(file_name.size() > 0 && materials_out && meshes_out)) {
-            log(LOG_LEVEL_ERROR, "load_resources error: invalid arguments"); return nresource;
+            log(LOG_LEVEL_ERROR, "load_resources error: invalid arguments");
+            throw std::runtime_error("");
         }
 
         struct aiLogStream log_stream;
@@ -400,7 +402,8 @@ namespace cgs
         aiAttachLogStream(&log_stream);
         const struct aiScene* scene = aiImportFile(file_name.c_str(), aiProcessPreset_TargetRealtime_MaxQuality);
         if (!scene) {
-            log(LOG_LEVEL_ERROR, "load_resources: some errors occured, aborting"); return nresource;
+            log(LOG_LEVEL_ERROR, "load_resources: some errors occured, aborting");
+            throw std::runtime_error("");
         }
 
         material_ids.clear();

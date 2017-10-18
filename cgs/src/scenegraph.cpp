@@ -3,6 +3,7 @@
 #include "cgs/log.hpp"
 #include "glm/glm.hpp"
 
+#include <stdexcept>
 #include <algorithm>
 #include <vector>
 #include <queue>
@@ -345,7 +346,8 @@ namespace cgs
     void set_node_transform(layer_id l, node_id n, const glm::mat4& local_transform)
     {
         if (!(l < layers.size() && n < layers[l].mnodes.size() && layers[l].mnodes[n].mused)) {
-            log(LOG_LEVEL_ERROR, "set_node_transform error: invalid parameters"); return;
+            log(LOG_LEVEL_ERROR, "set_node_transform error: invalid parameters");
+            throw std::logic_error("");
         }
 
         layers[l].mnodes[n].mlocal_transform = local_transform;
