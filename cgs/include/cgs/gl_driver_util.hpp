@@ -29,23 +29,16 @@ namespace cgs
     struct default_texture_deleter
     {
         typedef default_texture_handle pointer;
-
-        default_texture_deleter(gl_driver driver) :
-            m_delete_default_texture(driver.delete_default_texture) {}
-
-        template<class other> default_texture_deleter(const other&) {};
-
-        void operator()(pointer p) const
-        {
-            m_delete_default_texture(p);
-        }
+        default_texture_deleter() : m_delete_default_texture(nullptr) {}
+        default_texture_deleter(gl_driver driver) : m_delete_default_texture(driver.delete_default_texture) {}
+        template<class other> default_texture_deleter(const other&) : m_delete_default_texture(nullptr) {};
+        void operator()(pointer p) const { if (m_delete_default_texture) { m_delete_default_texture(p); } }
 
         delete_default_texture_func m_delete_default_texture;
     };
 
     typedef std::unique_ptr<gl_texture_id, default_texture_deleter> unique_default_texture;
     typedef std::vector<unique_default_texture> default_texture_vector;
-
     unique_default_texture make_default_texture(const gl_driver& driver);
 
     //-----------------------------------------------------------------------------------------------
@@ -69,23 +62,16 @@ namespace cgs
     struct texture_deleter
     {
         typedef texture_handle pointer;
-
-        texture_deleter(gl_driver driver) :
-            m_delete_texture(driver.delete_texture) {}
-
-        template<class other> texture_deleter(const other&) {};
-
-        void operator()(pointer p) const
-        {
-            m_delete_texture(p);
-        }
+        texture_deleter() : m_delete_texture(nullptr) {}
+        texture_deleter(gl_driver driver) : m_delete_texture(driver.delete_texture) {}
+        template<class other> texture_deleter(const other&) : m_delete_texture(nullptr) {};
+        void operator()(pointer p) const { if (m_delete_texture) { m_delete_texture(p); } }
 
         delete_texture_func m_delete_texture;
     };
 
     typedef std::unique_ptr<gl_texture_id, texture_deleter> unique_texture;
     typedef std::vector<unique_texture> texture_vector;
-
     unique_texture make_texture(const gl_driver& driver,
                                 unsigned int width,
                                 unsigned int height,
@@ -113,29 +99,22 @@ namespace cgs
     struct buffer_deleter
     {
         typedef buffer_handle pointer;
-
-        buffer_deleter(gl_driver driver) :
-            m_delete_buffer(driver.delete_buffer) {}
-
-        template<class other> buffer_deleter(const other&) {};
-
-        void operator()(pointer p) const
-        {
-            m_delete_buffer(p);
-        }
+        buffer_deleter() : m_delete_buffer(nullptr) {}
+        buffer_deleter(gl_driver driver) : m_delete_buffer(driver.delete_buffer) {}
+        template<class other> buffer_deleter(const other&) : m_delete_buffer(nullptr) {};
+        void operator()(pointer p) const { if (m_delete_buffer) { m_delete_buffer(p); } }
 
         delete_buffer_func m_delete_buffer;
     };
 
     typedef std::unique_ptr<gl_buffer_id, buffer_deleter> unique_buffer;
     typedef std::vector<unique_buffer> buffer_vector;
-
     unique_buffer make_3d_buffer(const gl_driver& driver, const std::vector<glm::vec3>& data);
     unique_buffer make_2d_buffer(const gl_driver& driver, const std::vector<glm::vec2>& data);
     unique_buffer make_index_buffer(const gl_driver& driver, const std::vector<unsigned short>& data);
 
     //-----------------------------------------------------------------------------------------------
-    // Cubenaps
+    // Cubemaps
     //-----------------------------------------------------------------------------------------------
     struct cubemap_handle
     {
@@ -155,23 +134,16 @@ namespace cgs
     struct cubemap_deleter
     {
         typedef cubemap_handle pointer;
-
-        cubemap_deleter(gl_driver driver) :
-            m_delete_cubemap(driver.delete_cubemap) {}
-
-        template<class other> cubemap_deleter(const other&) {};
-
-        void operator()(pointer p) const
-        {
-            m_delete_cubemap(p);
-        }
+        cubemap_deleter() : m_delete_cubemap(nullptr) {}
+        cubemap_deleter(gl_driver driver) : m_delete_cubemap(driver.delete_cubemap) {}
+        template<class other> cubemap_deleter(const other&) : m_delete_cubemap(nullptr) {};
+        void operator()(pointer p) const { if (m_delete_cubemap) { m_delete_cubemap(p); } }
 
         delete_cubemap_func m_delete_cubemap;
     };
 
     typedef std::unique_ptr<gl_cubemap_id, cubemap_deleter> unique_cubemap;
     typedef std::vector<unique_cubemap> cubemap_vector;
-
     unique_cubemap make_cubemap(const gl_driver& driver,
                                 unsigned int width,
                                 unsigned int height,
@@ -199,23 +171,16 @@ namespace cgs
     struct program_deleter
     {
         typedef program_handle pointer;
-
-        program_deleter(gl_driver driver) :
-            m_delete_program(driver.delete_program) {}
-
-        template<class other> program_deleter(const other&) {};
-
-        void operator()(pointer p) const
-        {
-            m_delete_program(p);
-        }
+        program_deleter() : m_delete_program(nullptr) {}
+        program_deleter(gl_driver driver) : m_delete_program(driver.delete_program) {}
+        template<class other> program_deleter(const other&) : m_delete_program(nullptr) {};
+        void operator()(pointer p) const {if (m_delete_program) {m_delete_program(p); } }
 
         delete_program_func m_delete_program;
     };
 
     typedef std::unique_ptr<gl_program_id, program_deleter> unique_program;
     typedef std::vector<unique_program> program_vector;
-
     unique_program make_program(const gl_driver& driver, program_type type);
 } // namespace cgs
 
