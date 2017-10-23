@@ -10,7 +10,9 @@ namespace cgs
     public:
         real_time_engine(unsigned int max_errors = 200U);
         ~real_time_engine();
+        void initialize();
         void process();
+        void finalize();
 
     private:
         class real_time_engine_impl;

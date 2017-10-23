@@ -31,7 +31,7 @@ protected:
 };
 
 TEST_F(resources_loader_test, load_resources_negative) {
-  std::vector<mat_id> materials_out;
+  material_vector materials_out;
   std::vector<mesh_id> meshes_out;
   load_resources("", &materials_out, &meshes_out);
   load_resources("some_file.3ds", nullptr, &meshes_out);
@@ -41,15 +41,15 @@ TEST_F(resources_loader_test, load_resources_negative) {
 }
 
 TEST_F(resources_loader_test, load_resources_positive1) {
-  std::vector<mat_id> materials_out;
+  material_vector materials_out;
   std::vector<mesh_id> meshes_out;
   resource_id added_resource = load_resources(RESOURCES_PATH + SPONZA, &materials_out, &meshes_out);
 
   default_logstream_tail_dump(cgs::LOG_LEVEL_DEBUG);
-  glm::vec3 color_diffuse = get_material_diffuse_color(materials_out[0]);
-  glm::vec3 color_spec = get_material_diffuse_color(materials_out[0]);
-  float smoothness = get_material_smoothness(materials_out[0]);
-  std::string texture_path = get_material_texture_path(materials_out[0]);
+  glm::vec3 color_diffuse = get_material_diffuse_color(materials_out[0].get());
+  glm::vec3 color_spec = get_material_diffuse_color(materials_out[0].get());
+  float smoothness = get_material_smoothness(materials_out[0].get());
+  std::string texture_path = get_material_texture_path(materials_out[0].get());
 
   float expected_color_diffuse[] = {0.75f, 0.71f, 0.67f};
   ASSERT_SEQUENCE_NEAR(glm::value_ptr(color_diffuse), expected_color_diffuse, 3, 0.01f);
@@ -94,7 +94,7 @@ TEST_F(resources_loader_test, load_resources_positive1) {
 
 TEST_F(resources_loader_test, load_resources_three_levels) {
   // Load a scene with more than two levels
-  std::vector<mat_id> materials_out;
+  material_vector materials_out;
   std::vector<mesh_id> meshes_out;
   load_resources(RESOURCES_PATH + THREE_LEVELS, &materials_out, &meshes_out);
   default_logstream_tail_dump(cgs::LOG_LEVEL_DEBUG);
@@ -111,14 +111,14 @@ TEST_F(resources_loader_test, load_resources_three_levels) {
 
 TEST_F(resources_loader_test, load_resources_no_texture_info) {
   // Load a scene with no texture info
-  std::vector<mat_id> materials_out;
+  material_vector materials_out;
   std::vector<mesh_id> meshes_out;
   load_resources(RESOURCES_PATH + STANFORD_BUNNY, &materials_out, &meshes_out);
   default_logstream_tail_dump(cgs::LOG_LEVEL_DEBUG);
 }
 
 TEST_F(resources_loader_test, load_resources_billiard_table) {
-  std::vector<mat_id> materials_out;
+  material_vector materials_out;
   std::vector<mesh_id> meshes_out;
   load_resources(RESOURCES_PATH + BILLIARD_TABLE, &materials_out, &meshes_out);
   default_logstream_tail_dump(cgs::LOG_LEVEL_DEBUG);

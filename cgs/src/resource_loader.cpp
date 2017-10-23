@@ -50,8 +50,9 @@ namespace cgs
             return dir;
         }
 
-        void create_materials(const struct aiScene* scene, std::vector<mat_id>* materials_out, const std::string& file_name)
+        void create_materials(const struct aiScene* scene, material_vector* materials_out, const std::string& file_name)
         {
+            material_vector materials;
             for (std::size_t i = 0; i < scene->mNumMaterials; i++) {
                 aiColor4D diffuse_color(0.0f, 0.0f, 0.0f, 0.0f);
                 aiGetMaterialColor(scene->mMaterials[i], AI_MATKEY_COLOR_DIFFUSE, &diffuse_color);
@@ -78,14 +79,16 @@ namespace cgs
                 float smoothness = 1.0f;
                 aiGetMaterialFloat(scene->mMaterials[i], AI_MATKEY_SHININESS, &smoothness);
 
-                mat_id mat = add_material();
-                set_material_diffuse_color(mat, color_diffuse);
-                set_material_specular_color(mat, color_specular);
-                set_material_smoothness(mat, smoothness);
-                set_material_texture_path(mat, texture_path);
-                materials_out->push_back(mat);
-                material_ids[i] = mat;
+                auto mat = make_material();
+                set_material_diffuse_color(mat.get(), color_diffuse);
+                set_material_specular_color(mat.get(), color_specular);
+                set_material_smoothness(mat.get(), smoothness);
+                set_material_texture_path(mat.get(), texture_path);
+                material_ids[i] = mat.get();
+                materials.push_back(std::move(mat));
             }
+
+            materials_out->insert(materials_out->end(), make_move_iterator(materials.begin()), make_move_iterator(materials.end()));
         }
 
         void create_meshes(const struct aiScene* scene, std::vector<mesh_id>* meshes_out)
@@ -351,14 +354,14 @@ namespace cgs
             }
         }
 
-        void log_statistics(resource_id added_root, const std::vector<mat_id>& added_materials, const std::vector<mesh_id>& added_meshes)
+        void log_statistics(resource_id added_root, const material_vector& added_materials, const std::vector<mesh_id>& added_meshes)
         {
             log(LOG_LEVEL_DEBUG, "---------------------------------------------------------------------------------------------------");
             log(LOG_LEVEL_DEBUG, "load_resources: finished loading file, summary:");
             log(LOG_LEVEL_DEBUG, "materials:");
             if (added_materials.size()) {
-                for (auto m : added_materials) {
-                    print_material(m);
+                for (auto& m : added_materials) {
+                    print_material(m.get());
                 }
             } else {
                 log(LOG_LEVEL_DEBUG, "    no materials found");
@@ -388,7 +391,7 @@ namespace cgs
     // Public functions
     //-----------------------------------------------------------------------------------------------
     resource_id load_resources(const std::string& file_name,
-            std::vector<mat_id>* materials_out,
+            material_vector* materials_out,
             std::vector<mesh_id>* meshes_out)
     {
         if (!(file_name.size() > 0 && materials_out && meshes_out)) {
@@ -411,15 +414,17 @@ namespace cgs
         materials_out->clear();
         meshes_out->clear();
         resource_id added_root = nresource;
-        create_materials(scene, materials_out, file_name);
+        material_vector materials;
+        create_materials(scene, &materials, file_name);
         create_meshes(scene, meshes_out);
         create_resources(scene, &added_root);
 
-        log_statistics(added_root, *materials_out, *meshes_out);
+        log_statistics(added_root, materials, *meshes_out);
 
         aiReleaseImport(scene);
         aiDetachAllLogStreams();
 
+        materials_out->insert(materials_out->end(), make_move_iterator(materials.begin()), make_move_iterator(materials.end()));
         return added_root;
     }
 } // namespace cgs

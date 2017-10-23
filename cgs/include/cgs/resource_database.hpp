@@ -5,6 +5,7 @@
 #include "glm/glm.hpp"
 
 #include <cstddef> // for size_t
+#include <memory>
 #include <vector>
 #include <string>
 
@@ -87,7 +88,7 @@ namespace cgs
     //!  and smoothness = 1.
     //-----------------------------------------------------------------------------------------------
     mat_id add_material();
-
+    void remove_material(mat_id mat);
     void set_material_diffuse_color(mat_id mat, glm::vec3 diffuse_color);
     void set_material_specular_color(mat_id mat, glm::vec3 specular_color);
     void set_material_smoothness(mat_id mat, float smoothness);
@@ -118,18 +119,33 @@ namespace cgs
     //-----------------------------------------------------------------------------------------------
     mat_id get_next_material(mat_id material);
 
-    //-----------------------------------------------------------------------------------------------
-    //! @brief Creates a new mesh.
-    //! @return The id of the new mesh.
-    //! @remarks The new mesh hast the following properties:
-    //!  It has 0 vertices
-    //!  Its vertext stride is 3
-    //!  It has no texture coordinates
-    //!  Its texture coordinate stride is 2
-    //!  It has no faces
-    //!  Its faces stride is 3
-    //!  It has no material associated to it
-    //-----------------------------------------------------------------------------------------------
+    struct material_handle
+    {
+        material_handle() : m_material_id(nmat) {}
+        material_handle(mat_id material_id) : m_material_id(material_id) {}
+        material_handle(std::nullptr_t) : m_material_id(nmat) {}
+        operator int() {return m_material_id;}
+        operator mat_id() {return m_material_id;}
+        bool operator ==(const material_handle &other) const {return m_material_id == other.m_material_id;}
+        bool operator !=(const material_handle &other) const {return m_material_id != other.m_material_id;}
+        bool operator ==(std::nullptr_t) const {return m_material_id == nmat;}
+        bool operator !=(std::nullptr_t) const {return m_material_id != nmat;}
+
+        mat_id m_material_id;
+    };
+
+    struct material_deleter
+    {
+        typedef material_handle pointer;
+        material_deleter() {}
+        template<class other> material_deleter(const other&) {};
+        void operator()(pointer p) const { remove_material(p); }
+    };
+
+    typedef std::unique_ptr<mat_id, material_deleter> unique_material;
+    typedef std::vector<unique_material> material_vector;
+    unique_material make_material();
+
     mesh_id add_mesh();
 
     void set_mesh_vertices(mesh_id mesh, const std::vector<glm::vec3>& vertices);

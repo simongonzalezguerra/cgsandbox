@@ -22,6 +22,7 @@ namespace cgs
     {
     public:
         real_time_engine_impl(unsigned int max_errors) :
+            m_materials(),
             m_floor_resource(nresource),
             m_plane_resource(nresource),
             m_teapot_resource(nresource),
@@ -35,9 +36,9 @@ namespace cgs
             m_steel_dragon_node(nnode),
             m_steel_teapot_node(nnode),
             m_glass_bunny_node(nnode),
-            m_diffuse_teapot_material(nmat),
-            m_steel_material(nmat),
-            m_glass_material(nmat),
+            m_diffuse_teapot_material(),
+            m_steel_material(),
+            m_glass_material(),
             m_skybox_id(ncubemap),
             m_max_errors(max_errors),
             m_view(0U),
@@ -50,7 +51,14 @@ namespace cgs
             m_sim_rotation_speed(0.0f),
             m_sim_rotation_yaw(0.0f)
         {
-            log_init();
+        }
+
+        ~real_time_engine_impl()
+        {
+        }
+
+        void initialize()
+        {
             log(LOG_LEVEL_DEBUG, "real_time_engine: initializing application");
 
             attach_logstream(default_logstream_stdout_callback);
@@ -59,31 +67,31 @@ namespace cgs
 
             m_floor_resource = make_floor_resource();
 
-            std::vector<mat_id> materials_out;
+            material_vector materials;
             std::vector<mesh_id> meshes_out;
-            m_plane_resource = load_resources("../../../resources/f-14D-super-tomcat/F-14D_SuperTomcatRotated.obj", &materials_out, &meshes_out);
+            m_plane_resource = load_resources("../../../resources/f-14D-super-tomcat/F-14D_SuperTomcatRotated.obj", &materials, &meshes_out);
 
-            m_teapot_resource = load_resources("../../../resources/Teapot/Teapot.obj", &materials_out, &meshes_out);
+            m_teapot_resource = load_resources("../../../resources/Teapot/Teapot.obj", &materials, &meshes_out);
 
-            m_diffuse_teapot_material = add_material();
-            set_material_diffuse_color(m_diffuse_teapot_material, glm::vec3(1.0f, 0.0f, 0.0f));
-            set_material_specular_color(m_diffuse_teapot_material, glm::vec3(1.0f, 1.0f, 1.0f));
-            set_material_smoothness(m_diffuse_teapot_material, 1.0f);
+            m_diffuse_teapot_material = make_material();
+            set_material_diffuse_color(m_diffuse_teapot_material.get(), glm::vec3(1.0f, 0.0f, 0.0f));
+            set_material_specular_color(m_diffuse_teapot_material.get(), glm::vec3(1.0f, 1.0f, 1.0f));
+            set_material_smoothness(m_diffuse_teapot_material.get(), 1.0f);
 
-            m_steel_material = add_material();
-            set_material_diffuse_color(m_steel_material, glm::vec3(0.8f, 0.8f, 0.8f));
-            set_material_specular_color(m_steel_material, glm::vec3(0.8f, 0.8f, 0.8f));
-            set_material_reflectivity(m_steel_material, 1.0f);
-            set_material_translucency(m_steel_material, 0.0f);
+            m_steel_material = make_material();
+            set_material_diffuse_color(m_steel_material.get(), glm::vec3(0.8f, 0.8f, 0.8f));
+            set_material_specular_color(m_steel_material.get(), glm::vec3(0.8f, 0.8f, 0.8f));
+            set_material_reflectivity(m_steel_material.get(), 1.0f);
+            set_material_translucency(m_steel_material.get(), 0.0f);
 
-            m_glass_material = add_material();
-            set_material_diffuse_color(m_glass_material, glm::vec3(0.5f, 0.5f, 0.5f));
-            set_material_specular_color(m_glass_material, glm::vec3(0.5f, 0.5f, 0.5f));
-            set_material_reflectivity(m_glass_material, 0.0f);
-            set_material_translucency(m_glass_material, 1.0f);
-            set_material_refractive_index(m_glass_material, 1.52f); // Glass
+            m_glass_material = make_material();
+            set_material_diffuse_color(m_glass_material.get(), glm::vec3(0.5f, 0.5f, 0.5f));
+            set_material_specular_color(m_glass_material.get(), glm::vec3(0.5f, 0.5f, 0.5f));
+            set_material_reflectivity(m_glass_material.get(), 0.0f);
+            set_material_translucency(m_glass_material.get(), 1.0f);
+            set_material_refractive_index(m_glass_material.get(), 1.52f); // Glass
 
-            m_bunny_resource = load_resources("../../../resources/stanford-bunny/bun_zipper.ply", &materials_out, &meshes_out);
+            m_bunny_resource = load_resources("../../../resources/stanford-bunny/bun_zipper.ply", &materials, &meshes_out);
 
             mat_id bunny_material = add_material();
             set_material_diffuse_color(bunny_material, glm::vec3(0.0f, 0.2f, 0.4f));
@@ -91,7 +99,7 @@ namespace cgs
             set_material_smoothness(bunny_material, 1.0f);
             set_resource_material(m_bunny_resource, bunny_material);
 
-            m_dragon_resource = load_resources("../../../resources/stanford-dragon2/dragon.obj", &materials_out, &meshes_out);
+            m_dragon_resource = load_resources("../../../resources/stanford-dragon2/dragon.obj", &materials, &meshes_out);
 
             mat_id dragon_material = add_material();
             set_material_diffuse_color(dragon_material, glm::vec3(0.05f, 0.5f, 0.0f));
@@ -135,7 +143,7 @@ namespace cgs
             // Create the diffuse teapot
             m_diffuse_teapot_node = add_node(m_layer, root_node, m_teapot_resource);
             set_node_transform(m_layer, m_diffuse_teapot_node, glm::translate(glm::vec3(22.0f, -3.0f, -20.0f)) * glm::scale(glm::vec3(8.0f, 8.0f, 8.0f)));
-            set_node_material(m_layer, get_first_child_node(m_layer, m_diffuse_teapot_node), m_diffuse_teapot_material);
+            set_node_material(m_layer, get_first_child_node(m_layer, m_diffuse_teapot_node), m_diffuse_teapot_material.get());
         
             // Create the bunny
             m_bunny_node = add_node(m_layer, root_node, m_bunny_resource);
@@ -147,15 +155,15 @@ namespace cgs
 
             // Create the steel dragon
             m_steel_dragon_node = add_node(m_layer, root_node, m_dragon_resource);
-            set_node_material(m_layer, get_first_child_node(m_layer, m_steel_dragon_node), m_steel_material);
+            set_node_material(m_layer, get_first_child_node(m_layer, m_steel_dragon_node), m_steel_material.get());
 
             // Create the steel teapot
             m_steel_teapot_node = add_node(m_layer, root_node, m_teapot_resource);
-            set_node_material(m_layer, get_first_child_node(m_layer, m_steel_teapot_node), m_steel_material);
+            set_node_material(m_layer, get_first_child_node(m_layer, m_steel_teapot_node), m_steel_material.get());
 
             // Create the glass bunny
             m_glass_bunny_node = add_node(m_layer, root_node, m_bunny_resource);
-            set_node_material(m_layer, m_glass_bunny_node, m_glass_material);
+            set_node_material(m_layer, m_glass_bunny_node, m_glass_material.get());
 
             point_light_id point_light = add_point_light(m_layer);
             set_point_light_position(m_layer, point_light, glm::vec3(4.0f, 4.0f, 4.0f));
@@ -185,19 +193,21 @@ namespace cgs
 
             m_sim_rotation_speed = 1.5f;
             m_sim_rotation_yaw = 0.0f;
+
+            m_materials.insert(m_materials.end(), make_move_iterator(materials.begin()), make_move_iterator(materials.end()));
         }
 
-        ~real_time_engine_impl()
+        void finalize()
         {
             try {
                 log(LOG_LEVEL_DEBUG, "real_time_engine: finalizing application");
                 m_framerate_controller.log_stats();
                 finalize_renderer();
                 close_window();
-                detach_all_logstreams();
             } catch(...) {
-                std::cout << "real_time_engine: exception during finalization";
+                log(LOG_LEVEL_DEBUG, "real_time_engine: exception during finalization");
             }
+            
         }
 
         resource_id make_floor_resource()
@@ -300,6 +310,7 @@ namespace cgs
             return !m_should_continue;            
         }
 
+        material_vector        m_materials;
         resource_id            m_floor_resource;
         resource_id            m_plane_resource;
         resource_id            m_teapot_resource;
@@ -313,9 +324,9 @@ namespace cgs
         node_id                m_steel_dragon_node;
         node_id                m_steel_teapot_node;
         node_id                m_glass_bunny_node;
-        mat_id                 m_diffuse_teapot_material;
-        mat_id                 m_steel_material;
-        mat_id                 m_glass_material;
+        unique_material        m_diffuse_teapot_material;
+        unique_material        m_steel_material;
+        unique_material        m_glass_material;
         cubemap_id             m_skybox_id;
         unsigned int           m_max_errors;
         view_id                m_view;
@@ -334,6 +345,11 @@ namespace cgs
 
     real_time_engine::~real_time_engine() {}
 
+    void real_time_engine::initialize()
+    {
+        m_impl->initialize();
+    }
+
     void real_time_engine::process()
     {
         bool done = false;
@@ -349,5 +365,10 @@ namespace cgs
                 }
             }
         } while (!done);
+    }
+
+    void real_time_engine::finalize()
+    {
+        m_impl->finalize();
     }
 }

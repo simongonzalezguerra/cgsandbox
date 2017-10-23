@@ -18,7 +18,7 @@ int main(int argc, char** argv)
   attach_logstream(default_logstream_file_callback);
   attach_logstream(default_logstream_tail_callback);
 
-  std::vector<mat_id> materials_out;
+  material_vector materials_out;
   std::vector<mesh_id> meshes_out;
   load_resources(argv[1], &materials_out, &meshes_out);
 

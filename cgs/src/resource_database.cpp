@@ -15,23 +15,25 @@ namespace cgs
         struct material
         {
             material() :
-                mcolor_diffuse({1.0f, 1.0f, 1.0f}),
-                mcolor_spec({1.0f, 1.0f, 1.0f}),
-                msmoothness(1.0f),
-                mtexture_path(),
-                mreflectivity(0.0f),
-                mtranslucency(0.0f),
-                mrefractive_index(1.0f),
-                mtexture_id(0U) {}
+                m_color_diffuse({1.0f, 1.0f, 1.0f}),
+                m_color_spec({1.0f, 1.0f, 1.0f}),
+                m_smoothness(1.0f),
+                m_texture_path(),
+                m_reflectivity(0.0f),
+                m_translucency(0.0f),
+                m_refractive_index(1.0f),
+                m_texture_id(0U),
+                m_used(true) {}
 
-            glm::vec3     mcolor_diffuse;
-            glm::vec3     mcolor_spec;
-            float         msmoothness;
-            std::string   mtexture_path;
-            float         mreflectivity;
-            float         mtranslucency;
-            float         mrefractive_index;
-            gl_texture_id mtexture_id;
+            glm::vec3     m_color_diffuse;
+            glm::vec3     m_color_spec;
+            float         m_smoothness;
+            std::string   m_texture_path;
+            float         m_reflectivity;
+            float         m_translucency;
+            float         m_refractive_index;
+            gl_texture_id m_texture_id;
+            bool          m_used;
         };
 
         typedef std::vector<material> material_vector;
@@ -88,6 +90,7 @@ namespace cgs
 
         typedef std::vector<cubemap> cubemap_vector;
 
+
         //---------------------------------------------------------------------------------------------
         // Internal data structures
         //---------------------------------------------------------------------------------------------
@@ -115,139 +118,160 @@ namespace cgs
 
     mat_id add_material()
     {
-        materials.push_back(material{});
-        return materials.size() - 1;
+        mat_id m = std::find_if(materials.begin(), materials.end(), [](const material& m) { return !m.m_used; }) - materials.begin();
+        if (m == materials.size()) {
+            materials.push_back(material{});
+        } else {
+            materials[m] = material{};
+        }
+
+        return m;
+    }
+
+    void remove_material(mat_id m)
+    {
+        if (m < materials.size() && materials[m].m_used) {
+            materials[m].m_used = false; // soft removal
+        }
     }
 
     void set_material_diffuse_color(mat_id m, glm::vec3 diffuse_color)
     {
-        if (!(m < materials.size())) {
+        if (!(m < materials.size() && materials[m].m_used)) {
             log(LOG_LEVEL_ERROR, "set_material_diffuse_color error: invalid material id"); return;
         }
 
-        materials[m].mcolor_diffuse = diffuse_color;
+        materials[m].m_color_diffuse = diffuse_color;
     }
 
     void set_material_specular_color(mat_id m, glm::vec3 specular_color)
     {
-        if (!(m < materials.size())) {
+        if (!(m < materials.size() && materials[m].m_used)) {
             log(LOG_LEVEL_ERROR, "set_material_specular_color error: invalid material id"); return;
         }
 
-        materials[m].mcolor_spec = specular_color;
+        materials[m].m_color_spec = specular_color;
     }
 
     void set_material_smoothness(mat_id m, float smoothness)
     {
-        if (!(m < materials.size())) {
+        if (!(m < materials.size() && materials[m].m_used)) {
             log(LOG_LEVEL_ERROR, "set_material_smoothness error: invalid material id"); return;
         }
 
-        materials[m].msmoothness = smoothness;
+        materials[m].m_smoothness = smoothness;
     }
 
     void set_material_texture_path(mat_id m, const std::string& texture_path)
     {
-        if (!(m < materials.size())) {
+        if (!(m < materials.size() && materials[m].m_used)) {
             log(LOG_LEVEL_ERROR, "set_material_texture_path error: invalid material id"); return;
         }
 
-        materials[m].mtexture_path = texture_path;
+        materials[m].m_texture_path = texture_path;
     }
 
     void set_material_reflectivity(mat_id m, float reflectivity)
     {
-        if (m < materials.size()) {
-            materials[m].mreflectivity = reflectivity;
+        if (m < materials.size() && materials[m].m_used) {
+            materials[m].m_reflectivity = reflectivity;
         }
     }
 
     void set_material_translucency(mat_id m, float translucency)
     {
-        if (m < materials.size()) {
-            materials[m].mtranslucency = translucency;
+        if (m < materials.size() && materials[m].m_used) {
+            materials[m].m_translucency = translucency;
         }
     }
 
     void set_material_refractive_index(mat_id m, float refractive_index)
     {
-        if (m < materials.size()) {
-            materials[m].mrefractive_index = refractive_index;
+        if (m < materials.size() && materials[m].m_used) {
+            materials[m].m_refractive_index = refractive_index;
         }
     }
 
     void set_material_texture_id(mat_id m, gl_texture_id texture_id)
     {
-        if (m < materials.size()) {
-            materials[m].mtexture_id = texture_id;
+        if (m < materials.size() && materials[m].m_used) {
+            materials[m].m_texture_id = texture_id;
         }
     }
 
     glm::vec3 get_material_diffuse_color(mat_id m)
     {
-        if (!(m < materials.size())) {
+        if (!(m < materials.size() && materials[m].m_used)) {
             log(LOG_LEVEL_ERROR, "get_material_diffuse_color error: invalid material id"); return glm::vec3{1.0f};
         }
 
-        return materials[m].mcolor_diffuse;    
+        return materials[m].m_color_diffuse;    
     }
 
     glm::vec3 get_material_specular_color(mat_id m)
     {
-        if (!(m < materials.size())) {
+        if (!(m < materials.size() && materials[m].m_used)) {
             log(LOG_LEVEL_ERROR, "get_material_specular_color error: invalid material id"); return glm::vec3{1.0f};
         }
 
-        return materials[m].mcolor_spec;
+        return materials[m].m_color_spec;
     }
 
     float get_material_smoothness(mat_id m)
     {
-        if (!(m < materials.size())) {
+        if (!(m < materials.size() && materials[m].m_used)) {
             log(LOG_LEVEL_ERROR, "get_material_smoothness error: invalid material id"); return 0.0f;
         }
 
-        return materials[m].msmoothness;
+        return materials[m].m_smoothness;
     }
 
     std::string get_material_texture_path(mat_id m)
     {
-        if (!(m < materials.size())) {
+        if (!(m < materials.size() && materials[m].m_used)) {
             log(LOG_LEVEL_ERROR, "get_material_texture_path error: invalid material id"); return "";
         }
 
-        return materials[m].mtexture_path;
+        return materials[m].m_texture_path;
     }
 
     float get_material_reflectivity(mat_id m)
     {
-        return (m < materials.size())? materials[m].mreflectivity : 0.0f;
+        return (m < materials.size() && materials[m].m_used)? materials[m].m_reflectivity : 0.0f;
     }
 
 
     float get_material_translucency(mat_id m)
     {
-        return (m < materials.size())? materials[m].mtranslucency : 0.0f;
+        return (m < materials.size() && materials[m].m_used)? materials[m].m_translucency : 0.0f;
     }
 
     float get_material_refractive_index(mat_id m)
     {
-        return (m < materials.size())? materials[m].mrefractive_index : 0.0f;
+        return (m < materials.size() && materials[m].m_used)? materials[m].m_refractive_index : 0.0f;
     }
 
     gl_texture_id get_material_texture_id(mat_id m)
     {
-        return (m < materials.size()? materials[m].mtexture_id : 0U);
+        return (m < materials.size() && materials[m].m_used)? materials[m].m_texture_id : 0U;
     }
 
     mat_id get_first_material()
     {
-        return (materials.size() ? 0 : nmat);
+        auto it = std::find_if(materials.begin(), materials.end(), [](const material& m) { return m.m_used; });
+        return (it != materials.end() ? it - materials.begin() : nmat);
     }
 
     mat_id get_next_material(mat_id m)
     {
-        return (m + 1 < materials.size()? m + 1 : nmat);
+        auto it = std::find_if(materials.begin() + m + 1, materials.end(), [](const material& m) { return m.m_used; });
+        return (it != materials.end() ? it - materials.begin() : nmat);
+    }
+
+    unique_material make_material()
+    {
+        unique_material m(add_material());
+        return std::move(m);
     }
 
     mesh_id add_mesh()
