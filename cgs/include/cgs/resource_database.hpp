@@ -215,9 +215,7 @@ namespace cgs
     //-----------------------------------------------------------------------------------------------
     resource_id add_resource(resource_id parent);
 
-    void set_resource_meshes(resource_id r, const std::vector<mesh_id>& meshes);
     void set_resource_local_transform(resource_id r, const glm::mat4& local_transform);
-    std::vector<mesh_id> get_resource_meshes(resource_id r);
     glm::mat4 get_resource_local_transform(resource_id r);
     void set_resource_mesh(resource_id r, mesh_id m);
     mesh_id get_resource_mesh(resource_id r);
