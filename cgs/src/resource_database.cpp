@@ -428,21 +428,6 @@ namespace cgs
         return resources.size() - 1;
     }
 
-    void set_resource_meshes(resource_id r, const std::vector<mesh_id>& m)
-    {
-        if (!(r < resources.size())) {
-            log(LOG_LEVEL_ERROR, "set_resource_meshes error: invalid arguments"); return;
-        }
-
-        for (std::size_t i = 0; i < m.size(); i++) {
-            if (!(m[i] < meshes.size())) {
-                log(LOG_LEVEL_ERROR, "set_resource_meshes error: invalid mesh id"); return;
-            }
-        }
-
-        //resources[r].mmeshes = m;
-    }
-
     void set_resource_local_transform(resource_id r, const glm::mat4& local_transform)
     {
         if (!(r < resources.size())) {
@@ -450,15 +435,6 @@ namespace cgs
         }
 
         resources[r].mlocal_transform = local_transform;
-    }
-
-    std::vector<mesh_id> get_resource_meshes(resource_id r)
-    {
-        if (!(r < resources.size())) {
-            log(LOG_LEVEL_ERROR, "get_resource_meshes error: invalid arguments"); return std::vector<mesh_id>();
-        }
-
-        return std::vector<mesh_id>();
     }
 
     glm::mat4 get_resource_local_transform(resource_id r)
