@@ -411,8 +411,6 @@ namespace cgs
 
         material_ids.clear();
         mesh_ids.clear();
-        materials_out->clear();
-        meshes_out->clear();
         resource_id added_root = nresource;
         material_vector materials;
         create_materials(scene, &materials, file_name);
