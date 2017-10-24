@@ -91,13 +91,14 @@ namespace cgs
             materials_out->insert(materials_out->end(), make_move_iterator(materials.begin()), make_move_iterator(materials.end()));
         }
 
-        void create_meshes(const struct aiScene* scene, std::vector<mesh_id>* meshes_out)
+        void create_meshes(const struct aiScene* scene, mesh_vector* meshes_out)
         {
+            mesh_vector meshes;
             for (std::size_t i_mesh = 0; i_mesh < scene->mNumMeshes; i_mesh++) {
                 aiMesh* mesh = scene->mMeshes[i_mesh];
 
                 if (material_ids.find(mesh->mMaterialIndex) == material_ids.end()) continue;
-                mesh_id m = add_mesh();
+                auto m = make_mesh();
 
                 std::vector<glm::vec3> vertices;
                 if (mesh->HasPositions()) {
@@ -106,7 +107,7 @@ namespace cgs
                         vertices.push_back(glm::vec3(vertex.x, vertex.y, vertex.z));
                     }
                 }
-                set_mesh_vertices(m, vertices);
+                set_mesh_vertices(m.get(), vertices);
 
                 std::vector<glm::vec2> texture_coords;
                 if (mesh->HasTextureCoords(0)) {
@@ -115,7 +116,7 @@ namespace cgs
                         texture_coords.push_back(glm::vec2(tex_coords.x, tex_coords.y));
                     }
                 }
-                set_mesh_texture_coords(m, texture_coords);
+                set_mesh_texture_coords(m.get(), texture_coords);
 
                 std::vector<glm::vec3> normals;
                 if (mesh->HasNormals()) {
@@ -124,7 +125,7 @@ namespace cgs
                         normals.push_back(glm::vec3(normal.x, normal.y, normal.z));
                     }
                 }
-                set_mesh_normals(m, normals);
+                set_mesh_normals(m.get(), normals);
 
                 std::vector<vindex> indices;
                 if (mesh->HasFaces()) {
@@ -135,11 +136,12 @@ namespace cgs
                         }
                     }
                 }
-                set_mesh_indices(m, indices);
+                set_mesh_indices(m.get(), indices);
 
-                meshes_out->push_back(m);
-                mesh_ids[i_mesh] = m;
+                mesh_ids[i_mesh] = m.get();
+                meshes.push_back(std::move(m));
             }
+            meshes_out->insert(meshes_out->end(), make_move_iterator(meshes.begin()), make_move_iterator(meshes.end()));
         }
 
         // Assimp creates a structure with several meshes by node, and each mesh has a material. In
@@ -354,7 +356,7 @@ namespace cgs
             }
         }
 
-        void log_statistics(resource_id added_root, const material_vector& added_materials, const std::vector<mesh_id>& added_meshes)
+        void log_statistics(resource_id added_root, const material_vector& added_materials, const mesh_vector& added_meshes)
         {
             log(LOG_LEVEL_DEBUG, "---------------------------------------------------------------------------------------------------");
             log(LOG_LEVEL_DEBUG, "load_resources: finished loading file, summary:");
@@ -369,8 +371,8 @@ namespace cgs
 
             log(LOG_LEVEL_DEBUG, "meshes:");
             if (added_meshes.size()) {
-                for (auto m : added_meshes) {
-                    print_mesh(m);
+                for (auto& m : added_meshes) {
+                    print_mesh(m.get());
                 }
             } else {
                 log(LOG_LEVEL_DEBUG, "    no meshes found");
@@ -392,7 +394,7 @@ namespace cgs
     //-----------------------------------------------------------------------------------------------
     resource_id load_resources(const std::string& file_name,
             material_vector* materials_out,
-            std::vector<mesh_id>* meshes_out)
+            mesh_vector* meshes_out)
     {
         if (!(file_name.size() > 0 && materials_out && meshes_out)) {
             log(LOG_LEVEL_ERROR, "load_resources error: invalid arguments");
@@ -414,7 +416,8 @@ namespace cgs
         resource_id added_root = nresource;
         material_vector materials;
         create_materials(scene, &materials, file_name);
-        create_meshes(scene, meshes_out);
+        mesh_vector meshes;
+        create_meshes(scene, &meshes);
         create_resources(scene, &added_root);
 
         log_statistics(added_root, materials, *meshes_out);
@@ -423,6 +426,7 @@ namespace cgs
         aiDetachAllLogStreams();
 
         materials_out->insert(materials_out->end(), make_move_iterator(materials.begin()), make_move_iterator(materials.end()));
+        meshes_out->insert(meshes_out->end(), make_move_iterator(meshes.begin()), make_move_iterator(meshes.end()));
         return added_root;
     }
 } // namespace cgs

@@ -28,7 +28,7 @@ namespace cgs
     //-----------------------------------------------------------------------------------------------
     resource_id load_resources(const std::string& file_name,
                                material_vector* materials_out,
-                               std::vector<mesh_id>* meshes_out);
+                               mesh_vector* meshes_out);
 } // namespace cgs
 
 #endif // RESOURCE_LOADER_HPP

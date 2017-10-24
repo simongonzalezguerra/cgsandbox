@@ -23,6 +23,7 @@ namespace cgs
     public:
         real_time_engine_impl(unsigned int max_errors) :
             m_materials(),
+            m_meshes(),
             m_floor_resource(nresource),
             m_plane_resource(nresource),
             m_teapot_resource(nresource),
@@ -68,10 +69,10 @@ namespace cgs
             m_floor_resource = make_floor_resource();
 
             material_vector materials;
-            std::vector<mesh_id> meshes_out;
-            m_plane_resource = load_resources("../../../resources/f-14D-super-tomcat/F-14D_SuperTomcatRotated.obj", &materials, &meshes_out);
+            mesh_vector meshes;
+            m_plane_resource = load_resources("../../../resources/f-14D-super-tomcat/F-14D_SuperTomcatRotated.obj", &materials, &meshes);
 
-            m_teapot_resource = load_resources("../../../resources/Teapot/Teapot.obj", &materials, &meshes_out);
+            m_teapot_resource = load_resources("../../../resources/Teapot/Teapot.obj", &materials, &meshes);
 
             m_diffuse_teapot_material = make_material();
             set_material_diffuse_color(m_diffuse_teapot_material.get(), glm::vec3(1.0f, 0.0f, 0.0f));
@@ -91,7 +92,7 @@ namespace cgs
             set_material_translucency(m_glass_material.get(), 1.0f);
             set_material_refractive_index(m_glass_material.get(), 1.52f); // Glass
 
-            m_bunny_resource = load_resources("../../../resources/stanford-bunny/bun_zipper.ply", &materials, &meshes_out);
+            m_bunny_resource = load_resources("../../../resources/stanford-bunny/bun_zipper.ply", &materials, &meshes);
 
             mat_id bunny_material = add_material();
             set_material_diffuse_color(bunny_material, glm::vec3(0.0f, 0.2f, 0.4f));
@@ -99,7 +100,7 @@ namespace cgs
             set_material_smoothness(bunny_material, 1.0f);
             set_resource_material(m_bunny_resource, bunny_material);
 
-            m_dragon_resource = load_resources("../../../resources/stanford-dragon2/dragon.obj", &materials, &meshes_out);
+            m_dragon_resource = load_resources("../../../resources/stanford-dragon2/dragon.obj", &materials, &meshes);
 
             mat_id dragon_material = add_material();
             set_material_diffuse_color(dragon_material, glm::vec3(0.05f, 0.5f, 0.0f));
@@ -195,6 +196,7 @@ namespace cgs
             m_sim_rotation_yaw = 0.0f;
 
             m_materials.insert(m_materials.end(), make_move_iterator(materials.begin()), make_move_iterator(materials.end()));
+            m_meshes.insert(m_meshes.end(), make_move_iterator(meshes.begin()), make_move_iterator(meshes.end()));
         }
 
         void finalize()
@@ -311,6 +313,7 @@ namespace cgs
         }
 
         material_vector        m_materials;
+        mesh_vector            m_meshes;
         resource_id            m_floor_resource;
         resource_id            m_plane_resource;
         resource_id            m_teapot_resource;

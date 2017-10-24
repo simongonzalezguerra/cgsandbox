@@ -32,17 +32,17 @@ protected:
 
 TEST_F(resources_loader_test, load_resources_negative) {
   material_vector materials_out;
-  std::vector<mesh_id> meshes_out;
-  load_resources("", &materials_out, &meshes_out);
-  load_resources("some_file.3ds", nullptr, &meshes_out);
-  load_resources("some_file.3ds", &materials_out, &meshes_out);
-  load_resources("some_file.3ds", &materials_out, nullptr);
-  load_resources("some_file.3ds", &materials_out, &meshes_out);
+  mesh_vector meshes_out;
+  ASSERT_ANY_THROW(load_resources("", &materials_out, &meshes_out));
+  ASSERT_ANY_THROW(load_resources("some_file.3ds", nullptr, &meshes_out));
+  ASSERT_ANY_THROW(load_resources("some_file.3ds", &materials_out, &meshes_out));
+  ASSERT_ANY_THROW(load_resources("some_file.3ds", &materials_out, nullptr));
+  ASSERT_ANY_THROW(load_resources("some_file.3ds", &materials_out, &meshes_out));
 }
 
 TEST_F(resources_loader_test, load_resources_positive1) {
   material_vector materials_out;
-  std::vector<mesh_id> meshes_out;
+  mesh_vector meshes_out;
   resource_id added_resource = load_resources(RESOURCES_PATH + SPONZA, &materials_out, &meshes_out);
 
   default_logstream_tail_dump(cgs::LOG_LEVEL_DEBUG);
@@ -57,11 +57,11 @@ TEST_F(resources_loader_test, load_resources_positive1) {
   ASSERT_SEQUENCE_NEAR(glm::value_ptr(color_spec), expected_color_specular, 3, 0.01f);
   ASSERT_EQ(smoothness, 200.0f);
 
-  mesh_id m = meshes_out[0];
-  std::vector<glm::vec3> vertices = get_mesh_vertices(m);
-  std::vector<glm::vec2> texture_coords = get_mesh_texture_coords(m);
-  std::vector<glm::vec3> normals = get_mesh_normals(m);
-  std::vector<vindex> indices = get_mesh_indices(m);
+  auto& m = meshes_out[0];
+  std::vector<glm::vec3> vertices = get_mesh_vertices(m.get());
+  std::vector<glm::vec2> texture_coords = get_mesh_texture_coords(m.get());
+  std::vector<glm::vec3> normals = get_mesh_normals(m.get());
+  std::vector<vindex> indices = get_mesh_indices(m.get());
 
   ASSERT_EQ(vertices.size(), 150U);
   ASSERT_NEAR(vertices[0][0], 10.93f, 0.1f);
@@ -90,28 +90,22 @@ TEST_F(resources_loader_test, load_resources_positive1) {
 TEST_F(resources_loader_test, load_resources_three_levels) {
   // Load a scene with more than two levels
   material_vector materials_out;
-  std::vector<mesh_id> meshes_out;
+  mesh_vector meshes_out;
   load_resources(RESOURCES_PATH + THREE_LEVELS, &materials_out, &meshes_out);
   default_logstream_tail_dump(cgs::LOG_LEVEL_DEBUG);
-
-  // Ugly hack: the test assumes the resources are created with a breadth-first search, so the node in the
-  // third level is the last one to be created, with id 166.
-  glm::mat4 local_transform = get_resource_local_transform(166U);
-  const float expected_local_transform[] = { 0.95, -0.02, 0.32, 0.00, 0.00, 1.00, 0.07, 0.00, -0.32, -0.07, 0.95, 0.00, -5.16, 3.29, 2.77, 1.00 };
-  ASSERT_SEQUENCE_NEAR(glm::value_ptr(local_transform), expected_local_transform, 16, 0.01f);
 }
 
 TEST_F(resources_loader_test, load_resources_no_texture_info) {
   // Load a scene with no texture info
   material_vector materials_out;
-  std::vector<mesh_id> meshes_out;
+  mesh_vector meshes_out;
   load_resources(RESOURCES_PATH + STANFORD_BUNNY, &materials_out, &meshes_out);
   default_logstream_tail_dump(cgs::LOG_LEVEL_DEBUG);
 }
 
 TEST_F(resources_loader_test, load_resources_billiard_table) {
   material_vector materials_out;
-  std::vector<mesh_id> meshes_out;
+  mesh_vector meshes_out;
   load_resources(RESOURCES_PATH + BILLIARD_TABLE, &materials_out, &meshes_out);
   default_logstream_tail_dump(cgs::LOG_LEVEL_DEBUG);
 }
