@@ -41,23 +41,25 @@ namespace cgs
         struct mesh
         {
             mesh() :
-                mvertices(),
-                mtexture_coords(),
-                mnormals(),
-                mindices(),
-                mposition_buffer_id(0U),
-                muv_buffer_id(0U),
-                mnormal_buffer_id(0U),
-                mindex_buffer_id(0U) {}
+                m_vertices(),
+                m_texture_coords(),
+                m_normals(),
+                m_indices(),
+                m_position_buffer_id(0U),
+                m_uv_buffer_id(0U),
+                m_normal_buffer_id(0U),
+                m_index_buffer_id(0U),
+                m_used(true) {}
 
-            std::vector<glm::vec3> mvertices;            //!< vertex coordinates
-            std::vector<glm::vec2> mtexture_coords;      //!< texture coordinates for each vertex
-            std::vector<glm::vec3> mnormals;             //!< normals of the mesh
-            std::vector<vindex>    mindices;             //!< faces, as a sequence of indexes over the logical vertex array
-            gl_buffer_id           mposition_buffer_id;  //!< id of the position buffer in the graphics API
-            gl_buffer_id           muv_buffer_id;        //!< id of the uv buffer in the graphics API
-            gl_buffer_id           mnormal_buffer_id;    //!< id of the normal buffer in the graphics API
-            gl_buffer_id           mindex_buffer_id;     //!< id of the index buffer in the graphics API
+            std::vector<glm::vec3> m_vertices;            //!< vertex coordinates
+            std::vector<glm::vec2> m_texture_coords;      //!< texture coordinates for each vertex
+            std::vector<glm::vec3> m_normals;             //!< normals of the mesh
+            std::vector<vindex>    m_indices;             //!< faces, as a sequence of indexes over the logical vertex array
+            gl_buffer_id           m_position_buffer_id;  //!< id of the position buffer in the graphics API
+            gl_buffer_id           m_uv_buffer_id;        //!< id of the uv buffer in the graphics API
+            gl_buffer_id           m_normal_buffer_id;    //!< id of the normal buffer in the graphics API
+            gl_buffer_id           m_index_buffer_id;     //!< id of the index buffer in the graphics API
+            bool                   m_used;                //!< is this entry in the vector used?
         };
 
         typedef std::vector<mesh> mesh_vector;
@@ -270,144 +272,163 @@ namespace cgs
 
     unique_material make_material()
     {
-        unique_material m(add_material());
-        return std::move(m);
+        return unique_material(add_material());
     }
 
     mesh_id add_mesh()
     {
-        meshes.push_back(mesh{});
-        return meshes.size() - 1;
+        mesh_id m = std::find_if(meshes.begin(), meshes.end(), [](const mesh& m) { return !m.m_used; }) - meshes.begin();
+        if (m == meshes.size()) {
+            meshes.push_back(mesh{});
+        } else {
+            meshes[m] = mesh{};
+        }
+
+        return m;
     }
 
-    void set_mesh_vertices(mesh_id id, const std::vector<glm::vec3>& vertices)
+    void remove_mesh(mesh_id m)
     {
-        if (!(id < meshes.size())) {
+        if (m < meshes.size() && meshes[m].m_used) {
+            meshes[m].m_used = false; // soft removal;
+        }
+    }
+
+    void set_mesh_vertices(mesh_id m, const std::vector<glm::vec3>& vertices)
+    {
+        if (!(m < meshes.size() && meshes[m].m_used)) {
             log(LOG_LEVEL_ERROR, "set_mesh_vertices error: invalid arguments"); return;
         }
 
-        meshes[id].mvertices = vertices;
+        meshes[m].m_vertices = vertices;
     }
 
-    void set_mesh_texture_coords(mesh_id id, const std::vector<glm::vec2>& texture_coords)
+    void set_mesh_texture_coords(mesh_id m, const std::vector<glm::vec2>& texture_coords)
     {
-        if (!(id < meshes.size())) {
+        if (!(m < meshes.size() && meshes[m].m_used)) {
             log(LOG_LEVEL_ERROR, "set_mesh_texture_coords error: invalid arguments"); return;
         }
 
-        meshes[id].mtexture_coords = texture_coords;
+        meshes[m].m_texture_coords = texture_coords;
     }
 
-    void set_mesh_normals(mesh_id id, const std::vector<glm::vec3>& normals)
+    void set_mesh_normals(mesh_id m, const std::vector<glm::vec3>& normals)
     {
-        if (!(id < meshes.size())) {
+        if (!(m < meshes.size() && meshes[m].m_used)) {
             log(LOG_LEVEL_ERROR, "set_mesh_normals error: invalid arguments"); return;
         }
 
-        meshes[id].mnormals = normals;
+        meshes[m].m_normals = normals;
     }
 
-    void set_mesh_indices(mesh_id id, const std::vector<vindex>& indices)
+    void set_mesh_indices(mesh_id m, const std::vector<vindex>& indices)
     {
-        if (!(id < meshes.size())) {
+        if (!(m < meshes.size() && meshes[m].m_used)) {
             log(LOG_LEVEL_ERROR, "set_mesh_indices error: invalid arguments"); return;
         }
 
-        meshes[id].mindices = indices;
+        meshes[m].m_indices = indices;
     }
 
     void set_mesh_position_buffer_id(mesh_id m, gl_buffer_id id)
     {
-        if (m < meshes.size()) {
-            meshes[m].mposition_buffer_id = id;
+        if (m < meshes.size() && meshes[m].m_used) {
+            meshes[m].m_position_buffer_id = id;
         }
     }
 
     void set_mesh_uv_buffer_id(mesh_id m, gl_buffer_id id)
     {
-        if (m < meshes.size()) {
-            meshes[m].muv_buffer_id = id;
+        if (m < meshes.size() && meshes[m].m_used) {
+            meshes[m].m_uv_buffer_id = id;
         }
     }
 
     void set_mesh_normal_buffer_id(mesh_id m, gl_buffer_id id)
     {
-        if (m < meshes.size()) {
-            meshes[m].mnormal_buffer_id = id;
+        if (m < meshes.size() && meshes[m].m_used) {
+            meshes[m].m_normal_buffer_id = id;
         }
     }
 
     void set_mesh_index_buffer_id(mesh_id m, gl_buffer_id id)
     {
-        if (m < meshes.size()) {
-            meshes[m].mindex_buffer_id = id;
+        if (m < meshes.size() && meshes[m].m_used) {
+            meshes[m].m_index_buffer_id = id;
         }
     }
 
-    std::vector<glm::vec3> get_mesh_vertices(mesh_id id)
+    std::vector<glm::vec3> get_mesh_vertices(mesh_id m)
     {
-        if (!(id < meshes.size())) {
+        if (!(m < meshes.size() && meshes[m].m_used)) {
             log(LOG_LEVEL_ERROR, "get_mesh_vertices error: invalid arguments"); return std::vector<glm::vec3>();
         }
 
-        return meshes[id].mvertices;
+        return meshes[m].m_vertices;
     }
 
-    std::vector<glm::vec2> get_mesh_texture_coords(mesh_id id)
+    std::vector<glm::vec2> get_mesh_texture_coords(mesh_id m)
     {
-        if (!(id < meshes.size())) {
+        if (!(m < meshes.size() && meshes[m].m_used)) {
             log(LOG_LEVEL_ERROR, "get_mesh_texture_coords error: invalid arguments"); return std::vector<glm::vec2>();
         }
 
-        return meshes[id].mtexture_coords;
+        return meshes[m].m_texture_coords;
     }
 
-    std::vector<glm::vec3> get_mesh_normals(mesh_id id)
+    std::vector<glm::vec3> get_mesh_normals(mesh_id m)
     {
-        if (!(id < meshes.size())) {
+        if (!(m < meshes.size() && meshes[m].m_used)) {
             log(LOG_LEVEL_ERROR, "get_mesh_normals error: invalid arguments"); return std::vector<glm::vec3>();
         }
 
-        return meshes[id].mnormals;
+        return meshes[m].m_normals;
     }
 
-    std::vector<vindex> get_mesh_indices(mesh_id id)
+    std::vector<vindex> get_mesh_indices(mesh_id m)
     {
-        if (!(id < meshes.size())) {
+        if (!(m < meshes.size() && meshes[m].m_used)) {
             log(LOG_LEVEL_ERROR, "get_mesh_indices error: invalid arguments"); return std::vector<vindex>();
         }
 
-        return meshes[id].mindices;
+        return meshes[m].m_indices;
     }
 
     gl_buffer_id get_mesh_position_buffer_id(mesh_id m)
     {
-        return (m < meshes.size() ? meshes[m].mposition_buffer_id : 0U);
+        return ((m < meshes.size() && meshes[m].m_used) ? meshes[m].m_position_buffer_id : 0U);
     }
 
     gl_buffer_id get_mesh_uv_buffer_id(mesh_id m)
     {
-        return (m < meshes.size() ? meshes[m].muv_buffer_id : 0U);
+        return ((m < meshes.size() && meshes[m].m_used)? meshes[m].m_uv_buffer_id : 0U);
     }
 
     gl_buffer_id get_mesh_normal_buffer_id(mesh_id m)
     {
-        return (m < meshes.size() ? meshes[m].mnormal_buffer_id : 0U);
+        return ((m < meshes.size() && meshes[m].m_used)? meshes[m].m_normal_buffer_id : 0U);
     }
 
     gl_buffer_id get_mesh_index_buffer_id(mesh_id m)
     {
-        return (m < meshes.size() ? meshes[m].mindex_buffer_id : 0U);
+        return ((m < meshes.size() && meshes[m].m_used)? meshes[m].m_index_buffer_id : 0U);
     }
 
     mesh_id get_first_mesh()
     {
-        return (meshes.size() ? 0 : nmesh);
+        auto it = std::find_if(meshes.begin(), meshes.end(), [](const mesh& m) { return m.m_used; });
+        return (it != meshes.end() ? it - meshes.begin() : nmesh);
     }
 
     mesh_id get_next_mesh(mesh_id m)
     {
-        return (m + 1 < meshes.size()? m + 1 : nmesh);
+        auto it = std::find_if(meshes.begin() + m + 1, meshes.end(), [](const mesh& m) { return m.m_used; });
+        return (it != meshes.end() ? it - meshes.begin() : nmesh);
+    }
+
+    unique_mesh make_mesh()
+    {
+        return unique_mesh(add_mesh());
     }
 
     resource_id add_resource(resource_id p)
@@ -430,6 +451,7 @@ namespace cgs
 
     void set_resource_meshes(resource_id r, const std::vector<mesh_id>& m)
     {
+        // TODO DELETE THIS
         if (!(r < resources.size())) {
             log(LOG_LEVEL_ERROR, "set_resource_meshes error: invalid arguments"); return;
         }
@@ -454,6 +476,7 @@ namespace cgs
 
     std::vector<mesh_id> get_resource_meshes(resource_id r)
     {
+        // TODO DELETE THIS
         if (!(r < resources.size())) {
             log(LOG_LEVEL_ERROR, "get_resource_meshes error: invalid arguments"); return std::vector<mesh_id>();
         }

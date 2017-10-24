@@ -147,7 +147,7 @@ namespace cgs
     unique_material make_material();
 
     mesh_id add_mesh();
-
+    void remove_mesh(mesh_id mesh);
     void set_mesh_vertices(mesh_id mesh, const std::vector<glm::vec3>& vertices);
     void set_mesh_texture_coords(mesh_id mesh, const std::vector<glm::vec2>& texture_coords);
     void set_mesh_normals(mesh_id mesh, const std::vector<glm::vec3>& normals);
@@ -177,6 +177,33 @@ namespace cgs
     //! @return The id of the next mesh, or nmesh if mesh is the last mesh.
     //-----------------------------------------------------------------------------------------------
     mesh_id get_next_mesh(mesh_id mesh);
+
+    struct mesh_handle
+    {
+        mesh_handle() : m_mesh_id(nmesh) {}
+        mesh_handle(mesh_id mesh_id) : m_mesh_id(mesh_id) {}
+        mesh_handle(std::nullptr_t) : m_mesh_id(nmesh) {}
+        operator int() {return m_mesh_id;}
+        operator mesh_id() {return m_mesh_id;}
+        bool operator ==(const mesh_handle &other) const {return m_mesh_id == other.m_mesh_id;}
+        bool operator !=(const mesh_handle &other) const {return m_mesh_id != other.m_mesh_id;}
+        bool operator ==(std::nullptr_t) const {return m_mesh_id == nmesh;}
+        bool operator !=(std::nullptr_t) const {return m_mesh_id != nmesh;}
+
+        mesh_id m_mesh_id;
+    };
+
+    struct mesh_deleter
+    {
+        typedef mesh_handle pointer;
+        mesh_deleter() {}
+        template<class other> mesh_deleter(const other&) {};
+        void operator()(pointer p) const { remove_mesh(p); }
+    };
+
+    typedef std::unique_ptr<mesh_id, mesh_deleter> unique_mesh;
+    typedef std::vector<unique_mesh> mesh_vector;
+    unique_mesh make_mesh();
 
     //-----------------------------------------------------------------------------------------------
     //! @brief Creates a new resource node.
