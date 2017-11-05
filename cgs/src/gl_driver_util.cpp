@@ -49,15 +49,15 @@ namespace cgs
         return std::move(ret);
     }
 
-    unique_cubemap make_cubemap(const gl_driver& driver,
+    unique_gl_cubemap make_gl_cubemap(const gl_driver& driver,
                                 unsigned int width,
                                 unsigned int height,
                                 image_format format,
                                 const std::vector<const unsigned char*>& faces_data)
     {
         gl_cubemap_id handle = 0U;
-        driver.new_cubemap(width, height, format, faces_data, &handle);
-        unique_cubemap ret(handle, cubemap_deleter(driver));
+        driver.new_gl_cubemap(width, height, format, faces_data, &handle);
+        unique_gl_cubemap ret(handle, gl_cubemap_deleter(driver));
         return std::move(ret);
     }
 

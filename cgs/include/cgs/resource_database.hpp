@@ -265,12 +265,40 @@ namespace cgs
     unique_resource make_resource(resource_id p);
 
     cubemap_id add_cubemap();
+    void remove_cubemap(cubemap_id c);
     void set_cubemap_faces(cubemap_id cid, const std::vector<std::string>& faces);
     void set_cubemap_gl_cubemap_id(cubemap_id cid, gl_cubemap_id gl_id);
     std::vector<std::string> get_cubemap_faces(cubemap_id id);
     gl_cubemap_id get_cubemap_gl_cubemap_id(cubemap_id cid);
     cubemap_id get_first_cubemap();
     cubemap_id get_next_cubemap(cubemap_id id);
+
+    struct cubemap_handle
+    {
+        cubemap_handle() : m_cubemap_id(ncubemap) {}
+        cubemap_handle(cubemap_id cubemap_id) : m_cubemap_id(cubemap_id) {}
+        cubemap_handle(std::nullptr_t) : m_cubemap_id(ncubemap) {}
+        operator int() {return m_cubemap_id;}
+        operator cubemap_id() {return m_cubemap_id;}
+        bool operator ==(const cubemap_handle &other) const {return m_cubemap_id == other.m_cubemap_id;}
+        bool operator !=(const cubemap_handle &other) const {return m_cubemap_id != other.m_cubemap_id;}
+        bool operator ==(std::nullptr_t) const {return m_cubemap_id == ncubemap;}
+        bool operator !=(std::nullptr_t) const {return m_cubemap_id != ncubemap;}
+
+        cubemap_id m_cubemap_id;
+    };
+
+    struct cubemap_deleter
+    {
+        typedef cubemap_handle pointer;
+        cubemap_deleter() {}
+        template<class other> cubemap_deleter(const other&) {};
+        void operator()(pointer p) const { remove_cubemap(p); }
+    };
+
+    typedef std::unique_ptr<cubemap_id, cubemap_deleter> unique_cubemap;
+    typedef std::vector<unique_cubemap> cubemap_vector;
+    unique_cubemap make_cubemap();
 } // namespace cgs
 
 #endif // RESOURCE_DATABASE_HPP

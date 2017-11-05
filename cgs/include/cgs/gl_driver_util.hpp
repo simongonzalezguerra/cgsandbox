@@ -116,35 +116,35 @@ namespace cgs
     //-----------------------------------------------------------------------------------------------
     // Cubemaps
     //-----------------------------------------------------------------------------------------------
-    struct cubemap_handle
+    struct gl_cubemap_handle
     {
-        cubemap_handle() : m_cubemap_id(0U) {}
-        cubemap_handle(gl_cubemap_id cubemap_id) : m_cubemap_id(cubemap_id) {}
-        cubemap_handle(std::nullptr_t) : m_cubemap_id(0U) {}
-        operator int() {return m_cubemap_id;}
-        operator gl_cubemap_id() {return m_cubemap_id;}
-        bool operator ==(const cubemap_handle &other) const {return m_cubemap_id == other.m_cubemap_id;}
-        bool operator !=(const cubemap_handle &other) const {return m_cubemap_id != other.m_cubemap_id;}
-        bool operator ==(std::nullptr_t) const {return m_cubemap_id == 0U;}
-        bool operator !=(std::nullptr_t) const {return m_cubemap_id != 0U;}
+        gl_cubemap_handle() : m_gl_cubemap_id(0U) {}
+        gl_cubemap_handle(gl_cubemap_id gl_cubemap_id) : m_gl_cubemap_id(gl_cubemap_id) {}
+        gl_cubemap_handle(std::nullptr_t) : m_gl_cubemap_id(0U) {}
+        operator int() {return m_gl_cubemap_id;}
+        operator gl_cubemap_id() {return m_gl_cubemap_id;}
+        bool operator ==(const gl_cubemap_handle &other) const {return m_gl_cubemap_id == other.m_gl_cubemap_id;}
+        bool operator !=(const gl_cubemap_handle &other) const {return m_gl_cubemap_id != other.m_gl_cubemap_id;}
+        bool operator ==(std::nullptr_t) const {return m_gl_cubemap_id == 0U;}
+        bool operator !=(std::nullptr_t) const {return m_gl_cubemap_id != 0U;}
 
-        gl_cubemap_id m_cubemap_id;
+        gl_cubemap_id m_gl_cubemap_id;
     };
 
-    struct cubemap_deleter
+    struct gl_cubemap_deleter
     {
-        typedef cubemap_handle pointer;
-        cubemap_deleter() : m_delete_cubemap(nullptr) {}
-        cubemap_deleter(gl_driver driver) : m_delete_cubemap(driver.delete_cubemap) {}
-        template<class other> cubemap_deleter(const other&) : m_delete_cubemap(nullptr) {};
-        void operator()(pointer p) const { if (m_delete_cubemap) { m_delete_cubemap(p); } }
+        typedef gl_cubemap_handle pointer;
+        gl_cubemap_deleter() : m_delete_gl_cubemap(nullptr) {}
+        gl_cubemap_deleter(gl_driver driver) : m_delete_gl_cubemap(driver.delete_gl_cubemap) {}
+        template<class other> gl_cubemap_deleter(const other&) : m_delete_gl_cubemap(nullptr) {};
+        void operator()(pointer p) const { if (m_delete_gl_cubemap) { m_delete_gl_cubemap(p); } }
 
-        delete_cubemap_func m_delete_cubemap;
+        delete_gl_cubemap_func m_delete_gl_cubemap;
     };
 
-    typedef std::unique_ptr<gl_cubemap_id, cubemap_deleter> unique_cubemap;
-    typedef std::vector<unique_cubemap> cubemap_vector;
-    unique_cubemap make_cubemap(const gl_driver& driver,
+    typedef std::unique_ptr<gl_cubemap_id, gl_cubemap_deleter> unique_gl_cubemap;
+    typedef std::vector<unique_gl_cubemap> gl_cubemap_vector;
+    unique_gl_cubemap make_gl_cubemap(const gl_driver& driver,
                                 unsigned int width,
                                 unsigned int height,
                                 image_format format,

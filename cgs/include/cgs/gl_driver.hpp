@@ -85,7 +85,7 @@ namespace cgs
     {
         gl_driver_context() :
             m_node(),
-            m_cubemap(0U),
+            m_gl_cubemap(0U),
             m_program(0U),
             m_view(1.0f),
             m_projection(1.0f),
@@ -94,7 +94,7 @@ namespace cgs
             m_depth_func(depth_func::less) {}
 
         gl_node_context    m_node;
-        gl_cubemap_id      m_cubemap;
+        gl_cubemap_id      m_gl_cubemap;
         gl_program_id      m_program;
         glm::mat4          m_view;
         glm::mat4          m_projection;
@@ -161,18 +161,18 @@ namespace cgs
     typedef void (*delete_buffer_func)(gl_buffer_id buffer_id);
 
     //-----------------------------------------------------------------------------------------------
-    //! @brief Function type used to create a cubemap in the graphics API.
+    //! @brief Function type used to create a gl_cubemap in the graphics API.
     //-----------------------------------------------------------------------------------------------
-    typedef void (*new_cubemap_func)(unsigned int width,
+    typedef void (*new_gl_cubemap_func)(unsigned int width,
                                     unsigned int height,
                                     image_format format,
                                     const std::vector<const unsigned char*>& faces_data,
                                     gl_cubemap_id* id);
 
     //-----------------------------------------------------------------------------------------------
-    //! @brief Function type used to delete a cubemap from the graphics API.
+    //! @brief Function type used to delete a gl_cubemap from the graphics API.
     //-----------------------------------------------------------------------------------------------
-    typedef void (*delete_cubemap_func)(gl_cubemap_id id);
+    typedef void (*delete_gl_cubemap_func)(gl_cubemap_id id);
 
     //-----------------------------------------------------------------------------------------------
     //! @brief Function type used to create a pair of shaders in the graphics API as a program.
@@ -207,8 +207,8 @@ namespace cgs
             new_2d_buffer(nullptr),
             new_index_buffer(nullptr),
             delete_buffer(nullptr),
-            new_cubemap(nullptr),
-            delete_cubemap(nullptr),
+            new_gl_cubemap(nullptr),
+            delete_gl_cubemap(nullptr),
             new_program(nullptr),
             delete_program(nullptr),
             initialize_frame(nullptr),
@@ -223,8 +223,8 @@ namespace cgs
         new_2d_buffer_func          new_2d_buffer;
         new_index_buffer_func       new_index_buffer;
         delete_buffer_func          delete_buffer;
-        new_cubemap_func            new_cubemap;
-        delete_cubemap_func         delete_cubemap;
+        new_gl_cubemap_func         new_gl_cubemap;
+        delete_gl_cubemap_func      delete_gl_cubemap;
         new_program_func            new_program;
         delete_program_func         delete_program;
         initialize_frame_func       initialize_frame;

@@ -23,9 +23,9 @@ namespace cgs
         default_texture_vector default_textures;                    // placeholder, only contains one element
         texture_vector         textures;
         buffer_vector          buffers;
-        cubemap_vector         cubemaps;
-        buffer_vector          cubemap_position_buffers;            // placeholder, only contains one element
-        buffer_vector          cubemap_index_buffers;               // placeholder, only contains one element
+        gl_cubemap_vector         gl_cubemaps;
+        buffer_vector          gl_cubemap_position_buffers;            // placeholder, only contains one element
+        buffer_vector          gl_cubemap_index_buffers;               // placeholder, only contains one element
         program_vector         phong_programs;                      // placeholder, only contains one element
         program_vector         environment_mapping_programs;        // placeholder, only contains one element
         program_vector         skybox_programs;                     // placeholder, only contains one element
@@ -146,14 +146,14 @@ namespace cgs
         }
 
 
-        void initialize_cubemaps()
+        void initialize_gl_cubemaps()
         {
-            if (cubemap_position_buffers.empty()) {
-                cubemap_position_buffers.push_back(make_3d_buffer(driver, make_skybox_positions()));
+            if (gl_cubemap_position_buffers.empty()) {
+                gl_cubemap_position_buffers.push_back(make_3d_buffer(driver, make_skybox_positions()));
             }
 
-            if (cubemap_index_buffers.empty()) {
-                cubemap_index_buffers.push_back(make_index_buffer(driver, make_skybox_indices()));
+            if (gl_cubemap_index_buffers.empty()) {
+                gl_cubemap_index_buffers.push_back(make_index_buffer(driver, make_skybox_indices()));
             }
 
             log(LOG_LEVEL_DEBUG, "initialize_renderer: loading cubemaps");
@@ -171,9 +171,9 @@ namespace cgs
                 std::for_each(faces.begin(), faces.end(), [&](const std::unique_ptr<image>& i) {
                     faces_data.push_back(i->get_data());
                 });
-                auto cubemap = make_cubemap(driver, faces[0]->get_width(), faces[0]->get_height(), faces[0]->get_format(), faces_data);
-                set_cubemap_gl_cubemap_id(cid, cubemap.get());
-                cubemaps.push_back(std::move(cubemap));
+                auto gl_cubemap = make_gl_cubemap(driver, faces[0]->get_width(), faces[0]->get_height(), faces[0]->get_format(), faces_data);
+                set_cubemap_gl_cubemap_id(cid, gl_cubemap.get());
+                gl_cubemaps.push_back(std::move(gl_cubemap));
             }
 
             log(LOG_LEVEL_DEBUG, "initialize_renderer: cubemaps loaded successfully");
@@ -204,7 +204,7 @@ namespace cgs
         initialize_shaders();
         initialize_textures();
         initialize_meshes();
-        initialize_cubemaps();
+        initialize_gl_cubemaps();
     }
 
     void finalize_renderer()
@@ -212,9 +212,9 @@ namespace cgs
         default_textures.clear();
         textures.clear();
         buffers.clear();
-        cubemaps.clear();
-        cubemap_position_buffers.clear();
-        cubemap_index_buffers.clear();
+        gl_cubemaps.clear();
+        gl_cubemap_position_buffers.clear();
+        gl_cubemap_index_buffers.clear();
         phong_programs.clear();
         environment_mapping_programs.clear();
         skybox_programs.clear();
@@ -235,10 +235,10 @@ namespace cgs
         driver_context.m_dirlight.m_direction_cameraspace = direction_cameraspace;
 
         // Set the cubemap texture to use
-        driver_context.m_cubemap = 0U;
+        driver_context.m_gl_cubemap = 0U;
         skybox_id = get_layer_skybox(current_layer);
         if (skybox_id != ncubemap) {
-            driver_context.m_cubemap = get_cubemap_gl_cubemap_id(skybox_id);
+            driver_context.m_gl_cubemap = get_cubemap_gl_cubemap_id(skybox_id);
         }
 
         // Set point light data
@@ -323,8 +323,8 @@ namespace cgs
             driver_context.m_depth_func = depth_func::lequal;
             // Remove translation from the view matrix
             driver_context.m_view = glm::mat4(glm::mat3(driver_context.m_view));
-            driver_context.m_node.m_position_buffer = cubemap_position_buffers[0].get();
-            driver_context.m_node.m_index_buffer = cubemap_index_buffers[0].get();
+            driver_context.m_node.m_position_buffer = gl_cubemap_position_buffers[0].get();
+            driver_context.m_node.m_index_buffer = gl_cubemap_index_buffers[0].get();
             driver_context.m_node.m_num_indices = 36U;
             driver.draw(driver_context);
         }

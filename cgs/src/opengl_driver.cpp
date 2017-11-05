@@ -190,7 +190,7 @@ namespace cgs
             }
         }
 
-        void new_cubemap(unsigned int width,
+        void new_gl_cubemap(unsigned int width,
                           unsigned int height,
                           image_format format,
                           const std::vector<const unsigned char*>& faces_data,
@@ -224,7 +224,7 @@ namespace cgs
             *id = texture_id;
         }
 
-        void delete_cubemap(gl_cubemap_id id)
+        void delete_gl_cubemap(gl_cubemap_id id)
         {
             glDeleteTextures(1, &id);
         }
@@ -332,9 +332,9 @@ namespace cgs
             glUniformMatrix4fv(glGetUniformLocation(context.m_program, "mvp"), 1, GL_FALSE, &mvp[0][0]);
             // Bind our cubemap texture in the GL_TEXTURE_CUBE_MAP target of texture unit 0
             // The texture unit is 0 because we called glActiveTexture(GL_TEXTURE0) at initialization
-            if (bound_texture_cubemap != context.m_cubemap) {
-                glBindTexture(GL_TEXTURE_CUBE_MAP, context.m_cubemap);
-                bound_texture_cubemap = context.m_cubemap;
+            if (bound_texture_cubemap != context.m_gl_cubemap) {
+                glBindTexture(GL_TEXTURE_CUBE_MAP, context.m_gl_cubemap);
+                bound_texture_cubemap = context.m_gl_cubemap;
             }
             // Set the cubemap uniform. The value to set is the texture unit, which is 0 because we
             // called glActiveTexture(GL_TEXTURE0) at initialization. The cubemap sampler knows that
@@ -467,8 +467,8 @@ namespace cgs
         driver.new_2d_buffer = new_2d_buffer;
         driver.new_index_buffer = new_index_buffer;
         driver.delete_buffer = delete_buffer;
-        driver.new_cubemap = new_cubemap;
-        driver.delete_cubemap = delete_cubemap;
+        driver.new_gl_cubemap = new_gl_cubemap;
+        driver.delete_gl_cubemap = delete_gl_cubemap;
         driver.new_program = new_program;
         driver.delete_program = delete_program;
         driver.initialize_frame = initialize_frame;

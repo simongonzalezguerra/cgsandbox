@@ -87,10 +87,14 @@ namespace cgs
 
         struct cubemap
         {
-            cubemap() : mfaces() {}
+            cubemap() :
+                m_faces(),
+                m_gl_cubemap_id(0U),
+                m_used(true) {}
 
-            std::vector<std::string> mfaces;          //!< paths to image files containing the six faces of the cubemap
+            std::vector<std::string> m_faces;          //!< paths to image files containing the six faces of the cubemap
             gl_cubemap_id            m_gl_cubemap_id;  //!< id of this cubemap in the graphics API
+            bool                     m_used;
         };
 
         typedef std::vector<cubemap> cubemap_vector;
@@ -436,26 +440,33 @@ namespace cgs
 
     resource_id add_resource(resource_id p)
     {
-        if (!(p < resources.size())) {
+        if (!(p < resources.size() && resources[p].m_used)) {
             log(LOG_LEVEL_ERROR, "add_resource error: invalid resource id for parent"); return nresource;
         }
 
-        // Create a new resource and link it as last child of p
-        resources.push_back(resource{});
+        // Allocate a vector entry for the new resource
+        mat_id new_resource = std::find_if(resources.begin(), resources.end(), [](const resource& r) { return !r.m_used; }) - resources.begin();
+        if (new_resource == resources.size()) {
+            resources.push_back(resource{});
+        } else {
+            resources[new_resource] = resource{};
+        }
+
+        // Link the new resource as last child of p
         resource_id r = resources[p].m_first_child;
         resource_id next = nresource;
         while (r != nresource && ((next = resources[r].m_next_sibling) != nresource)) {
             r = next;
         }
-        (r == nresource? resources[p].m_first_child : resources[r].m_next_sibling) = resources.size() - 1;
+        (r == nresource? resources[p].m_first_child : resources[r].m_next_sibling) = new_resource;
 
-        return resources.size() - 1;
+        return new_resource;
     }
 
     void remove_resource(resource_id r)
     {
         if (!(r < resources.size() && r != root_resource && resources[r].m_used)) {
-            throw std::logic_error("remove_resource error: invalid parameters");
+            log(LOG_LEVEL_ERROR, "remove_resource error: invalid parameters");
         }
 
         // Remove the reference to the resource in its parent or previous sibling
@@ -490,7 +501,7 @@ namespace cgs
 
     void set_resource_local_transform(resource_id r, const glm::mat4& local_transform)
     {
-        if (!(r < resources.size())) {
+        if (!(r < resources.size() && resources[r].m_used)) {
             log(LOG_LEVEL_ERROR, "set_resource_local_transform error: invalid arguments"); return;
         }
 
@@ -499,7 +510,7 @@ namespace cgs
 
     glm::mat4 get_resource_local_transform(resource_id r)
     {
-        if (!(r < resources.size())) {
+        if (!(r < resources.size() && resources[r].m_used)) {
             log(LOG_LEVEL_ERROR, "get_resource_local_transform error: invalid arguments"); return glm::mat4{1.0f};
         }
 
@@ -508,31 +519,31 @@ namespace cgs
 
     void set_resource_mesh(resource_id r, mesh_id m)
     {
-        if (r < resources.size() && m < meshes.size()) {
+        if (r < resources.size()  && resources[r].m_used && m < meshes.size()) {
             resources[r].m_mesh = m;
         }
     }
 
     mesh_id get_resource_mesh(resource_id r)
     {
-        return (r < resources.size()? resources[r].m_mesh : nmesh);
+        return (r < resources.size() && resources[r].m_used? resources[r].m_mesh : nmesh);
     }
 
     void set_resource_material(resource_id r, mat_id mat)
     {
-        if (r < resources.size() && mat < materials.size()) {
+        if (r < resources.size() && resources[r].m_used && mat < materials.size()) {
             resources[r].m_material = mat;
         }
     }
 
     mat_id get_resource_material(resource_id r)
     {
-        return (r < resources.size()? resources[r].m_material : nmat);
+        return (r < resources.size() && resources[r].m_used? resources[r].m_material : nmat);
     }
 
     resource_id get_first_child_resource(resource_id r)
     {
-        if (!(r < resources.size())) {
+        if (!(r < resources.size() && resources[r].m_used)) {
             log(LOG_LEVEL_ERROR, "get_first_child_resource error: invalid resource id"); return nresource;
         }
 
@@ -541,7 +552,7 @@ namespace cgs
 
     resource_id get_next_sibling_resource(resource_id r)
     {
-        if (!(r < resources.size())) {
+        if (!(r < resources.size() && resources[r].m_used)) {
             log(LOG_LEVEL_ERROR, "get_next_sibling_resource error: invalid resource id"); return nresource;
         }
 
@@ -555,48 +566,67 @@ namespace cgs
 
     cubemap_id add_cubemap()
     {
-        cubemaps.push_back(cubemap{});
-        return cubemaps.size() - 1;
+        mat_id c = std::find_if(cubemaps.begin(), cubemaps.end(), [](const cubemap& c) { return !c.m_used; }) - cubemaps.begin();
+        if (c == cubemaps.size()) {
+            cubemaps.push_back(cubemap{});
+        } else {
+            cubemaps[c] = cubemap{};
+        }
+
+        return c;
+    }
+
+    void remove_cubemap(cubemap_id c)
+    {
+        if (c < cubemaps.size() && cubemaps[c].m_used) {
+            cubemaps[c].m_used = false; // soft removal
+        }
     }
 
     void set_cubemap_faces(cubemap_id id, const std::vector<std::string>& faces)
     {
-        if (!(id < cubemaps.size())) {
+        if (!(id < cubemaps.size() && cubemaps[id].m_used)) {
             log(LOG_LEVEL_ERROR, "set_cubemap_faces error: invalid cubemap id"); return;
         }
 
-        cubemaps[id].mfaces = faces;
+        cubemaps[id].m_faces = faces;
     }
 
     void set_cubemap_gl_cubemap_id(cubemap_id cid, gl_cubemap_id gl_id)
     {
-        if (cid < cubemaps.size()) {
+        if (cid < cubemaps.size() && cubemaps[cid].m_used) {
             cubemaps[cid].m_gl_cubemap_id = gl_id;
         }
     }
 
     std::vector<std::string> get_cubemap_faces(cubemap_id id)
     {
-        if (!(id < cubemaps.size())) {
+        if (!(id < cubemaps.size() && cubemaps[id].m_used)) {
             log(LOG_LEVEL_ERROR, "get_cubemap_faces error: invalid cubemap id"); return std::vector<std::string>();
         }
 
-        return cubemaps[id].mfaces;
+        return cubemaps[id].m_faces;
     }
 
     gl_cubemap_id get_cubemap_gl_cubemap_id(cubemap_id cid)
     {
-        return (cid < cubemaps.size() ? cubemaps[cid].m_gl_cubemap_id : 0U);
+        return ((cid < cubemaps.size()  && cubemaps[cid].m_used) ? cubemaps[cid].m_gl_cubemap_id : 0U);
     }
 
     cubemap_id get_first_cubemap()
     {
-        return (cubemaps.size() ? 0 : ncubemap);
+        auto it = std::find_if(cubemaps.begin(), cubemaps.end(), [](const cubemap& m) { return m.m_used; });
+        return (it != cubemaps.end() ? it - cubemaps.begin() : ncubemap);
     }
 
-    cubemap_id get_next_cubemap(cubemap_id id)
+    cubemap_id get_next_cubemap(cubemap_id cid)
     {
-        return (id + 1 < cubemaps.size()? id + 1 : ncubemap);
+        auto it = std::find_if(cubemaps.begin() + cid + 1, cubemaps.end(), [](const cubemap& c) { return c.m_used; });
+        return (it != cubemaps.end() ? it - cubemaps.begin() : ncubemap);
     }
 
+    unique_cubemap make_cubemap()
+    {
+        return unique_cubemap(add_cubemap());
+    }
 } // namespace cgs
