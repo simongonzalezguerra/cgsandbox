@@ -214,13 +214,14 @@ namespace cgs
     //!  it contains has no meshes
     //-----------------------------------------------------------------------------------------------
     resource_id add_resource(resource_id parent);
-
+    void remove_resource(resource_id r);
     void set_resource_local_transform(resource_id r, const glm::mat4& local_transform);
     glm::mat4 get_resource_local_transform(resource_id r);
     void set_resource_mesh(resource_id r, mesh_id m);
     mesh_id get_resource_mesh(resource_id r);
     void set_resource_material(resource_id r, mat_id mat);
     mat_id get_resource_material(resource_id r);
+
 
     //-----------------------------------------------------------------------------------------------
     //! @brief Returns the id of the first resource node in the children of a given resource node.
@@ -235,6 +236,33 @@ namespace cgs
     //! @return Id of the next sibling, or nresource if there are no siblings.
     //-----------------------------------------------------------------------------------------------
     resource_id get_next_sibling_resource(resource_id resource);
+
+    struct resource_handle
+    {
+        resource_handle() : m_resource_id(nresource) {}
+        resource_handle(resource_id resource_id) : m_resource_id(resource_id) {}
+        resource_handle(std::nullptr_t) : m_resource_id(nresource) {}
+        operator int() {return m_resource_id;}
+        operator resource_id() {return m_resource_id;}
+        bool operator ==(const resource_handle &other) const {return m_resource_id == other.m_resource_id;}
+        bool operator !=(const resource_handle &other) const {return m_resource_id != other.m_resource_id;}
+        bool operator ==(std::nullptr_t) const {return m_resource_id == nresource;}
+        bool operator !=(std::nullptr_t) const {return m_resource_id != nresource;}
+
+        resource_id m_resource_id;
+    };
+
+    struct resource_deleter
+    {
+        typedef resource_handle pointer;
+        resource_deleter() {}
+        template<class other> resource_deleter(const other&) {};
+        void operator()(pointer p) const { remove_resource(p); }
+    };
+
+    typedef std::unique_ptr<resource_id, resource_deleter> unique_resource;
+    typedef std::vector<unique_resource> resource_vector;
+    unique_resource make_resource(resource_id p);
 
     cubemap_id add_cubemap();
     void set_cubemap_faces(cubemap_id cid, const std::vector<std::string>& faces);

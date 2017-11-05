@@ -26,9 +26,10 @@ namespace cgs
     //!  which were created from the file. Can't be nullptr.
     //! @return The id of the root resource created from the file.
     //-----------------------------------------------------------------------------------------------
-    resource_id load_resources(const std::string& file_name,
-                               material_vector* materials_out,
-                               mesh_vector* meshes_out);
+    void load_resources(const std::string& file_name,
+                       unique_resource* root_out,
+                       material_vector* materials_out,
+                       mesh_vector* meshes_out);
 } // namespace cgs
 
 #endif // RESOURCE_LOADER_HPP

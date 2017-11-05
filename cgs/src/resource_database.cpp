@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <vector>
+#include <queue>
 
 namespace cgs
 {
@@ -67,17 +68,19 @@ namespace cgs
         struct resource
         {
             resource() :
-                mmesh(nmesh),
-                mmaterial(nmat),
-                mlocal_transform(1.0f),
-                mfirst_child(nresource),
-                mnext_sibling(nresource) {}
+                m_mesh(nmesh),
+                m_material(nmat),
+                m_local_transform(1.0f),
+                m_first_child(nresource),
+                m_next_sibling(nresource),
+                m_used(true) {}
 
-            mesh_id     mmesh;               //!< mesh contained in this resource
-            mat_id      mmaterial;           //!< material of this resource
-            glm::mat4   mlocal_transform;    //!< resource transform relative to the parent's reference frame
-            resource_id mfirst_child;        //!< first child resource of this resource
-            resource_id mnext_sibling;       //!< next sibling resource of this resource
+            mesh_id     m_mesh;               //!< mesh contained in this resource
+            mat_id      m_material;           //!< material of this resource
+            glm::mat4   m_local_transform;    //!< resource transform relative to the parent's reference frame
+            resource_id m_first_child;        //!< first child resource of this resource
+            resource_id m_next_sibling;       //!< next sibling resource of this resource
+            bool        m_used;               //!< is this entry in the vector used?
         };
 
         typedef std::vector<resource> resource_vector;
@@ -439,14 +442,50 @@ namespace cgs
 
         // Create a new resource and link it as last child of p
         resources.push_back(resource{});
-        resource_id r = resources[p].mfirst_child;
+        resource_id r = resources[p].m_first_child;
         resource_id next = nresource;
-        while (r != nresource && ((next = resources[r].mnext_sibling) != nresource)) {
+        while (r != nresource && ((next = resources[r].m_next_sibling) != nresource)) {
             r = next;
         }
-        (r == nresource? resources[p].mfirst_child : resources[r].mnext_sibling) = resources.size() - 1;
+        (r == nresource? resources[p].m_first_child : resources[r].m_next_sibling) = resources.size() - 1;
 
         return resources.size() - 1;
+    }
+
+    void remove_resource(resource_id r)
+    {
+        if (!(r < resources.size() && r != root_resource && resources[r].m_used)) {
+            throw std::logic_error("remove_resource error: invalid parameters");
+        }
+
+        // Remove the reference to the resource in its parent or previous sibling
+        auto rit = resources.begin();
+        while (rit != resources.end()) {
+            if (rit->m_used && rit->m_first_child == r) {
+                rit->m_first_child = resources[r].m_next_sibling;
+                break;
+            } else if (rit->m_used && rit->m_next_sibling == r) {
+                rit->m_next_sibling = resources[r].m_next_sibling;
+                break;
+            }
+            rit++;
+        }
+
+        // Mark the vector entry as not used
+        resources[r].m_used = false; // soft removal
+
+        // Mark all its descendants as not used
+        std::queue<resource_id> pending_nodes;
+        pending_nodes.push(r);
+        while (!pending_nodes.empty()) {
+            auto current = pending_nodes.front();
+            pending_nodes.pop();
+            resources[current] = resource(); // reset all fields back to default state
+            resources[current].m_used = false; // soft removal
+            for (auto child = get_first_child_resource(current); child != nresource; child = get_next_sibling_resource(child)) {
+                pending_nodes.push(child);
+            }
+        }
     }
 
     void set_resource_local_transform(resource_id r, const glm::mat4& local_transform)
@@ -455,7 +494,7 @@ namespace cgs
             log(LOG_LEVEL_ERROR, "set_resource_local_transform error: invalid arguments"); return;
         }
 
-        resources[r].mlocal_transform = local_transform;
+        resources[r].m_local_transform = local_transform;
     }
 
     glm::mat4 get_resource_local_transform(resource_id r)
@@ -464,31 +503,31 @@ namespace cgs
             log(LOG_LEVEL_ERROR, "get_resource_local_transform error: invalid arguments"); return glm::mat4{1.0f};
         }
 
-        return resources[r].mlocal_transform;
+        return resources[r].m_local_transform;
     }
 
     void set_resource_mesh(resource_id r, mesh_id m)
     {
         if (r < resources.size() && m < meshes.size()) {
-            resources[r].mmesh = m;
+            resources[r].m_mesh = m;
         }
     }
 
     mesh_id get_resource_mesh(resource_id r)
     {
-        return (r < resources.size()? resources[r].mmesh : nmesh);
+        return (r < resources.size()? resources[r].m_mesh : nmesh);
     }
 
     void set_resource_material(resource_id r, mat_id mat)
     {
         if (r < resources.size() && mat < materials.size()) {
-            resources[r].mmaterial = mat;
+            resources[r].m_material = mat;
         }
     }
 
     mat_id get_resource_material(resource_id r)
     {
-        return (r < resources.size()? resources[r].mmaterial : nmat);
+        return (r < resources.size()? resources[r].m_material : nmat);
     }
 
     resource_id get_first_child_resource(resource_id r)
@@ -497,7 +536,7 @@ namespace cgs
             log(LOG_LEVEL_ERROR, "get_first_child_resource error: invalid resource id"); return nresource;
         }
 
-        return resources[r].mfirst_child;
+        return resources[r].m_first_child;
     }
 
     resource_id get_next_sibling_resource(resource_id r)
@@ -506,7 +545,12 @@ namespace cgs
             log(LOG_LEVEL_ERROR, "get_next_sibling_resource error: invalid resource id"); return nresource;
         }
 
-        return resources[r].mnext_sibling;
+        return resources[r].m_next_sibling;
+    }
+
+    unique_resource make_resource(resource_id p)
+    {
+        return unique_resource(add_resource(p));
     }
 
     cubemap_id add_cubemap()

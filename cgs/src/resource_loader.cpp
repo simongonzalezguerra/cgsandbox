@@ -144,104 +144,93 @@ namespace cgs
             meshes_out->insert(meshes_out->end(), make_move_iterator(meshes.begin()), make_move_iterator(meshes.end()));
         }
 
-        // Assimp creates a structure with several meshes by node, and each mesh has a material. In
-        // practice though most models have one mesh by node. Our model has one mesh by resource
-        // node, and the material is assigned to the resource not the mesh. We convert Assimp's
-        // structure to our own by translating a node with several meshes into several resource
-        // nodes, all with the same transform, each with one mesh. The children of the node, if any,
-        // are all added recursively as children if the first resource created. Function
-        // map_meshes_to_resources a node with many meshes into a list of resource nodes
-        std::vector<resource_id> map_meshes_to_resources(const struct aiScene* scene, const aiNode* node, resource_id parent)
+
+        void fill_resource_rec(resource_id new_resource, const struct aiScene* scene, const aiNode* ai_node)
         {
-            std::vector<resource_id> new_resources{add_resource(parent)};
-            if (node->mNumMeshes > 0 && mesh_ids.find(node->mMeshes[0]) != mesh_ids.end()) {
-                set_resource_mesh(new_resources[0], mesh_ids[node->mMeshes[0]]);
-                set_resource_material(new_resources[0], material_ids[scene->mMeshes[node->mMeshes[0]]->mMaterialIndex]);
-            }
-            for (std::size_t i = 1U; i < node->mNumMeshes; i++) {
-                if (mesh_ids.find(node->mMeshes[i]) != mesh_ids.end()) {
-                    new_resources.push_back(add_resource(parent));
-                    set_resource_mesh(new_resources[new_resources.size() - 1], mesh_ids[node->mMeshes[i]]);
-                    set_resource_material(new_resources[new_resources.size() - 1], material_ids[scene->mMeshes[node->mMeshes[i]]->mMaterialIndex]);
+            if (ai_node->mNumMeshes > 0 && mesh_ids.find(ai_node->mMeshes[0]) != mesh_ids.end()) {
+                set_resource_mesh(new_resource, mesh_ids[ai_node->mMeshes[0]]);                
+                unsigned int material_index = scene->mMeshes[ai_node->mMeshes[0]]->mMaterialIndex;
+                if (material_ids.find(material_index) != material_ids.end()) {
+                    set_resource_material(new_resource, material_ids[material_index]);
                 }
             }
-            
-            return new_resources;
-        }
 
-        void create_resources(const struct aiScene* scene, resource_id* added_root)
-        {
-            // Iterate the scene tree with a breadth-first search creating resources
-            *added_root = nresource;
-            struct context{ const aiNode* node; resource_id parent; };
-            std::queue<context> pending_nodes;
-            pending_nodes.push({ scene->mRootNode, root_resource });
-            while (!pending_nodes.empty()) {
-                auto current = pending_nodes.front();
-                pending_nodes.pop();
+            // The aiMatrix4x4 type uses a contiguous layout for its elements, so we can just use its
+            // representation as if it were a float array. But we need to transpose it first, because
+            // assimp uses a row-major layout and we need column-major.
+            aiMatrix4x4 local_transform = ai_node->mTransformation;
+            aiTransposeMatrix4(&local_transform);
+            set_resource_local_transform(new_resource, glm::make_mat4((float *) &local_transform));
 
-                // Convert the list of meshes into a list of resource nodes
-                std::vector<resource_id> new_resources = map_meshes_to_resources(scene, current.node, current.parent);
+            // Assimp creates a structure with several meshes by node, and each mesh has a
+            // material. In practice though most models have one mesh by node. Our model has one
+            // mesh by resource node, and the material is assigned to the resource not the mesh.
+            // We convert Assimp's structure to our own by translating a node with several
+            // meshes into several resource nodes. f the node has more than one mesh, we map
+            // each mesh to a new node, hanging them as descendants of new_resource as a vertical branch,
+            // not siblings. All these node have identity as their transform, so that they will
+            // in effect use the same transform as new_resource.
+            resource_id last_parent = new_resource;
+            unsigned int ai_mesh = 1;
+            while (ai_mesh < ai_node->mNumMeshes) {
+                last_parent = add_resource(last_parent);
+                set_resource_mesh(last_parent, mesh_ids[ai_node->mMeshes[ai_mesh]]);
+                set_resource_material(last_parent, material_ids[scene->mMeshes[ai_node->mMeshes[ai_mesh]]->mMaterialIndex]);
+                set_resource_local_transform(last_parent, glm::mat4(1.0f));
+                ai_mesh++;
+            }
 
-                // The aiMatrix4x4 type uses a contiguous layout for its elements, so we can just use its
-                // representation as if it were a float array. But we need to transpose it first, because
-                // assimp uses a row-major layout and we need column-major.
-                aiMatrix4x4 local_transform = current.node->mTransformation;
-                aiTransposeMatrix4(&local_transform);
-                for (auto r : new_resources) {
-                    // All the resource nodes created for the same assimp node have the same local transform
-                    set_resource_local_transform(r, glm::make_mat4((float *) &local_transform));
-                }
-
-                if (*added_root == nresource) {
-                    *added_root = new_resources[0];
-                }
-
-                for (std::size_t i = 0; i < current.node->mNumChildren; ++i) {
-                    // Recursion adds children to the first resource node of the list
-                    pending_nodes.push({ current.node->mChildren[i], new_resources[0] });
-                }
+            for (unsigned int i = 0; i < ai_node->mNumChildren; ++i) {
+                resource_id child = add_resource(new_resource);
+                fill_resource_rec(child, scene, ai_node->mChildren[i]);
             }
         }
 
-        template<typename T>
-            void print_sequence(T* a, std::size_t num_elems, std::ostringstream& oss)
-            {
-                oss << "[";
-                if (num_elems) {
-                    oss << " " << a[0];
-                }
-                for (std::size_t i = 1U; i < num_elems; i++) {
-                    oss << ", " << a[i];
-                }
-                oss << " ]";
-            }
+        void create_resources(const struct aiScene* scene, unique_resource* resource_out)
+        {
+            unique_resource added_root = make_resource(root_resource);
+            fill_resource_rec(added_root.get(), scene, scene->mRootNode);
+            *resource_out = std::move(added_root);
+        }
 
         template<typename T>
-            void preview_sequence(T* a, std::size_t num_elems, std::ostringstream& oss)
-            {
-                oss << "[";
-                if (num_elems > 0) {
-                    oss << " " << a[0];
-                }
-                if (num_elems > 1) {
-                    oss << ", " << a[1];
-                }
-                if (num_elems > 2) {
-                    oss << ", " << a[2];
-                }
-                oss << ", ...//... , ";
-                if (num_elems - 3 >= 0) {
-                    oss << ", " << a[num_elems - 3];
-                }
-                if (num_elems - 2 >= 0) {
-                    oss << ", " << a[num_elems - 2];
-                }
-                if (num_elems - 1 >= 0) {
-                    oss << ", " << a[num_elems - 1];
-                }
-                oss << " ]";
+        void print_sequence(T* a, std::size_t num_elems, std::ostringstream& oss)
+        {
+            oss << "[";
+            if (num_elems) {
+                oss << " " << a[0];
             }
+            for (std::size_t i = 1U; i < num_elems; i++) {
+                oss << ", " << a[i];
+            }
+            oss << " ]";
+        }
+
+        template<typename T>
+        void preview_sequence(T* a, std::size_t num_elems, std::ostringstream& oss)
+        {
+            oss << "[";
+            if (num_elems > 0) {
+                oss << " " << a[0];
+            }
+            if (num_elems > 1) {
+                oss << ", " << a[1];
+            }
+            if (num_elems > 2) {
+                oss << ", " << a[2];
+            }
+            oss << ", ...//... , ";
+            if (num_elems - 3 >= 0) {
+                oss << ", " << a[num_elems - 3];
+            }
+            if (num_elems - 2 >= 0) {
+                oss << ", " << a[num_elems - 2];
+            }
+            if (num_elems - 1 >= 0) {
+                oss << ", " << a[num_elems - 1];
+            }
+            oss << " ]";
+        }
 
         void print_material(mat_id m)
         {
@@ -392,13 +381,13 @@ namespace cgs
     //-----------------------------------------------------------------------------------------------
     // Public functions
     //-----------------------------------------------------------------------------------------------
-    resource_id load_resources(const std::string& file_name,
-            material_vector* materials_out,
-            mesh_vector* meshes_out)
+    void load_resources(const std::string& file_name,
+                        unique_resource* resource_out,
+                        material_vector* materials_out,
+                        mesh_vector* meshes_out)
     {
         if (!(file_name.size() > 0 && materials_out && meshes_out)) {
-            log(LOG_LEVEL_ERROR, "load_resources error: invalid arguments");
-            throw std::runtime_error("");
+            throw std::runtime_error("load_resources error: invalid arguments");
         }
 
         struct aiLogStream log_stream;
@@ -407,26 +396,25 @@ namespace cgs
         aiAttachLogStream(&log_stream);
         const struct aiScene* scene = aiImportFile(file_name.c_str(), aiProcessPreset_TargetRealtime_MaxQuality);
         if (!scene) {
-            log(LOG_LEVEL_ERROR, "load_resources: some errors occured, aborting");
-            throw std::runtime_error("");
+            throw std::runtime_error("load_resources error: invalid arguments");
         }
 
         material_ids.clear();
         mesh_ids.clear();
-        resource_id added_root = nresource;
         material_vector materials;
         create_materials(scene, &materials, file_name);
         mesh_vector meshes;
         create_meshes(scene, &meshes);
+        unique_resource added_root;
         create_resources(scene, &added_root);
 
-        log_statistics(added_root, materials, *meshes_out);
+        log_statistics(added_root.get(), materials, *meshes_out);
 
         aiReleaseImport(scene);
         aiDetachAllLogStreams();
 
         materials_out->insert(materials_out->end(), make_move_iterator(materials.begin()), make_move_iterator(materials.end()));
         meshes_out->insert(meshes_out->end(), make_move_iterator(meshes.begin()), make_move_iterator(meshes.end()));
-        return added_root;
+        *resource_out = std::move(added_root);
     }
 } // namespace cgs

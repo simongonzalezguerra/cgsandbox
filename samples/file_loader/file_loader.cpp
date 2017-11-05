@@ -20,7 +20,8 @@ int main(int argc, char** argv)
 
   material_vector materials_out;
   mesh_vector meshes_out;
-  load_resources(argv[1], &materials_out, &meshes_out);
+  unique_resource resource_out;
+  load_resources(argv[1], &resource_out, &materials_out, &meshes_out);
 
   detach_logstream(default_logstream_tail_callback);
   detach_logstream(default_logstream_file_callback);

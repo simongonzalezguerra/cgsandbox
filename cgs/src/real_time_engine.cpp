@@ -24,11 +24,11 @@ namespace cgs
         real_time_engine_impl(unsigned int max_errors) :
             m_materials(),
             m_meshes(),
-            m_floor_resource(nresource),
-            m_plane_resource(nresource),
-            m_teapot_resource(nresource),
-            m_bunny_resource(nresource),
-            m_dragon_resource(nresource),
+            m_floor_resource(),
+            m_plane_resource(),
+            m_teapot_resource(),
+            m_bunny_resource(),
+            m_dragon_resource(),
             m_floor_node(nlayer),
             m_plane_node(nnode),
             m_diffuse_teapot_node(nnode),
@@ -70,9 +70,12 @@ namespace cgs
 
             material_vector materials;
             mesh_vector meshes;
-            m_plane_resource = load_resources("../../../resources/f-14D-super-tomcat/F-14D_SuperTomcatRotated.obj", &materials, &meshes);
 
-            m_teapot_resource = load_resources("../../../resources/Teapot/Teapot.obj", &materials, &meshes);
+            unique_resource plane_resource;
+            load_resources("../../../resources/f-14D-super-tomcat/F-14D_SuperTomcatRotated.obj", &plane_resource, &materials, &meshes);
+
+            unique_resource teapot_resource;
+            load_resources("../../../resources/Teapot/Teapot.obj", &teapot_resource, &materials, &meshes);
 
             m_diffuse_teapot_material = make_material();
             set_material_diffuse_color(m_diffuse_teapot_material.get(), glm::vec3(1.0f, 0.0f, 0.0f));
@@ -92,21 +95,23 @@ namespace cgs
             set_material_translucency(m_glass_material.get(), 1.0f);
             set_material_refractive_index(m_glass_material.get(), 1.52f); // Glass
 
-            m_bunny_resource = load_resources("../../../resources/stanford-bunny/bun_zipper.ply", &materials, &meshes);
+            unique_resource bunny_resource;
+            load_resources("../../../resources/stanford-bunny/bun_zipper.ply", &bunny_resource, &materials, &meshes);
 
             mat_id bunny_material = add_material();
             set_material_diffuse_color(bunny_material, glm::vec3(0.0f, 0.2f, 0.4f));
             set_material_specular_color(bunny_material, glm::vec3(1.0f, 1.0f, 1.0f));
             set_material_smoothness(bunny_material, 1.0f);
-            set_resource_material(m_bunny_resource, bunny_material);
+            set_resource_material(bunny_resource.get(), bunny_material);
 
-            m_dragon_resource = load_resources("../../../resources/stanford-dragon2/dragon.obj", &materials, &meshes);
+            unique_resource dragon_resource;
+            load_resources("../../../resources/stanford-dragon2/dragon.obj", &dragon_resource, &materials, &meshes);
 
             mat_id dragon_material = add_material();
             set_material_diffuse_color(dragon_material, glm::vec3(0.05f, 0.5f, 0.0f));
             set_material_specular_color(dragon_material, glm::vec3(0.5f, 0.5f, 0.5f));
             set_material_smoothness(dragon_material, 1.0f);
-            set_resource_material(m_dragon_resource, dragon_material);
+            set_resource_material(dragon_resource.get(), dragon_material);
 
             m_skybox_id = add_cubemap();
             std::vector<std::string> skybox_faces
@@ -135,35 +140,35 @@ namespace cgs
             set_directional_light_direction(m_layer, glm::vec3(0.0f, -1.0f, 0.0f));
 
             // Create the floor
-            m_floor_node = add_node(m_layer, root_node, m_floor_resource);
+            m_floor_node = add_node(m_layer, root_node, m_floor_resource.get());
             set_node_transform(m_layer, m_floor_node, glm::translate(glm::vec3(50.0f, -3.0f, -5.0f)) * glm::scale(glm::vec3(120.0f, 120.0f, 120.0f)));
 
             // Create the plane
-            m_plane_node = add_node(m_layer, root_node, m_plane_resource);
+            m_plane_node = add_node(m_layer, root_node, plane_resource.get());
         
             // Create the diffuse teapot
-            m_diffuse_teapot_node = add_node(m_layer, root_node, m_teapot_resource);
+            m_diffuse_teapot_node = add_node(m_layer, root_node, teapot_resource.get());
             set_node_transform(m_layer, m_diffuse_teapot_node, glm::translate(glm::vec3(22.0f, -3.0f, -20.0f)) * glm::scale(glm::vec3(8.0f, 8.0f, 8.0f)));
             set_node_material(m_layer, get_first_child_node(m_layer, m_diffuse_teapot_node), m_diffuse_teapot_material.get());
         
             // Create the bunny
-            m_bunny_node = add_node(m_layer, root_node, m_bunny_resource);
+            m_bunny_node = add_node(m_layer, root_node, bunny_resource.get());
             set_node_transform(m_layer, m_bunny_node, glm::translate(glm::vec3(47.0f, -5.0f, 0.0f)) * glm::scale(glm::vec3(60.0f, 60.0f, 60.0f)));
         
             // Create the diffuse dragon
-            m_diffuse_dragon_node = add_node(m_layer, root_node, m_dragon_resource);
+            m_diffuse_dragon_node = add_node(m_layer, root_node, dragon_resource.get());
             set_node_transform(m_layer, m_diffuse_dragon_node, glm::translate(glm::vec3(65.0f, -3.0f, 0.0f)));
 
             // Create the steel dragon
-            m_steel_dragon_node = add_node(m_layer, root_node, m_dragon_resource);
+            m_steel_dragon_node = add_node(m_layer, root_node, dragon_resource.get());
             set_node_material(m_layer, get_first_child_node(m_layer, m_steel_dragon_node), m_steel_material.get());
 
             // Create the steel teapot
-            m_steel_teapot_node = add_node(m_layer, root_node, m_teapot_resource);
+            m_steel_teapot_node = add_node(m_layer, root_node, teapot_resource.get());
             set_node_material(m_layer, get_first_child_node(m_layer, m_steel_teapot_node), m_steel_material.get());
 
             // Create the glass bunny
-            m_glass_bunny_node = add_node(m_layer, root_node, m_bunny_resource);
+            m_glass_bunny_node = add_node(m_layer, root_node, bunny_resource.get());
             set_node_material(m_layer, m_glass_bunny_node, m_glass_material.get());
 
             point_light_id point_light = add_point_light(m_layer);
@@ -197,6 +202,10 @@ namespace cgs
 
             m_materials.insert(m_materials.end(), make_move_iterator(materials.begin()), make_move_iterator(materials.end()));
             m_meshes.insert(m_meshes.end(), make_move_iterator(meshes.begin()), make_move_iterator(meshes.end()));
+            m_plane_resource = std::move(plane_resource);
+            m_teapot_resource = std::move(teapot_resource);
+            m_bunny_resource = std::move(bunny_resource);
+            m_dragon_resource = std::move(dragon_resource);
         }
 
         void finalize()
@@ -212,7 +221,7 @@ namespace cgs
             
         }
 
-        resource_id make_floor_resource()
+        unique_resource make_floor_resource()
         {
             mesh_id floor_mesh = add_mesh();
             std::vector<glm::vec3> vertices =
@@ -249,9 +258,9 @@ namespace cgs
             set_material_translucency(mat, 0.0f);
             set_material_texture_path(mat, "../../../resources/Wood/wood.png");
 
-            resource_id floor_resource = add_resource(root_resource);
-            set_resource_mesh(floor_resource, floor_mesh);
-            set_resource_material(floor_resource,  mat);
+            auto floor_resource = make_resource(root_resource);
+            set_resource_mesh(floor_resource.get(), floor_mesh);
+            set_resource_material(floor_resource.get(),  mat);
 
             return floor_resource;
         }
@@ -314,11 +323,11 @@ namespace cgs
 
         material_vector        m_materials;
         mesh_vector            m_meshes;
-        resource_id            m_floor_resource;
-        resource_id            m_plane_resource;
-        resource_id            m_teapot_resource;
-        resource_id            m_bunny_resource;
-        resource_id            m_dragon_resource;
+        unique_resource        m_floor_resource;
+        unique_resource        m_plane_resource;
+        unique_resource        m_teapot_resource;
+        unique_resource        m_bunny_resource;
+        unique_resource        m_dragon_resource;
         node_id                m_floor_node;
         node_id                m_plane_node;
         node_id                m_diffuse_teapot_node;
