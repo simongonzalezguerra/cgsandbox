@@ -181,7 +181,7 @@ namespace cgs
             }
 
             for (unsigned int i = 0; i < ai_node->mNumChildren; ++i) {
-                resource_id child = add_resource(new_resource);
+                resource_id child = add_resource(last_parent);
                 fill_resource_rec(child, scene, ai_node->mChildren[i]);
             }
         }
