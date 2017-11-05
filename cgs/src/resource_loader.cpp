@@ -145,51 +145,58 @@ namespace cgs
         }
 
 
-        void fill_resource_rec(resource_id new_resource, const struct aiScene* scene, const aiNode* ai_node)
-        {
-            if (ai_node->mNumMeshes > 0 && mesh_ids.find(ai_node->mMeshes[0]) != mesh_ids.end()) {
-                set_resource_mesh(new_resource, mesh_ids[ai_node->mMeshes[0]]);                
-                unsigned int material_index = scene->mMeshes[ai_node->mMeshes[0]]->mMaterialIndex;
-                if (material_ids.find(material_index) != material_ids.end()) {
-                    set_resource_material(new_resource, material_ids[material_index]);
-                }
-            }
-
-            // The aiMatrix4x4 type uses a contiguous layout for its elements, so we can just use its
-            // representation as if it were a float array. But we need to transpose it first, because
-            // assimp uses a row-major layout and we need column-major.
-            aiMatrix4x4 local_transform = ai_node->mTransformation;
-            aiTransposeMatrix4(&local_transform);
-            set_resource_local_transform(new_resource, glm::make_mat4((float *) &local_transform));
-
-            // Assimp creates a structure with several meshes by node, and each mesh has a
-            // material. In practice though most models have one mesh by node. Our model has one
-            // mesh by resource node, and the material is assigned to the resource not the mesh.
-            // We convert Assimp's structure to our own by translating a node with several
-            // meshes into several resource nodes. f the node has more than one mesh, we map
-            // each mesh to a new node, hanging them as descendants of new_resource as a vertical branch,
-            // not siblings. All these node have identity as their transform, so that they will
-            // in effect use the same transform as new_resource.
-            resource_id last_parent = new_resource;
-            unsigned int ai_mesh = 1;
-            while (ai_mesh < ai_node->mNumMeshes) {
-                last_parent = add_resource(last_parent);
-                set_resource_mesh(last_parent, mesh_ids[ai_node->mMeshes[ai_mesh]]);
-                set_resource_material(last_parent, material_ids[scene->mMeshes[ai_node->mMeshes[ai_mesh]]->mMaterialIndex]);
-                set_resource_local_transform(last_parent, glm::mat4(1.0f));
-                ai_mesh++;
-            }
-
-            for (unsigned int i = 0; i < ai_node->mNumChildren; ++i) {
-                resource_id child = add_resource(last_parent);
-                fill_resource_rec(child, scene, ai_node->mChildren[i]);
-            }
-        }
-
         void create_resources(const struct aiScene* scene, unique_resource* resource_out)
         {
             unique_resource added_root = make_resource(root_resource);
-            fill_resource_rec(added_root.get(), scene, scene->mRootNode);
+            struct context{ resource_id added_resource; aiNode* ai_node; };
+            std::queue<context> pending_nodes;
+            pending_nodes.push({added_root.get(), scene->mRootNode});
+            while (!pending_nodes.empty()) {
+                auto current = pending_nodes.front();
+                pending_nodes.pop();
+
+                // Fill resource mesh and material
+                if (current.ai_node->mNumMeshes > 0 && mesh_ids.find(current.ai_node->mMeshes[0]) != mesh_ids.end()) {
+                    set_resource_mesh(current.added_resource, mesh_ids[current.ai_node->mMeshes[0]]);                
+                    unsigned int material_index = scene->mMeshes[current.ai_node->mMeshes[0]]->mMaterialIndex;
+                    if (material_ids.find(material_index) != material_ids.end()) {
+                        set_resource_material(current.added_resource, material_ids[material_index]);
+                    }
+                }
+
+                // Fill the resource local transform. The aiMatrix4x4 type uses a contiguous layout
+                // for its elements, so we can just use its representation as if it were a float
+                // array. But we need to transpose it first, because assimp uses a row-major layout
+                // and we need column-major.
+                aiMatrix4x4 local_transform = current.ai_node->mTransformation;
+                aiTransposeMatrix4(&local_transform);
+                set_resource_local_transform(current.added_resource, glm::make_mat4((float *) &local_transform));
+
+                // Assimp creates a structure with several meshes by node, and each mesh has a
+                // material. In practice though most models have one mesh by node. Our model has one
+                // mesh by resource node, and the material is assigned to the resource not the mesh.
+                // We convert Assimp's structure to our own by translating a node with several
+                // meshes into several resource nodes. f the node has more than one mesh, we map
+                // each mesh to a new node, hanging them as descendants of current.added_resource as a vertical branch,
+                // not siblings. All these node have identity as their transform, so that they will
+                // in effect use the same transform as current.added_resource.
+                resource_id last_parent = current.added_resource;
+                unsigned int ai_mesh = 1;
+                while (ai_mesh < current.ai_node->mNumMeshes) {
+                    last_parent = add_resource(last_parent);
+                    set_resource_mesh(last_parent, mesh_ids[current.ai_node->mMeshes[ai_mesh]]);
+                    set_resource_material(last_parent, material_ids[scene->mMeshes[current.ai_node->mMeshes[ai_mesh]]->mMaterialIndex]);
+                    set_resource_local_transform(last_parent, glm::mat4(1.0f));
+                    ai_mesh++;
+                }
+
+                // Push the children to be processed next
+                for (unsigned int i = 0; i < current.ai_node->mNumChildren; ++i) {
+                    resource_id child = add_resource(last_parent);
+                    pending_nodes.push({child, current.ai_node->mChildren[i]});
+                }
+            }
+
             *resource_out = std::move(added_root);
         }
 
