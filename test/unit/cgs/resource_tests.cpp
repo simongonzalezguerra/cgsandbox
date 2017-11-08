@@ -34,7 +34,7 @@ TEST_F(resources_test, add_resource_negative) {
 }
 
 TEST_F(resources_test, add_resource_positive) {
-  ASSERT_NE(add_resource(root_resource), nresource);
+  ASSERT_NE(add_resource(), nresource);
 }
 
 TEST_F(resources_test, get_first_child_resource_negative) {
@@ -42,9 +42,8 @@ TEST_F(resources_test, get_first_child_resource_negative) {
 }
 
 TEST_F(resources_test, get_first_child_resource_positive1) {
-  resource_id r = add_resource(root_resource);
+  resource_id r = add_resource();
   resource_id o = add_resource(r);
-  ASSERT_EQ(get_first_child_resource(root_resource), r);
   ASSERT_EQ(get_first_child_resource(r), o);
 }
 
@@ -53,11 +52,9 @@ TEST_F(resources_test, get_next_sibling_resource_negative) {
 }
 
 TEST_F(resources_test, get_next_sibling_resource_positive) {
-  resource_id r1 = add_resource(root_resource);
-  resource_id r2 = add_resource(root_resource);
-  resource_id r3 = add_resource(root_resource);
-  ASSERT_EQ(get_first_child_resource(root_resource), r1);
-  ASSERT_EQ(get_next_sibling_resource(root_resource), nresource);
+  resource_id r1 = add_resource();
+  resource_id r2 = add_resource();
+  resource_id r3 = add_resource();
   ASSERT_EQ(get_first_child_resource(r1), nresource);
   ASSERT_EQ(get_next_sibling_resource(r1), r2);
   ASSERT_EQ(get_first_child_resource(r2), nresource);

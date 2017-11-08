@@ -120,7 +120,6 @@ namespace cgs
         meshes.reserve(100);
         resources.clear();
         resources.reserve(2048);
-        resources.push_back(resource{});
         cubemaps.clear();
         cubemaps.reserve(10);
     }
@@ -438,6 +437,19 @@ namespace cgs
         return unique_mesh(add_mesh());
     }
 
+    resource_id add_resource()
+    {
+        // Allocate a vector entry for the new resource
+        resource_id new_resource = std::find_if(resources.begin(), resources.end(), [](const resource& r) { return !r.m_used; }) - resources.begin();
+        if (new_resource == resources.size()) {
+            resources.push_back(resource{});
+        } else {
+            resources[new_resource] = resource{};
+        }
+
+        return new_resource;
+    }
+
     resource_id add_resource(resource_id p)
     {
         if (!(p < resources.size() && resources[p].m_used)) {
@@ -445,12 +457,7 @@ namespace cgs
         }
 
         // Allocate a vector entry for the new resource
-        mat_id new_resource = std::find_if(resources.begin(), resources.end(), [](const resource& r) { return !r.m_used; }) - resources.begin();
-        if (new_resource == resources.size()) {
-            resources.push_back(resource{});
-        } else {
-            resources[new_resource] = resource{};
-        }
+        resource_id new_resource = add_resource();
 
         // Link the new resource as last child of p
         resource_id r = resources[p].m_first_child;
@@ -465,7 +472,7 @@ namespace cgs
 
     void remove_resource(resource_id r)
     {
-        if (!(r < resources.size() && r != root_resource && resources[r].m_used)) {
+        if (!(r < resources.size() && resources[r].m_used)) {
             log(LOG_LEVEL_ERROR, "remove_resource error: invalid parameters");
         }
 
@@ -559,6 +566,11 @@ namespace cgs
         return resources[r].m_next_sibling;
     }
 
+    unique_resource make_resource()
+    {
+        return unique_resource(add_resource());
+    }
+
     unique_resource make_resource(resource_id p)
     {
         return unique_resource(add_resource(p));
@@ -566,7 +578,7 @@ namespace cgs
 
     cubemap_id add_cubemap()
     {
-        mat_id c = std::find_if(cubemaps.begin(), cubemaps.end(), [](const cubemap& c) { return !c.m_used; }) - cubemaps.begin();
+        cubemap_id c = std::find_if(cubemaps.begin(), cubemaps.end(), [](const cubemap& c) { return !c.m_used; }) - cubemaps.begin();
         if (c == cubemaps.size()) {
             cubemaps.push_back(cubemap{});
         } else {

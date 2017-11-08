@@ -274,7 +274,7 @@ namespace cgs
             set_material_translucency(floor_mat.get(), 0.0f);
             set_material_texture_path(floor_mat.get(), "../../../resources/Wood/wood.png");
 
-            auto floor_resource = make_resource(root_resource);
+            auto floor_resource = make_resource();
             set_resource_mesh(floor_resource.get(), floor_mesh.get());
             set_resource_material(floor_resource.get(),  floor_mat.get());
             *res = std::move(floor_resource);

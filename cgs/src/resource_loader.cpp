@@ -147,7 +147,7 @@ namespace cgs
 
         void create_resources(const struct aiScene* scene, unique_resource* resource_out)
         {
-            unique_resource added_root = make_resource(root_resource);
+            unique_resource added_root = make_resource();
             struct context{ resource_id added_resource; aiNode* ai_node; };
             std::queue<context> pending_nodes;
             pending_nodes.push({added_root.get(), scene->mRootNode});

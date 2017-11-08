@@ -63,12 +63,6 @@ namespace cgs
     constexpr resource_id nresource = -1;
 
     //-----------------------------------------------------------------------------------------------
-    //! @brief Id of the root resource. This resource is the root of the resource hierarchy.
-    //!  It always exists.
-    //-----------------------------------------------------------------------------------------------
-    constexpr resource_id root_resource = 0;
-
-    //-----------------------------------------------------------------------------------------------
     //! @brief Constant representing 'not a cubemap'. Used as a wildcard when iterating the
     //!  cubemaps to indicate the end of the sequence has been reached.
     //-----------------------------------------------------------------------------------------------
@@ -213,6 +207,7 @@ namespace cgs
     //!  its local transform is the identity.
     //!  it contains has no meshes
     //-----------------------------------------------------------------------------------------------
+    resource_id add_resource();
     resource_id add_resource(resource_id parent);
     void remove_resource(resource_id r);
     void set_resource_local_transform(resource_id r, const glm::mat4& local_transform);
@@ -262,6 +257,7 @@ namespace cgs
 
     typedef std::unique_ptr<resource_id, resource_deleter> unique_resource;
     typedef std::vector<unique_resource> resource_vector;
+    unique_resource make_resource();
     unique_resource make_resource(resource_id p);
 
     cubemap_id add_cubemap();
