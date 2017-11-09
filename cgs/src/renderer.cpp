@@ -340,7 +340,7 @@ namespace cgs
         for (layer_id l = get_first_layer(v); l != nlayer && is_layer_enabled(l); l = get_next_layer(l)) {
             // Convert tree into list and filter out non-enabled nodes
             current_layer = l;
-            nodes_to_render = get_descendant_nodes(current_layer, root_node);
+            nodes_to_render = get_descendant_nodes(current_layer, get_layer_root_node(l));
             driver_context = gl_driver_context();
             get_layer_properties();
             render_phong_nodes();

@@ -26,7 +26,8 @@ namespace cgs
             m_meshes(),
             m_resources(),
             m_cubemaps(),
-            m_floor_node(nlayer),
+            m_root_node(nnode),
+            m_floor_node(nnode),
             m_plane_node(nnode),
             m_diffuse_teapot_node(nnode),
             m_bunny_node(nnode),
@@ -140,35 +141,36 @@ namespace cgs
             set_directional_light_direction(m_layer, glm::vec3(0.0f, -1.0f, 0.0f));
 
             // Create the floor
-            m_floor_node = add_node(m_layer, root_node, floor_resource.get());
+            m_root_node = get_layer_root_node(m_layer);
+            m_floor_node = add_node(m_layer, m_root_node, floor_resource.get());
             set_node_transform(m_layer, m_floor_node, glm::translate(glm::vec3(50.0f, -3.0f, -5.0f)) * glm::scale(glm::vec3(120.0f, 120.0f, 120.0f)));
 
             // Create the plane
-            m_plane_node = add_node(m_layer, root_node, plane_resource.get());
+            m_plane_node = add_node(m_layer, m_root_node, plane_resource.get());
         
             // Create the diffuse teapot
-            m_diffuse_teapot_node = add_node(m_layer, root_node, teapot_resource.get());
+            m_diffuse_teapot_node = add_node(m_layer, m_root_node, teapot_resource.get());
             set_node_transform(m_layer, m_diffuse_teapot_node, glm::translate(glm::vec3(22.0f, -3.0f, -20.0f)) * glm::scale(glm::vec3(8.0f, 8.0f, 8.0f)));
             set_node_material(m_layer, get_first_child_node(m_layer, m_diffuse_teapot_node), diffuse_teapot_material.get());
         
             // Create the bunny
-            m_bunny_node = add_node(m_layer, root_node, bunny_resource.get());
+            m_bunny_node = add_node(m_layer, m_root_node, bunny_resource.get());
             set_node_transform(m_layer, m_bunny_node, glm::translate(glm::vec3(47.0f, -5.0f, 0.0f)) * glm::scale(glm::vec3(60.0f, 60.0f, 60.0f)));
         
             // Create the diffuse dragon
-            m_diffuse_dragon_node = add_node(m_layer, root_node, dragon_resource.get());
+            m_diffuse_dragon_node = add_node(m_layer, m_root_node, dragon_resource.get());
             set_node_transform(m_layer, m_diffuse_dragon_node, glm::translate(glm::vec3(65.0f, -3.0f, 0.0f)));
 
             // Create the steel dragon
-            m_steel_dragon_node = add_node(m_layer, root_node, dragon_resource.get());
+            m_steel_dragon_node = add_node(m_layer, m_root_node, dragon_resource.get());
             set_node_material(m_layer, get_first_child_node(m_layer, m_steel_dragon_node), steel_material.get());
 
             // Create the steel teapot
-            m_steel_teapot_node = add_node(m_layer, root_node, teapot_resource.get());
+            m_steel_teapot_node = add_node(m_layer, m_root_node, teapot_resource.get());
             set_node_material(m_layer, get_first_child_node(m_layer, m_steel_teapot_node), steel_material.get());
 
             // Create the glass bunny
-            m_glass_bunny_node = add_node(m_layer, root_node, bunny_resource.get());
+            m_glass_bunny_node = add_node(m_layer, m_root_node, bunny_resource.get());
             set_node_material(m_layer, m_glass_bunny_node, glass_material.get());
 
             point_light_id point_light = add_point_light(m_layer);
@@ -342,6 +344,7 @@ namespace cgs
         mesh_vector            m_meshes;
         resource_vector        m_resources;
         cubemap_vector         m_cubemaps;
+        node_id                m_root_node;
         node_id                m_floor_node;
         node_id                m_plane_node;
         node_id                m_diffuse_teapot_node;

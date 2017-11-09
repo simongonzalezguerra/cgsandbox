@@ -50,12 +50,6 @@ namespace cgs
     constexpr node_id nnode = -1;
 
     //-----------------------------------------------------------------------------------------------
-    //! @brief Id of the root node of each layer. This node is the root of the the layer's node 
-    //! hierarchy. It it created when the layer is created and can't be removed.
-    //-----------------------------------------------------------------------------------------------
-    constexpr node_id root_node = 0;
-
-    //-----------------------------------------------------------------------------------------------
     //! @brief Constant representing 'not a point light'. Used as a wildcard when iterating the
     //!  point lights to indicate the end of the sequence has been reached.
     //-----------------------------------------------------------------------------------------------
@@ -135,6 +129,15 @@ namespace cgs
     //!  rendered.
     //-----------------------------------------------------------------------------------------------
     void set_layer_enabled(layer_id layer, bool enabled);
+
+    node_id get_layer_root_node(layer_id layer);
+
+    //-----------------------------------------------------------------------------------------------
+    //! @brief Adds a root node to the node hierarchy.
+    //! @param layer Id of the layer to add the node to.
+    //! @return The id of the new node.
+    //-----------------------------------------------------------------------------------------------
+    node_id add_node(layer_id layer);
 
     //-----------------------------------------------------------------------------------------------
     //! @brief Adds a node to the node hierarchy.

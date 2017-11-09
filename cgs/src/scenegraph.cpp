@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <vector>
 #include <queue>
+#include <set>
 
 namespace cgs
 {
@@ -80,7 +81,8 @@ namespace cgs
                 mview_transform{1.0f},
                 mprojection_transform{1.0f},
                 mskybox(ncubemap),
-                mpoint_lights() {}
+                mpoint_lights(),
+                mroot_node(nnode) {}
 
             view_id            mview;                             //!< id of the view this layer belongs to
             bool               menabled;                          //!< is this layer enabled?
@@ -94,6 +96,7 @@ namespace cgs
             glm::vec3          mdirectional_light_specular_color; //!< specular color of the directional light
             glm::vec3          mdirectional_light_direction;      //!< direction of the directional light
             point_light_vector mpoint_lights;                     //!< collection of all the point lights in this layer
+            node_id            mroot_node;                        //!< id of the root node of this layer
         };
 
         typedef std::vector<layer> layer_vector;
@@ -172,13 +175,13 @@ namespace cgs
         lr.mnext_layer = nlayer;
         lr.mnodes.clear();
         lr.mnodes.reserve(2048);
-        lr.mnodes.push_back(node{});
         lr.mview_transform = glm::mat4{1.0f};
         lr.mprojection_transform = glm::mat4{1.0f};
 
         layer_id lid = layers.size() - 1;
         layer_id last_layer = get_last_layer(v);
         (last_layer == nlayer? views[v].mfirst_layer : layers[last_layer].mnext_layer) = lid;
+        lr.mroot_node = add_node(lid);
         return lid;
     }
 
@@ -196,6 +199,15 @@ namespace cgs
             log(LOG_LEVEL_ERROR, "set_layer_enabled error: invalid layer id"); return;
         }
         layers[l].menabled = enabled;
+    }
+
+    node_id get_layer_root_node(layer_id l)
+    {
+        if (!(l < layers.size())) {
+            throw std::logic_error("get_layer_root_node error: invalid arguments");
+        }
+
+        return layers[l].mroot_node;
     }
 
     layer_id get_first_layer(view_id v)
@@ -267,6 +279,15 @@ namespace cgs
         }
 
         return layers[l].mskybox;
+    }
+
+    node_id add_node(layer_id l)
+    {
+        if (!(l < layers.size())) {
+            log(LOG_LEVEL_ERROR, "add_node error: invalid parameters"); return nnode;
+        }
+
+        return allocate_node(layers[l].mnodes);
     }
 
     node_id add_node(layer_id l, node_id parent)
@@ -343,6 +364,27 @@ namespace cgs
         layers[l].mnodes[n].mused = false; // soft removal
     }
 
+    void update_accum_transforms(layer_id l, node_id root_node, node_id n, std::set<node_id>* visited_nodes)
+    {
+        struct context{ node_id nid; bool intree; glm::mat4 prefix; };
+        std::queue<context> pending_nodes;
+        pending_nodes.push({root_node, n == root_node, glm::mat4{1.0f}});
+        while (!pending_nodes.empty()) {
+            auto current = pending_nodes.front();
+            pending_nodes.pop();
+            if (visited_nodes->count(current.nid) == 0) {
+                visited_nodes->insert(current.nid);
+                glm::mat4 accum_transform = current.prefix * layers[l].mnodes[current.nid].mlocal_transform;
+                if (current.intree || current.nid == n) {
+                    layers[l].mnodes[current.nid].maccum_transform = accum_transform;
+                }
+                for (node_id child = layers[l].mnodes[current.nid].mfirst_child; child != nnode; child = layers[l].mnodes[child].mnext_sibling) {
+                    pending_nodes.push({child, current.intree || current.nid == n, accum_transform});
+                }
+            }
+        }
+    }
+
     void set_node_transform(layer_id l, node_id n, const glm::mat4& local_transform)
     {
         if (!(l < layers.size() && n < layers[l].mnodes.size() && layers[l].mnodes[n].mused)) {
@@ -351,20 +393,15 @@ namespace cgs
         }
 
         layers[l].mnodes[n].mlocal_transform = local_transform;
-
         // Update the accummulated transforms of n and all its descendant nodes with a breadth-first search
-        struct context{ node_id nid; bool intree; glm::mat4 prefix; };
-        std::queue<context> pending_nodes;
-        pending_nodes.push({root_node, n == root_node, glm::mat4{1.0f}});
-        while (!pending_nodes.empty()) {
-            auto current = pending_nodes.front();
-            pending_nodes.pop();
-            glm::mat4 accum_transform = current.prefix * layers[l].mnodes[current.nid].mlocal_transform;
-            if (current.intree || current.nid == n) {
-                layers[l].mnodes[current.nid].maccum_transform = accum_transform;
+        std::set<node_id> visited_nodes;
+        for (unsigned int i = 0; i < layers[l].mnodes.size(); i++) {
+            if (visited_nodes.count(n)) {
+                break;
             }
-            for (node_id child = layers[l].mnodes[current.nid].mfirst_child; child != nnode; child = layers[l].mnodes[child].mnext_sibling) {
-                pending_nodes.push({child, current.intree || current.nid == n, accum_transform});
+
+            if (layers[l].mnodes[i].mused && visited_nodes.count(i) == 0) {
+                update_accum_transforms(l, i, n, &visited_nodes);
             }
         }
     }

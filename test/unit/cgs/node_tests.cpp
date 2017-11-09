@@ -30,24 +30,18 @@ protected:
 
 TEST_F(nodes_test, add_node_negative1) {
   add_node(nlayer, nnode);
-  ASSERT_EQ(get_first_child_node(l, root_node), nnode);
-  add_node(l, nnode);
-  ASSERT_EQ(get_first_child_node(l, root_node), nnode);
 }
 
 TEST_F(nodes_test, add_node_negative2) {
-  auto n = add_node(l, root_node);
-  ASSERT_EQ(get_first_child_node(l, root_node), n);
+  auto n = add_node(l);
   remove_node(l, n);
-  n = add_node(l, root_node);
-  ASSERT_EQ(get_first_child_node(l, root_node), n);
+  n = add_node(l);
 }
 
 TEST_F(nodes_test, add_node_positive) {
-  auto n1 = add_node(l, root_node);
-  auto n2 = add_node(l, root_node);
-  auto n3 = add_node(l, root_node);
-  ASSERT_EQ(get_first_child_node(l, root_node), n1);
+  auto n1 = add_node(l);
+  auto n2 = add_node(l);
+  auto n3 = add_node(l);
   ASSERT_EQ(get_next_sibling_node(l, n1), n2);
   ASSERT_EQ(get_next_sibling_node(l, n2), n3);
   ASSERT_EQ(get_next_sibling_node(l, n3), nnode);
@@ -55,60 +49,39 @@ TEST_F(nodes_test, add_node_positive) {
 
 TEST_F(nodes_test, remove_node_negative1) {
   remove_node(nlayer, nnode);
-  ASSERT_EQ(get_first_child_node(l, root_node), nnode);
   remove_node(l, nnode);
-  ASSERT_EQ(get_first_child_node(l, root_node), nnode);
-}
-
-TEST_F(nodes_test, remove_node_negative2) {
-  auto n = add_node(l, root_node);
-  remove_node(l, n);
-  ASSERT_EQ(get_first_child_node(l, root_node), nnode);
-  remove_node(l, n);
-  ASSERT_EQ(get_first_child_node(l, root_node), nnode);
-}
-
-TEST_F(nodes_test, remove_node_negative3) {
-  remove_node(l, root_node);
-  ASSERT_EQ(get_first_child_node(l, root_node), nnode);
 }
 
 TEST_F(nodes_test, remove_node_positive1) {
-  auto n1 = add_node(l, root_node);
-  ASSERT_EQ(get_first_child_node(l, root_node), n1);
+  auto n1 = add_node(l);
   remove_node(l, n1);
-  ASSERT_EQ(get_first_child_node(l, root_node), nnode);
 }
 
 TEST_F(nodes_test, remove_node_positive2) {
-  auto n1 = add_node(l, root_node);
-  auto n2 = add_node(l, root_node);
-  auto n3 = add_node(l, root_node);
+  auto n1 = add_node(l);
+  auto n2 = add_node(l);
+  auto n3 = add_node(l);
   remove_node(l, n2);
-  ASSERT_EQ(get_first_child_node(l, root_node), n1);
   ASSERT_EQ(get_next_sibling_node(l, n1), n3);
 }
 
 TEST_F(nodes_test, set_node_transform_negative1) {
   glm::mat4 local_transform{1.0f};
   set_node_transform(nlayer, nnode, local_transform);
-  ASSERT_EQ(get_first_child_node(l, root_node), nnode);
   set_node_transform(l, nnode, local_transform);
-  ASSERT_EQ(get_first_child_node(l, root_node), nnode);
 }
 
 TEST_F(nodes_test, set_node_transform_negative2) {
-  auto n = add_node(l, root_node);
+  auto n = add_node(l);
   remove_node(l, n);
   glm::mat4 local_transform{1.0f};
   set_node_transform(l, n, local_transform);
-  ASSERT_EQ(get_first_child_node(l, root_node), nnode);
 }
 
 TEST_F(nodes_test, set_node_transform_positive1) {
-  add_node(l, root_node);
-  auto n2 = add_node(l, root_node);
-  add_node(l, root_node);
+  add_node(l);
+  auto n2 = add_node(l);
+  add_node(l);
   glm::mat4 local_transform_in = 3.0f * glm::mat4{1.0f};
   set_node_transform(l, n2, local_transform_in);
   glm::mat4 a_local_transform_out;
@@ -136,6 +109,7 @@ TEST_F(nodes_test, set_node_transform_positive2) {
   //     n13
   float a_data[] = {2.0f, 1.0f, 3.0f, 4.8f, -1.5f, 0.7f, 1.0f, -10.4f, 0.4f, 1.3f, 4.5f, 0.4f, 8.9f, 3.4f, 7.2f, 12.1f};
   glm::mat4 a = glm::make_mat4(a_data);
+  node_id root_node = add_node(l);
   set_node_transform(l, root_node, a);
   auto n11 = add_node(l, root_node);
   set_node_transform(l, n11, a);
@@ -231,12 +205,10 @@ TEST_F(nodes_test, set_node_transform_positive2) {
 TEST_F(nodes_test, get_node_transform_negative) {
   glm::mat4 local_transform_out;
   glm::mat4 accum_transform_out;
-  get_node_transform(nlayer, root_node, &local_transform_out, &accum_transform_out);
   get_node_transform(l, nnode, &local_transform_out, &accum_transform_out);
-  node_id n = add_node(l, root_node);
+  node_id n = add_node(l);
   remove_node(l, n);
   get_node_transform(l, n, &local_transform_out, &accum_transform_out);
-  get_node_transform(l, root_node, nullptr, &accum_transform_out);
   get_node_transform(l, n, &local_transform_out, nullptr);
   get_node_transform(l, n, nullptr, nullptr);
 }
@@ -245,7 +217,7 @@ TEST_F(nodes_test, get_node_transform_positive) {
   // This case is also implicitly tested in set_node_transform_positive2. We keep it here for completeness
   glm::mat4 local_transform_out;
   glm::mat4 accum_transform_out;
-  node_id n = add_node(l, root_node);
+  node_id n = add_node(l);
   get_node_transform(l, n, &local_transform_out, &accum_transform_out);
   ASSERT_EQ(glm::mat4{1.0f}, local_transform_out);
   ASSERT_EQ(glm::mat4{1.0f}, accum_transform_out);
@@ -256,25 +228,14 @@ TEST_F(nodes_test, get_node_meshes_positive) {
 }
 
 TEST_F(nodes_test, set_node_enabled_negative) {
-  set_node_enabled(nlayer, root_node, false);
   set_node_enabled(l, nnode, false);
-  node_id n = add_node(l, root_node);
+  node_id n = add_node(l);
   remove_node(l, n);
   set_node_enabled(l, n, false);
 }
 
-TEST_F(nodes_test, set_node_enabled_positive) {
-  ASSERT_EQ(is_node_enabled(l, root_node), true);
-  set_node_enabled(l, root_node, false);
-  ASSERT_EQ(is_node_enabled(l, root_node), false);
-  set_node_enabled(l, root_node, true);
-  ASSERT_EQ(is_node_enabled(l, root_node), true);
-}
-
 TEST_F(nodes_test, is_node_enabled_negative) {
-  ASSERT_EQ(is_node_enabled(nlayer, root_node), false);
-  ASSERT_EQ(is_node_enabled(l, nnode), false);
-  node_id n = add_node(l, root_node);
+  node_id n = add_node(l);
   remove_node(l, n);
   ASSERT_EQ(is_node_enabled(l, n), false);
 }
@@ -283,33 +244,17 @@ TEST_F(nodes_test, is_node_enabled_positive) {
   // Already tested implicitly in set_node_enabled_positive
 }
 
-TEST_F(nodes_test, get_first_child_node_negative) {
-  ASSERT_EQ(get_first_child_node(nlayer, root_node), nnode);
-  ASSERT_EQ(get_first_child_node(l, nnode), nnode);
-  node_id n = add_node(l, root_node);
-  remove_node(l, n);
-  ASSERT_EQ(get_first_child_node(l, n), nnode);
-}
-
-TEST_F(nodes_test, get_first_child_node_positive) {
-  ASSERT_EQ(get_first_child_node(l, root_node), nnode);
-  ASSERT_EQ(get_first_child_node(l, root_node), nnode);
-  node_id n = add_node(l, root_node);
-  ASSERT_EQ(get_first_child_node(l, root_node), n);
-}
-
 TEST_F(nodes_test, get_next_sibling_node_negative) {
-  ASSERT_EQ(get_next_sibling_node(nlayer, root_node), nnode);
   ASSERT_EQ(get_next_sibling_node(l, nnode), nnode);
-  node_id n = add_node(l, root_node);
+  node_id n = add_node(l);
   remove_node(l, n);
   ASSERT_EQ(get_next_sibling_node(l, n), nnode);
 }
 
 TEST_F(nodes_test, get_next_sibling_node_positive) {
-  node_id n1 = add_node(l, root_node);
-  node_id n2 = add_node(l, root_node);
-  node_id n3 = add_node(l, root_node);
+  node_id n1 = add_node(l);
+  node_id n2 = add_node(l);
+  node_id n3 = add_node(l);
   ASSERT_EQ(get_next_sibling_node(l, n1), n2);
   ASSERT_EQ(get_next_sibling_node(l, n2), n3);
   ASSERT_EQ(get_next_sibling_node(l, n3), nnode);
