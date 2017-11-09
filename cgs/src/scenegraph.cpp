@@ -357,10 +357,20 @@ namespace cgs
             nit++;
         }
 
-        if (nit == layers[l].mnodes.end()) {
-            log(LOG_LEVEL_ERROR, "remove_node error: attempting to remove layer's root node"); return;
+        // Mark all its descendants as not used
+        std::queue<node_id> pending_nodes;
+        pending_nodes.push(n);
+        while (!pending_nodes.empty()) {
+            auto current = pending_nodes.front();
+            pending_nodes.pop();
+            layers[l].mnodes[current] = node(); // reset all fields back to default state
+            for (auto child = get_first_child_node(l, current); child != nnode; child = get_next_sibling_node(l, child)) {
+                pending_nodes.push(child);
+            }
+            layers[l].mnodes[current].mused = false; // soft removal
         }
 
+        // Mark the vector entry as not used
         layers[l].mnodes[n].mused = false; // soft removal
     }
 
