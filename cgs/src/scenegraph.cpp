@@ -18,9 +18,9 @@ namespace cgs
         //---------------------------------------------------------------------------------------------
         struct view
         {
-            view() : menabled(true), mfirst_layer(nlayer) {}
+            view() : menabled(true), mfirst_scene(nscene) {}
             bool menabled;           //<! is this view enabled?
-            layer_id mfirst_layer;   //<! id of the first layer of this view
+            scene_id mfirst_scene;   //<! id of the first scene of this view
         };
 
         typedef std::vector<view> view_vector;
@@ -72,49 +72,49 @@ namespace cgs
 
         typedef std::vector<point_light> point_light_vector;
 
-        struct layer
+        struct scene
         {
-            layer() :
+            scene() :
                 mview(0),
                 menabled(false),
-                mnext_layer(nlayer),
+                mnext_scene(nscene),
                 mview_transform{1.0f},
                 mprojection_transform{1.0f},
                 mskybox(ncubemap),
                 mpoint_lights(),
                 mroot_node(nnode) {}
 
-            view_id            mview;                             //!< id of the view this layer belongs to
-            bool               menabled;                          //!< is this layer enabled?
-            layer_id           mnext_layer;                       //!< id of the next layer in the view this layer belongs to
-            node_vector        mnodes;                            //!< collection of all the nodes in this layer
-            glm::mat4          mview_transform;                   //!< the view transform used to render all objects in the layer
-            glm::mat4          mprojection_transform;             //!< the projection transform used to render all objects in the layer
+            view_id            mview;                             //!< id of the view this scene belongs to
+            bool               menabled;                          //!< is this scene enabled?
+            scene_id           mnext_scene;                       //!< id of the next scene in the view this scene belongs to
+            node_vector        mnodes;                            //!< collection of all the nodes in this scene
+            glm::mat4          mview_transform;                   //!< the view transform used to render all objects in the scene
+            glm::mat4          mprojection_transform;             //!< the projection transform used to render all objects in the scene
             cubemap_id         mskybox;                           //!< the id of the cubemap to use as skybox (can be ncubemap)
             glm::vec3          mdirectional_light_ambient_color;  //!< ambient color of the directional light
             glm::vec3          mdirectional_light_diffuse_color;  //!< diffuse color of the directional light
             glm::vec3          mdirectional_light_specular_color; //!< specular color of the directional light
             glm::vec3          mdirectional_light_direction;      //!< direction of the directional light
-            point_light_vector mpoint_lights;                     //!< collection of all the point lights in this layer
-            node_id            mroot_node;                        //!< id of the root node of this layer
+            point_light_vector mpoint_lights;                     //!< collection of all the point lights in this scene
+            node_id            mroot_node;                        //!< id of the root node of this scene
         };
 
-        typedef std::vector<layer> layer_vector;
+        typedef std::vector<scene> scene_vector;
 
         //---------------------------------------------------------------------------------------------
         // Internal data structures
         //---------------------------------------------------------------------------------------------
         view_vector views;          //!< collection of all the views
-        layer_vector layers;        //!< collection of all the layers
+        scene_vector scenes;        //!< collection of all the scenes
 
         //---------------------------------------------------------------------------------------------
         // Helper functions
         //---------------------------------------------------------------------------------------------
-        layer_id get_last_layer(view_id v)
+        scene_id get_last_scene(view_id v)
         {
-            layer_id l = views[v].mfirst_layer;
-            layer_id next = nlayer;
-            while (l != nlayer && ((next = layers[l].mnext_layer) != nlayer)) {
+            scene_id l = views[v].mfirst_scene;
+            scene_id next = nscene;
+            while (l != nscene && ((next = scenes[l].mnext_scene) != nscene)) {
                 l = next;
             }
             return l;
@@ -139,7 +139,7 @@ namespace cgs
     {
         views.clear();
         views.reserve(10);
-        layers.clear();
+        scenes.clear();
         views.reserve(100);
     }
 
@@ -161,155 +161,155 @@ namespace cgs
         }
     }
 
-    layer_id add_layer(view_id v)
+    scene_id add_scene(view_id v)
     {
         if (!(v < views.size())) {
-            log(LOG_LEVEL_ERROR, "add_layer error: invalid view id");
-            return nlayer;
+            log(LOG_LEVEL_ERROR, "add_scene error: invalid view id");
+            return nscene;
         }
 
-        layers.push_back(layer{});
-        layer& lr = layers[layers.size() - 1];
+        scenes.push_back(scene{});
+        scene& lr = scenes[scenes.size() - 1];
         lr.mview = v;
         lr.menabled = true;
-        lr.mnext_layer = nlayer;
+        lr.mnext_scene = nscene;
         lr.mnodes.clear();
         lr.mnodes.reserve(2048);
         lr.mview_transform = glm::mat4{1.0f};
         lr.mprojection_transform = glm::mat4{1.0f};
 
-        layer_id lid = layers.size() - 1;
-        layer_id last_layer = get_last_layer(v);
-        (last_layer == nlayer? views[v].mfirst_layer : layers[last_layer].mnext_layer) = lid;
+        scene_id lid = scenes.size() - 1;
+        scene_id last_scene = get_last_scene(v);
+        (last_scene == nscene? views[v].mfirst_scene : scenes[last_scene].mnext_scene) = lid;
         lr.mroot_node = add_node(lid);
         return lid;
     }
 
-    bool is_layer_enabled(layer_id l)
+    bool is_scene_enabled(scene_id l)
     {
-        if (!(l < layers.size())) {
-            log(LOG_LEVEL_ERROR, "is_layer_enabled error: invalid layer id"); return false;
+        if (!(l < scenes.size())) {
+            log(LOG_LEVEL_ERROR, "is_scene_enabled error: invalid scene id"); return false;
         }
-        return layers[l].menabled;
+        return scenes[l].menabled;
     }
 
-    void set_layer_enabled(layer_id l, bool enabled)
+    void set_scene_enabled(scene_id l, bool enabled)
     {
-        if (!(l < layers.size())) {
-            log(LOG_LEVEL_ERROR, "set_layer_enabled error: invalid layer id"); return;
+        if (!(l < scenes.size())) {
+            log(LOG_LEVEL_ERROR, "set_scene_enabled error: invalid scene id"); return;
         }
-        layers[l].menabled = enabled;
+        scenes[l].menabled = enabled;
     }
 
-    node_id get_layer_root_node(layer_id l)
+    node_id get_scene_root_node(scene_id l)
     {
-        if (!(l < layers.size())) {
-            throw std::logic_error("get_layer_root_node error: invalid arguments");
+        if (!(l < scenes.size())) {
+            throw std::logic_error("get_scene_root_node error: invalid arguments");
         }
 
-        return layers[l].mroot_node;
+        return scenes[l].mroot_node;
     }
 
-    layer_id get_first_layer(view_id v)
+    scene_id get_first_scene(view_id v)
     {
         if (!(v < views.size())) {
-            log(LOG_LEVEL_ERROR, "get_first_layer error: invalid view id");
-            return nlayer;
+            log(LOG_LEVEL_ERROR, "get_first_scene error: invalid view id");
+            return nscene;
         }
-        return views[v].mfirst_layer;
+        return views[v].mfirst_scene;
     }
 
-    layer_id get_next_layer(layer_id l)
+    scene_id get_next_scene(scene_id l)
     {
-        if (!(l < layers.size())) {
-            log(LOG_LEVEL_ERROR, "get_next_layer error: invalid layer id"); return nlayer;
+        if (!(l < scenes.size())) {
+            log(LOG_LEVEL_ERROR, "get_next_scene error: invalid scene id"); return nscene;
         }
-        return layers[l].mnext_layer;
+        return scenes[l].mnext_scene;
     }
 
-    void set_layer_view_transform(layer_id l, const glm::mat4& view_transform)
+    void set_scene_view_transform(scene_id l, const glm::mat4& view_transform)
     {
-        if (!(l < layers.size())) {
-            log(LOG_LEVEL_ERROR, "set_layer_view_transform error: invalid layer id"); return;
+        if (!(l < scenes.size())) {
+            log(LOG_LEVEL_ERROR, "set_scene_view_transform error: invalid scene id"); return;
         }
 
-        layers[l].mview_transform = view_transform;
+        scenes[l].mview_transform = view_transform;
     }
 
-    void get_layer_view_transform(layer_id l, glm::mat4* view_transform)
+    void get_scene_view_transform(scene_id l, glm::mat4* view_transform)
     {
-        if (!(l < layers.size() && view_transform)) {
-            log(LOG_LEVEL_ERROR, "get_layer_view_transform error: invalid layer id"); return;
+        if (!(l < scenes.size() && view_transform)) {
+            log(LOG_LEVEL_ERROR, "get_scene_view_transform error: invalid scene id"); return;
         }
 
-        *view_transform = layers[l].mview_transform;
+        *view_transform = scenes[l].mview_transform;
     }
 
-    void set_layer_projection_transform(layer_id l, const glm::mat4& projection_transform)
+    void set_scene_projection_transform(scene_id l, const glm::mat4& projection_transform)
     {
-        if (!(l < layers.size())) {
-            log(LOG_LEVEL_ERROR, "set_layer_projection_transform error: invalid arguments"); return;
+        if (!(l < scenes.size())) {
+            log(LOG_LEVEL_ERROR, "set_scene_projection_transform error: invalid arguments"); return;
         }
 
-        layers[l].mprojection_transform = projection_transform;
+        scenes[l].mprojection_transform = projection_transform;
     }
 
-    void get_layer_projection_transform(layer_id l, glm::mat4* projection_transform)
+    void get_scene_projection_transform(scene_id l, glm::mat4* projection_transform)
     {
-        if (!(l < layers.size() && projection_transform)) {
-            log(LOG_LEVEL_ERROR, "get_layer_projection_transform error: invalid arguments"); return;
+        if (!(l < scenes.size() && projection_transform)) {
+            log(LOG_LEVEL_ERROR, "get_scene_projection_transform error: invalid arguments"); return;
         }
 
-        *projection_transform = layers[l].mprojection_transform;
+        *projection_transform = scenes[l].mprojection_transform;
     }
 
-    void set_layer_skybox(layer_id l, cubemap_id id)
+    void set_scene_skybox(scene_id l, cubemap_id id)
     {
-        if (!(l < layers.size())) {
-            log(LOG_LEVEL_ERROR, "set_layer_skybox error: invalid arguments"); return;
+        if (!(l < scenes.size())) {
+            log(LOG_LEVEL_ERROR, "set_scene_skybox error: invalid arguments"); return;
         }
 
-        layers[l].mskybox = id;
+        scenes[l].mskybox = id;
     }
 
-    cubemap_id get_layer_skybox(layer_id l)
+    cubemap_id get_scene_skybox(scene_id l)
     {
-        if (!(l < layers.size())) {
-            log(LOG_LEVEL_ERROR, "get_layer_skybox error: invalid arguments"); return ncubemap;
+        if (!(l < scenes.size())) {
+            log(LOG_LEVEL_ERROR, "get_scene_skybox error: invalid arguments"); return ncubemap;
         }
 
-        return layers[l].mskybox;
+        return scenes[l].mskybox;
     }
 
-    node_id add_node(layer_id l)
+    node_id add_node(scene_id l)
     {
-        if (!(l < layers.size())) {
+        if (!(l < scenes.size())) {
             log(LOG_LEVEL_ERROR, "add_node error: invalid parameters"); return nnode;
         }
 
-        return allocate_node(layers[l].mnodes);
+        return allocate_node(scenes[l].mnodes);
     }
 
-    node_id add_node(layer_id l, node_id parent)
+    node_id add_node(scene_id l, node_id parent)
     {
-        if (!(l < layers.size() && parent < layers[l].mnodes.size() && layers[l].mnodes[parent].mused)) {
+        if (!(l < scenes.size() && parent < scenes[l].mnodes.size() && scenes[l].mnodes[parent].mused)) {
             log(LOG_LEVEL_ERROR, "add_node error: invalid parameters"); return nnode;
         }
 
-        node_id child = allocate_node(layers[l].mnodes);
-        node_id r = layers[l].mnodes[parent].mfirst_child;
+        node_id child = allocate_node(scenes[l].mnodes);
+        node_id r = scenes[l].mnodes[parent].mfirst_child;
         node_id next = nnode;
-        while (r != nnode && ((next = layers[l].mnodes[r].mnext_sibling) != nnode)) {
+        while (r != nnode && ((next = scenes[l].mnodes[r].mnext_sibling) != nnode)) {
             r = next;
         }
-        (r == nnode? layers[l].mnodes[parent].mfirst_child : layers[l].mnodes[r].mnext_sibling) = child;
+        (r == nnode? scenes[l].mnodes[parent].mfirst_child : scenes[l].mnodes[r].mnext_sibling) = child;
 
         return child;
     }
 
-    node_id add_node(layer_id l, node_id p, resource_id root)
+    node_id add_node(scene_id l, node_id p, resource_id root)
     {
-        if (!(l < layers.size() && p < layers[l].mnodes.size() && layers[l].mnodes[p].mused)) {
+        if (!(l < scenes.size() && p < scenes[l].mnodes.size() && scenes[l].mnodes[p].mused)) {
             log(LOG_LEVEL_ERROR, "add_node error: invalid parameters"); return nnode;
         }
 
@@ -339,19 +339,19 @@ namespace cgs
         return ret;
     }
 
-    void remove_node(layer_id l, node_id n)
+    void remove_node(scene_id l, node_id n)
     {
-        if (!(l < layers.size() && n < layers[l].mnodes.size() && layers[l].mnodes[n].mused)) {
+        if (!(l < scenes.size() && n < scenes[l].mnodes.size() && scenes[l].mnodes[n].mused)) {
             log(LOG_LEVEL_ERROR, "remove_node error: invalid parameters"); return;
         }
 
-        auto nit = layers[l].mnodes.begin();
-        while (nit != layers[l].mnodes.end()) {
+        auto nit = scenes[l].mnodes.begin();
+        while (nit != scenes[l].mnodes.end()) {
             if (nit->mused && nit->mfirst_child == n) {
-                nit->mfirst_child = layers[l].mnodes[n].mnext_sibling;
+                nit->mfirst_child = scenes[l].mnodes[n].mnext_sibling;
                 break;
             } else if (nit->mused && nit->mnext_sibling == n) {
-                nit->mnext_sibling = layers[l].mnodes[n].mnext_sibling;
+                nit->mnext_sibling = scenes[l].mnodes[n].mnext_sibling;
                 break;
             }
             nit++;
@@ -363,18 +363,18 @@ namespace cgs
         while (!pending_nodes.empty()) {
             auto current = pending_nodes.front();
             pending_nodes.pop();
-            layers[l].mnodes[current] = node(); // reset all fields back to default state
+            scenes[l].mnodes[current] = node(); // reset all fields back to default state
             for (auto child = get_first_child_node(l, current); child != nnode; child = get_next_sibling_node(l, child)) {
                 pending_nodes.push(child);
             }
-            layers[l].mnodes[current].mused = false; // soft removal
+            scenes[l].mnodes[current].mused = false; // soft removal
         }
 
         // Mark the vector entry as not used
-        layers[l].mnodes[n].mused = false; // soft removal
+        scenes[l].mnodes[n].mused = false; // soft removal
     }
 
-    void update_accum_transforms(layer_id l, node_id root_node, node_id n, std::set<node_id>* visited_nodes)
+    void update_accum_transforms(scene_id l, node_id root_node, node_id n, std::set<node_id>* visited_nodes)
     {
         struct context{ node_id nid; bool intree; glm::mat4 prefix; };
         std::queue<context> pending_nodes;
@@ -384,278 +384,278 @@ namespace cgs
             pending_nodes.pop();
             if (visited_nodes->count(current.nid) == 0) {
                 visited_nodes->insert(current.nid);
-                glm::mat4 accum_transform = current.prefix * layers[l].mnodes[current.nid].mlocal_transform;
+                glm::mat4 accum_transform = current.prefix * scenes[l].mnodes[current.nid].mlocal_transform;
                 if (current.intree || current.nid == n) {
-                    layers[l].mnodes[current.nid].maccum_transform = accum_transform;
+                    scenes[l].mnodes[current.nid].maccum_transform = accum_transform;
                 }
-                for (node_id child = layers[l].mnodes[current.nid].mfirst_child; child != nnode; child = layers[l].mnodes[child].mnext_sibling) {
+                for (node_id child = scenes[l].mnodes[current.nid].mfirst_child; child != nnode; child = scenes[l].mnodes[child].mnext_sibling) {
                     pending_nodes.push({child, current.intree || current.nid == n, accum_transform});
                 }
             }
         }
     }
 
-    void set_node_transform(layer_id l, node_id n, const glm::mat4& local_transform)
+    void set_node_transform(scene_id l, node_id n, const glm::mat4& local_transform)
     {
-        if (!(l < layers.size() && n < layers[l].mnodes.size() && layers[l].mnodes[n].mused)) {
+        if (!(l < scenes.size() && n < scenes[l].mnodes.size() && scenes[l].mnodes[n].mused)) {
             log(LOG_LEVEL_ERROR, "set_node_transform error: invalid parameters");
             throw std::logic_error("");
         }
 
-        layers[l].mnodes[n].mlocal_transform = local_transform;
+        scenes[l].mnodes[n].mlocal_transform = local_transform;
         // Update the accummulated transforms of n and all its descendant nodes with a breadth-first search
         std::set<node_id> visited_nodes;
-        for (unsigned int i = 0; i < layers[l].mnodes.size(); i++) {
+        for (unsigned int i = 0; i < scenes[l].mnodes.size(); i++) {
             if (visited_nodes.count(n)) {
                 break;
             }
 
-            if (layers[l].mnodes[i].mused && visited_nodes.count(i) == 0) {
+            if (scenes[l].mnodes[i].mused && visited_nodes.count(i) == 0) {
                 update_accum_transforms(l, i, n, &visited_nodes);
             }
         }
     }
 
-    void get_node_transform(layer_id l, node_id n, glm::mat4* local_transform, glm::mat4* accum_transform)
+    void get_node_transform(scene_id l, node_id n, glm::mat4* local_transform, glm::mat4* accum_transform)
     {
-        if (!(l < layers.size() && n < layers[l].mnodes.size() && layers[l].mnodes[n].mused && local_transform && accum_transform)) {
+        if (!(l < scenes.size() && n < scenes[l].mnodes.size() && scenes[l].mnodes[n].mused && local_transform && accum_transform)) {
             log(LOG_LEVEL_ERROR, "get_node_transform error: invalid parameters"); return;
         }
 
-        *local_transform = layers[l].mnodes[n].mlocal_transform;
-        *accum_transform = layers[l].mnodes[n].maccum_transform;
+        *local_transform = scenes[l].mnodes[n].mlocal_transform;
+        *accum_transform = scenes[l].mnodes[n].maccum_transform;
     }
 
-    void set_node_meshes(layer_id l, node_id n, const std::vector<mesh_id>&)
+    void set_node_meshes(scene_id l, node_id n, const std::vector<mesh_id>&)
     {
-        if (!(l < layers.size() && n < layers[l].mnodes.size() && layers[l].mnodes[n].mused)) {
+        if (!(l < scenes.size() && n < scenes[l].mnodes.size() && scenes[l].mnodes[n].mused)) {
             log(LOG_LEVEL_ERROR, "set_node_meshes error: invalid parameters"); return;
         }
 
-        //layers[l].mnodes[n].mmeshes = m;
+        //scenes[l].mnodes[n].mmeshes = m;
     }
 
-    std::vector<mesh_id> get_node_meshes(layer_id l, node_id n)
+    std::vector<mesh_id> get_node_meshes(scene_id l, node_id n)
     {
-        if (!(l < layers.size() && n < layers[l].mnodes.size() && layers[l].mnodes[n].mused)) {
+        if (!(l < scenes.size() && n < scenes[l].mnodes.size() && scenes[l].mnodes[n].mused)) {
             log(LOG_LEVEL_ERROR, "get_node_meshes error: invalid parameters"); return std::vector<mesh_id>();
         }
 
         return std::vector<mesh_id>();
     }
 
-    void set_node_mesh(layer_id l, node_id n, mesh_id m)
+    void set_node_mesh(scene_id l, node_id n, mesh_id m)
     {
-        if (l < layers.size() && n < layers[l].mnodes.size() && layers[l].mnodes[n].mused) {
-            layers[l].mnodes[n].mmesh = m;
+        if (l < scenes.size() && n < scenes[l].mnodes.size() && scenes[l].mnodes[n].mused) {
+            scenes[l].mnodes[n].mmesh = m;
         }
     }
 
-    mesh_id get_node_mesh(layer_id l, node_id n)
+    mesh_id get_node_mesh(scene_id l, node_id n)
     {
-        return ((l < layers.size() && n < layers[l].mnodes.size() && layers[l].mnodes[n].mused)? layers[l].mnodes[n].mmesh : nmesh);
+        return ((l < scenes.size() && n < scenes[l].mnodes.size() && scenes[l].mnodes[n].mused)? scenes[l].mnodes[n].mmesh : nmesh);
     }
 
-    void set_node_material(layer_id l, node_id n, mat_id mat)
+    void set_node_material(scene_id l, node_id n, mat_id mat)
     {
-        if (l < layers.size() && n < layers[l].mnodes.size() && layers[l].mnodes[n].mused) {
-            layers[l].mnodes[n].mmaterial = mat;
+        if (l < scenes.size() && n < scenes[l].mnodes.size() && scenes[l].mnodes[n].mused) {
+            scenes[l].mnodes[n].mmaterial = mat;
         }
     }
 
-    mat_id get_node_material(layer_id l, node_id n)
+    mat_id get_node_material(scene_id l, node_id n)
     {
-        return ((l < layers.size() && n < layers[l].mnodes.size() && layers[l].mnodes[n].mused)? layers[l].mnodes[n].mmaterial : nmat);
+        return ((l < scenes.size() && n < scenes[l].mnodes.size() && scenes[l].mnodes[n].mused)? scenes[l].mnodes[n].mmaterial : nmat);
     }
 
-    void set_node_enabled(layer_id l, node_id n, bool enabled)
+    void set_node_enabled(scene_id l, node_id n, bool enabled)
     {
-        if (!(l < layers.size() && n < layers[l].mnodes.size() && layers[l].mnodes[n].mused)) {
+        if (!(l < scenes.size() && n < scenes[l].mnodes.size() && scenes[l].mnodes[n].mused)) {
             log(LOG_LEVEL_ERROR, "set_node_enabled error: invalid parameters"); return;
         }
 
-        layers[l].mnodes[n].menabled = enabled;
+        scenes[l].mnodes[n].menabled = enabled;
     }
 
-    bool is_node_enabled(layer_id l, node_id n)
+    bool is_node_enabled(scene_id l, node_id n)
     {
-        if (!(l < layers.size() && n < layers[l].mnodes.size() && layers[l].mnodes[n].mused)) {
+        if (!(l < scenes.size() && n < scenes[l].mnodes.size() && scenes[l].mnodes[n].mused)) {
             log(LOG_LEVEL_ERROR, "is_node_enabled error: invalid parameters"); return false;
         }
 
-        return layers[l].mnodes[n].menabled;
+        return scenes[l].mnodes[n].menabled;
     }
 
-    node_id get_first_child_node(layer_id l, node_id n)
+    node_id get_first_child_node(scene_id l, node_id n)
     {
-        if (!(l < layers.size() && n < layers[l].mnodes.size() && layers[l].mnodes[n].mused)) {
+        if (!(l < scenes.size() && n < scenes[l].mnodes.size() && scenes[l].mnodes[n].mused)) {
             log(LOG_LEVEL_ERROR, "get_first_child_node error: invalid parameters"); return nnode;
         }
 
-        return layers[l].mnodes[n].mfirst_child;
+        return scenes[l].mnodes[n].mfirst_child;
     }
 
-    node_id get_next_sibling_node(layer_id l, node_id n)
+    node_id get_next_sibling_node(scene_id l, node_id n)
     {
-        if (!(l < layers.size() && n < layers[l].mnodes.size() && layers[l].mnodes[n].mused)) {
+        if (!(l < scenes.size() && n < scenes[l].mnodes.size() && scenes[l].mnodes[n].mused)) {
             log(LOG_LEVEL_ERROR, "get_next_sibling_node error: invalid parameters"); return nnode;
         }
 
-        return layers[l].mnodes[n].mnext_sibling;
+        return scenes[l].mnodes[n].mnext_sibling;
     }
 
-    void set_directional_light_ambient_color(layer_id l, glm::vec3 ambient_color)
+    void set_directional_light_ambient_color(scene_id l, glm::vec3 ambient_color)
     {
-        if (l < layers.size()) {
-            layers[l].mdirectional_light_ambient_color = ambient_color;
+        if (l < scenes.size()) {
+            scenes[l].mdirectional_light_ambient_color = ambient_color;
         }
     }
 
-    void set_directional_light_diffuse_color(layer_id l, glm::vec3 diffuse_color)
+    void set_directional_light_diffuse_color(scene_id l, glm::vec3 diffuse_color)
     {
-        if (l < layers.size()) {
-            layers[l].mdirectional_light_diffuse_color = diffuse_color;
+        if (l < scenes.size()) {
+            scenes[l].mdirectional_light_diffuse_color = diffuse_color;
         }
     }
 
-    void set_directional_light_specular_color(layer_id l, glm::vec3 specular_color)
+    void set_directional_light_specular_color(scene_id l, glm::vec3 specular_color)
     {
-        if (l < layers.size()) {
-            layers[l].mdirectional_light_specular_color = specular_color;
+        if (l < scenes.size()) {
+            scenes[l].mdirectional_light_specular_color = specular_color;
         }
     }
 
-    void set_directional_light_direction(layer_id l, glm::vec3 direction)
+    void set_directional_light_direction(scene_id l, glm::vec3 direction)
     {
-        if (l < layers.size()) {
-            layers[l].mdirectional_light_direction = direction;
+        if (l < scenes.size()) {
+            scenes[l].mdirectional_light_direction = direction;
         }
     }
 
-    glm::vec3 get_directional_light_ambient_color(layer_id l)
+    glm::vec3 get_directional_light_ambient_color(scene_id l)
     {
-        return (l < layers.size()? layers[l].mdirectional_light_ambient_color : glm::vec3());
+        return (l < scenes.size()? scenes[l].mdirectional_light_ambient_color : glm::vec3());
     }
 
-    glm::vec3 get_directional_light_diffuse_color(layer_id l)
+    glm::vec3 get_directional_light_diffuse_color(scene_id l)
     {
-        return (l < layers.size()? layers[l].mdirectional_light_diffuse_color : glm::vec3());
+        return (l < scenes.size()? scenes[l].mdirectional_light_diffuse_color : glm::vec3());
     }
 
-    glm::vec3 get_directional_light_specular_color(layer_id l)
+    glm::vec3 get_directional_light_specular_color(scene_id l)
     {
-        return (l < layers.size()? layers[l].mdirectional_light_specular_color : glm::vec3());
+        return (l < scenes.size()? scenes[l].mdirectional_light_specular_color : glm::vec3());
     }
 
-    glm::vec3 get_directional_light_direction(layer_id l)
+    glm::vec3 get_directional_light_direction(scene_id l)
     {
-        return (l < layers.size()? layers[l].mdirectional_light_direction : glm::vec3());
+        return (l < scenes.size()? scenes[l].mdirectional_light_direction : glm::vec3());
     }
 
-    point_light_id add_point_light(layer_id layer)
+    point_light_id add_point_light(scene_id scene)
     {
-        if (!(layer < layers.size())) { return npoint_light; }
-        layers[layer].mpoint_lights.push_back(point_light{});
-        return layers[layer].mpoint_lights.size() - 1;
+        if (!(scene < scenes.size())) { return npoint_light; }
+        scenes[scene].mpoint_lights.push_back(point_light{});
+        return scenes[scene].mpoint_lights.size() - 1;
     }
 
-    point_light_id get_first_point_light(layer_id layer)
+    point_light_id get_first_point_light(scene_id scene)
     {
-        if (!(layer < layers.size())) { return npoint_light; }
-        return (layers[layer].mpoint_lights.size()? 0U : npoint_light);
+        if (!(scene < scenes.size())) { return npoint_light; }
+        return (scenes[scene].mpoint_lights.size()? 0U : npoint_light);
     }
 
-    point_light_id get_next_point_light(layer_id layer, point_light_id light)
+    point_light_id get_next_point_light(scene_id scene, point_light_id light)
     {
-        if (!(layer < layers.size())) { return npoint_light; }
-        return (light + 1 < layers[layer].mpoint_lights.size()? light + 1 : npoint_light);
+        if (!(scene < scenes.size())) { return npoint_light; }
+        return (light + 1 < scenes[scene].mpoint_lights.size()? light + 1 : npoint_light);
     }
 
-    void set_point_light_position(layer_id layer, point_light_id light, glm::vec3 position)
+    void set_point_light_position(scene_id scene, point_light_id light, glm::vec3 position)
     {
-        if (!(layer < layers.size() && light < layers[layer].mpoint_lights.size())) { return; }
-        layers[layer].mpoint_lights[light].mposition = position;
+        if (!(scene < scenes.size() && light < scenes[scene].mpoint_lights.size())) { return; }
+        scenes[scene].mpoint_lights[light].mposition = position;
     }
 
-    void set_point_light_ambient_color(layer_id layer, point_light_id light, glm::vec3 ambient_color)
+    void set_point_light_ambient_color(scene_id scene, point_light_id light, glm::vec3 ambient_color)
     {
-        if (!(layer < layers.size() && light < layers[layer].mpoint_lights.size())) { return; }
-        layers[layer].mpoint_lights[light].mambient_color = ambient_color;
+        if (!(scene < scenes.size() && light < scenes[scene].mpoint_lights.size())) { return; }
+        scenes[scene].mpoint_lights[light].mambient_color = ambient_color;
     }
 
-    void set_point_light_diffuse_color(layer_id layer, point_light_id light, glm::vec3 diffuse_color)
+    void set_point_light_diffuse_color(scene_id scene, point_light_id light, glm::vec3 diffuse_color)
     {
-        if (!(layer < layers.size() && light < layers[layer].mpoint_lights.size())) { return; }
-        layers[layer].mpoint_lights[light].mdiffuse_color = diffuse_color;
+        if (!(scene < scenes.size() && light < scenes[scene].mpoint_lights.size())) { return; }
+        scenes[scene].mpoint_lights[light].mdiffuse_color = diffuse_color;
     }
 
-    void set_point_light_specular_color(layer_id layer, point_light_id light, glm::vec3 specular_color)
+    void set_point_light_specular_color(scene_id scene, point_light_id light, glm::vec3 specular_color)
     {
-        if (!(layer < layers.size() && light < layers[layer].mpoint_lights.size())) { return; }
-        layers[layer].mpoint_lights[light].mspecular_color = specular_color;
+        if (!(scene < scenes.size() && light < scenes[scene].mpoint_lights.size())) { return; }
+        scenes[scene].mpoint_lights[light].mspecular_color = specular_color;
     }
 
-    void set_point_light_constant_attenuation(layer_id layer, point_light_id light, float constant_attenuation)
+    void set_point_light_constant_attenuation(scene_id scene, point_light_id light, float constant_attenuation)
     {
-        if (!(layer < layers.size() && light < layers[layer].mpoint_lights.size())) { return; }
-        layers[layer].mpoint_lights[light].mconstant_attenuation = constant_attenuation;
+        if (!(scene < scenes.size() && light < scenes[scene].mpoint_lights.size())) { return; }
+        scenes[scene].mpoint_lights[light].mconstant_attenuation = constant_attenuation;
     }
 
-    void set_point_light_linear_attenuation(layer_id layer, point_light_id light, float linear_attenuation)
+    void set_point_light_linear_attenuation(scene_id scene, point_light_id light, float linear_attenuation)
     {
-        if (!(layer < layers.size() && light < layers[layer].mpoint_lights.size())) { return; }
-        layers[layer].mpoint_lights[light].mlinear_attenuation = linear_attenuation;
+        if (!(scene < scenes.size() && light < scenes[scene].mpoint_lights.size())) { return; }
+        scenes[scene].mpoint_lights[light].mlinear_attenuation = linear_attenuation;
     }
 
-    void set_point_light_quadratic_attenuation(layer_id layer, point_light_id light, float quadratic_attenuation)
+    void set_point_light_quadratic_attenuation(scene_id scene, point_light_id light, float quadratic_attenuation)
     {
-        if (!(layer < layers.size() && light < layers[layer].mpoint_lights.size())) { return; }
-        layers[layer].mpoint_lights[light].mquadratic_attenuation = quadratic_attenuation;
+        if (!(scene < scenes.size() && light < scenes[scene].mpoint_lights.size())) { return; }
+        scenes[scene].mpoint_lights[light].mquadratic_attenuation = quadratic_attenuation;
     }
 
-    glm::vec3 get_point_light_position(layer_id layer, point_light_id light)
+    glm::vec3 get_point_light_position(scene_id scene, point_light_id light)
     {
-        if (!(layer < layers.size() && light < layers[layer].mpoint_lights.size())) { return glm::vec3(); }
-        return layers[layer].mpoint_lights[light].mposition;
+        if (!(scene < scenes.size() && light < scenes[scene].mpoint_lights.size())) { return glm::vec3(); }
+        return scenes[scene].mpoint_lights[light].mposition;
     }
 
-    glm::vec3 get_point_light_ambient_color(layer_id layer, point_light_id light)
+    glm::vec3 get_point_light_ambient_color(scene_id scene, point_light_id light)
     {
-        if (!(layer < layers.size() && light < layers[layer].mpoint_lights.size())) { return glm::vec3(); }
-        return layers[layer].mpoint_lights[light].mambient_color;
+        if (!(scene < scenes.size() && light < scenes[scene].mpoint_lights.size())) { return glm::vec3(); }
+        return scenes[scene].mpoint_lights[light].mambient_color;
     }
 
-    glm::vec3 get_point_light_diffuse_color(layer_id layer, point_light_id light)
+    glm::vec3 get_point_light_diffuse_color(scene_id scene, point_light_id light)
     {
-        if (!(layer < layers.size() && light < layers[layer].mpoint_lights.size())) { return glm::vec3(); }
-        return layers[layer].mpoint_lights[light].mdiffuse_color;
+        if (!(scene < scenes.size() && light < scenes[scene].mpoint_lights.size())) { return glm::vec3(); }
+        return scenes[scene].mpoint_lights[light].mdiffuse_color;
     }
 
-    glm::vec3 get_point_light_specular_color(layer_id layer, point_light_id light)
+    glm::vec3 get_point_light_specular_color(scene_id scene, point_light_id light)
     {
-        if (!(layer < layers.size() && light < layers[layer].mpoint_lights.size())) { return glm::vec3(); }
-        return layers[layer].mpoint_lights[light].mspecular_color;
+        if (!(scene < scenes.size() && light < scenes[scene].mpoint_lights.size())) { return glm::vec3(); }
+        return scenes[scene].mpoint_lights[light].mspecular_color;
     }
 
-    float get_point_light_constant_attenuation(layer_id layer, point_light_id light)
+    float get_point_light_constant_attenuation(scene_id scene, point_light_id light)
     {
-        if (!(layer < layers.size() && light < layers[layer].mpoint_lights.size())) { return 0.0f; }
-        return layers[layer].mpoint_lights[light].mconstant_attenuation;
+        if (!(scene < scenes.size() && light < scenes[scene].mpoint_lights.size())) { return 0.0f; }
+        return scenes[scene].mpoint_lights[light].mconstant_attenuation;
     }
 
-    float get_point_light_linear_attenuation(layer_id layer, point_light_id light)
+    float get_point_light_linear_attenuation(scene_id scene, point_light_id light)
     {
-        if (!(layer < layers.size() && light < layers[layer].mpoint_lights.size())) { return 0.0f; }
-        return layers[layer].mpoint_lights[light].mlinear_attenuation;
+        if (!(scene < scenes.size() && light < scenes[scene].mpoint_lights.size())) { return 0.0f; }
+        return scenes[scene].mpoint_lights[light].mlinear_attenuation;
     }
 
-    float get_point_light_quadratic_attenuation(layer_id layer, point_light_id light)
+    float get_point_light_quadratic_attenuation(scene_id scene, point_light_id light)
     {
-        if (!(layer < layers.size() && light < layers[layer].mpoint_lights.size())) { return 0.0f; }
-        return layers[layer].mpoint_lights[light].mquadratic_attenuation;
+        if (!(scene < scenes.size() && light < scenes[scene].mpoint_lights.size())) { return 0.0f; }
+        return scenes[scene].mpoint_lights[light].mquadratic_attenuation;
     }
 
-    std::vector<node_id> get_descendant_nodes(layer_id l, node_id n)
+    std::vector<node_id> get_descendant_nodes(scene_id l, node_id n)
     {
         std::vector<node_id> ret;
         struct node_context{ node_id nid; };

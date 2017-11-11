@@ -14,13 +14,13 @@ namespace cgs
     public:
         fps_camera_controller();
         ~fps_camera_controller();
-        void set_layer(cgs::layer_id layer);
+        void set_scene(cgs::scene_id scene);
         void set_position(glm::vec3 position);
         void set_yaw(float yaw);
         void set_pitch(float pitch);
         void set_speed(float speed);
         void set_mouse_speed(float mouse_speed);
-        cgs::layer_id get_layer();
+        cgs::scene_id get_scene();
         glm::vec3 get_position();
         float get_yaw();
         float get_pitch();
@@ -38,7 +38,7 @@ namespace cgs
     public:
         perspective_controller();
         ~perspective_controller();
-        void set_layer(cgs::layer_id layer);
+        void set_scene(cgs::scene_id scene);
         void set_window_width(float window_width);
         void set_window_height(float window_height);
         void set_fov_speed(float fov_speed);
@@ -47,7 +47,7 @@ namespace cgs
         void set_far(float far);
         float get_fov_speed();
         float get_fov_radians();
-        cgs::layer_id get_layer();
+        cgs::scene_id get_scene();
         float get_window_width();
         float get_window_height();
         float get_near();

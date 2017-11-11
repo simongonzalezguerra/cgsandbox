@@ -1,7 +1,7 @@
 #! /bin/bash
 
 cd ../build/test/unit/cgs/
-./layer_tests &&\
+./scene_tests &&\
 ./log_tests &&\
 ./material_tests &&\
 ./mesh_tests &&\

@@ -20,7 +20,7 @@ namespace cgs
     {
     public:
         fps_camera_controller_impl() :
-            m_layer(cgs::nlayer),
+            m_scene(cgs::nscene),
             m_position{0.0f},
             m_yaw(0.0f),
             m_pitch(0.0f),
@@ -39,7 +39,7 @@ namespace cgs
             // cgs::log(cgs::LOG_LEVEL_DEBUG, oss.str());
         }
 
-        cgs:: layer_id m_layer;
+        cgs:: scene_id m_scene;
         glm::vec3      m_position;
         float          m_yaw;
         float          m_pitch;
@@ -56,9 +56,9 @@ namespace cgs
 
     fps_camera_controller::~fps_camera_controller() {}
 
-    void fps_camera_controller::set_layer(cgs::layer_id layer)
+    void fps_camera_controller::set_scene(cgs::scene_id scene)
     {
-        m_impl->m_layer = layer;
+        m_impl->m_scene = scene;
     }
 
     void fps_camera_controller::set_position(glm::vec3 position)
@@ -86,9 +86,9 @@ namespace cgs
         m_impl->m_mouse_speed = m_mouse_speed;
     }
 
-    cgs::layer_id fps_camera_controller::get_layer()
+    cgs::scene_id fps_camera_controller::get_scene()
     {
-        return m_impl->m_layer;
+        return m_impl->m_scene;
     }
 
     glm::vec3 fps_camera_controller::get_position()
@@ -194,7 +194,7 @@ namespace cgs
             m_impl->log_position();
         }
 
-        cgs::set_layer_view_transform(m_impl->m_layer, glm::lookAt(m_impl->m_position, m_impl->m_position + direction, up));
+        cgs::set_scene_view_transform(m_impl->m_scene, glm::lookAt(m_impl->m_position, m_impl->m_position + direction, up));
     }
 
     //-----------------------------------------------------------------------------------------------
@@ -207,7 +207,7 @@ namespace cgs
     {
     public:
         perspective_controller_impl() :
-            m_layer(nlayer),
+            m_scene(nscene),
             m_window_width(0.0f),
             m_window_height(0.0f),
             m_increasing_fov(false),
@@ -266,11 +266,11 @@ namespace cgs
             // This is why our utility function fov_to_fovy takes radians and returns radians
             float fovy_radians = cgs::fov_to_fovy(m_fov_radians, m_window_width, m_window_height);
             glm::mat4 projection_transform = glm::perspective(fovy_radians, m_window_width / m_window_height, m_near, m_far);
-            cgs::set_layer_projection_transform(m_layer, projection_transform);
+            cgs::set_scene_projection_transform(m_scene, projection_transform);
         }
 
         // Member variables
-        cgs::layer_id m_layer;
+        cgs::scene_id m_scene;
         float         m_window_width;
         float         m_window_height;
         bool          m_increasing_fov;
@@ -286,9 +286,9 @@ namespace cgs
 
     perspective_controller::~perspective_controller() {}
 
-    void perspective_controller::set_layer(cgs::layer_id layer)
+    void perspective_controller::set_scene(cgs::scene_id scene)
     {
-        m_impl->m_layer = layer;
+        m_impl->m_scene = scene;
     }
 
     void perspective_controller::set_window_width(float window_width)
@@ -331,9 +331,9 @@ namespace cgs
         return m_impl->m_fov_radians;
     }
 
-    cgs::layer_id perspective_controller::get_layer()
+    cgs::scene_id perspective_controller::get_scene()
     {
-        return m_impl->m_layer;
+        return m_impl->m_scene;
     }
 
     float perspective_controller::get_window_width()

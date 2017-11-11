@@ -14,22 +14,22 @@ class nodes_test : public ::testing::Test
 protected:
   nodes_test() :
     v(0),
-    l(nlayer)
+    l(nscene)
   {
     scenegraph_init();
     resource_database_init();
     v = add_view();
-    l = add_layer(v);
+    l = add_scene(v);
   }
 
   virtual ~nodes_test() {}
 
   view_id v;
-  layer_id l;
+  scene_id l;
 };
 
 TEST_F(nodes_test, add_node_negative1) {
-  add_node(nlayer, nnode);
+  add_node(nscene, nnode);
 }
 
 TEST_F(nodes_test, add_node_negative2) {
@@ -48,7 +48,7 @@ TEST_F(nodes_test, add_node_positive) {
 }
 
 TEST_F(nodes_test, remove_node_negative1) {
-  remove_node(nlayer, nnode);
+  remove_node(nscene, nnode);
   remove_node(l, nnode);
 }
 
@@ -67,7 +67,7 @@ TEST_F(nodes_test, remove_node_positive2) {
 
 TEST_F(nodes_test, set_node_transform_negative1) {
   glm::mat4 local_transform{1.0f};
-  set_node_transform(nlayer, nnode, local_transform);
+  set_node_transform(nscene, nnode, local_transform);
   set_node_transform(l, nnode, local_transform);
 }
 

@@ -1,5 +1,5 @@
-add_executable(layer_tests layer_tests.cpp)
-target_link_libraries(layer_tests cgs libgtest.a pthread)
+add_executable(scene_tests scene_tests.cpp)
+target_link_libraries(scene_tests cgs libgtest.a pthread)
 
 add_executable(material_tests material_tests.cpp)
 target_link_libraries(material_tests cgs libgtest.a pthread)

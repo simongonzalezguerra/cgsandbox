@@ -30,7 +30,7 @@ namespace cgs
         program_vector         environment_mapping_programs;        // placeholder, only contains one element
         program_vector         skybox_programs;                     // placeholder, only contains one element
         bool                   gl_driver_set = false;
-        layer_id               current_layer = nlayer;
+        scene_id               current_scene = nscene;
 
         //---------------------------------------------------------------------------------------------
         // Helper functions
@@ -220,39 +220,39 @@ namespace cgs
         skybox_programs.clear();
     }
 
-    void get_layer_properties()
+    void get_scene_properties()
     {
-        // Set view and projection matrices for the layer
-        get_layer_projection_transform(current_layer, &driver_context.m_projection);
-        get_layer_view_transform(current_layer, &driver_context.m_view);
+        // Set view and projection matrices for the scene
+        get_scene_projection_transform(current_scene, &driver_context.m_projection);
+        get_scene_view_transform(current_scene, &driver_context.m_view);
 
         // Set directional light properties
-        driver_context.m_dirlight.m_ambient_color = get_directional_light_ambient_color(current_layer);
-        driver_context.m_dirlight.m_diffuse_color = get_directional_light_diffuse_color(current_layer);
-        driver_context.m_dirlight.m_specular_color = get_directional_light_specular_color(current_layer);
+        driver_context.m_dirlight.m_ambient_color = get_directional_light_ambient_color(current_scene);
+        driver_context.m_dirlight.m_diffuse_color = get_directional_light_diffuse_color(current_scene);
+        driver_context.m_dirlight.m_specular_color = get_directional_light_specular_color(current_scene);
         // TODO is this correct? The conversion from vec4 to vec3 discards the w component, which is not necessarily 1
-        glm::vec3 direction_cameraspace(driver_context.m_view * glm::vec4(get_directional_light_direction(current_layer), 0.0f));
+        glm::vec3 direction_cameraspace(driver_context.m_view * glm::vec4(get_directional_light_direction(current_scene), 0.0f));
         driver_context.m_dirlight.m_direction_cameraspace = direction_cameraspace;
 
         // Set the cubemap texture to use
         driver_context.m_gl_cubemap = 0U;
-        skybox_id = get_layer_skybox(current_layer);
+        skybox_id = get_scene_skybox(current_scene);
         if (skybox_id != ncubemap) {
             driver_context.m_gl_cubemap = get_cubemap_gl_cubemap_id(skybox_id);
         }
 
         // Set point light data
-        for (point_light_id pl = get_first_point_light(current_layer); pl != npoint_light; pl = get_next_point_light(current_layer, pl)) {
+        for (point_light_id pl = get_first_point_light(current_scene); pl != npoint_light; pl = get_next_point_light(current_scene, pl)) {
             point_light_data pl_data;
             // TODO is this correct? The conversion from vec4 to vec3 discards the w component, which is not necessarily 1
-            glm::vec3 position_cameraspace(driver_context.m_view * glm::vec4(get_point_light_position(current_layer, pl), 0.0f));
+            glm::vec3 position_cameraspace(driver_context.m_view * glm::vec4(get_point_light_position(current_scene, pl), 0.0f));
             pl_data.m_position_cameraspace = position_cameraspace;
-            pl_data.m_ambient_color = get_point_light_ambient_color(current_layer, pl);
-            pl_data.m_diffuse_color = get_point_light_diffuse_color(current_layer, pl);
-            pl_data.m_specular_color = get_point_light_specular_color(current_layer, pl);
-            pl_data.m_constant_attenuation = get_point_light_constant_attenuation(current_layer, pl);
-            pl_data.m_linear_attenuation = get_point_light_linear_attenuation(current_layer, pl);
-            pl_data.m_quadratic_attenuation = get_point_light_quadratic_attenuation(current_layer, pl);
+            pl_data.m_ambient_color = get_point_light_ambient_color(current_scene, pl);
+            pl_data.m_diffuse_color = get_point_light_diffuse_color(current_scene, pl);
+            pl_data.m_specular_color = get_point_light_specular_color(current_scene, pl);
+            pl_data.m_constant_attenuation = get_point_light_constant_attenuation(current_scene, pl);
+            pl_data.m_linear_attenuation = get_point_light_linear_attenuation(current_scene, pl);
+            pl_data.m_quadratic_attenuation = get_point_light_quadratic_attenuation(current_scene, pl);
             driver_context.m_point_lights.push_back(pl_data);
         }
 
@@ -260,7 +260,7 @@ namespace cgs
         driver_context.m_depth_func = depth_func::less;
     }
 
-    void get_node_properties(layer_id l, node_id n)
+    void get_node_properties(scene_id l, node_id n)
     {
         driver_context.m_node.m_texture = get_material_texture_id(get_node_material(l, n));
         mesh_id mid = get_node_mesh(l, n);
@@ -286,12 +286,12 @@ namespace cgs
         // Render nodes that are neither reflective nor tranlucent with the phong model
         driver_context.m_program = phong_programs[0].get();
         for (auto n : nodes_to_render) {
-            mat_id mat = get_node_material(current_layer, n);
+            mat_id mat = get_node_material(current_scene, n);
             float reflectivity = get_material_reflectivity(mat);
             float translucency = get_material_translucency(mat);
-            if (get_node_material(current_layer, n) != nmat && reflectivity == 0.0f && translucency == 0.0f) {
+            if (get_node_material(current_scene, n) != nmat && reflectivity == 0.0f && translucency == 0.0f) {
                 driver_context.m_node = gl_node_context();
-                get_node_properties(current_layer, n);
+                get_node_properties(current_scene, n);
                 driver.draw(driver_context);
             }
         }
@@ -302,12 +302,12 @@ namespace cgs
         // Render reflective or translucent nodes
         driver_context.m_program = environment_mapping_programs[0].get();
         for (auto n : nodes_to_render) {
-            mat_id mat = get_node_material(current_layer, n);
+            mat_id mat = get_node_material(current_scene, n);
             float reflectivity = get_material_reflectivity(mat);
             float translucency = get_material_translucency(mat);
             if (reflectivity > 0.0f || translucency > 0.0f) {
                 driver_context.m_node = gl_node_context();
-                get_node_properties(current_layer, n);
+                get_node_properties(current_scene, n);
                 driver.draw(driver_context);
             }
         }
@@ -336,13 +336,13 @@ namespace cgs
             log(LOG_LEVEL_ERROR, "render_old: view is not enabled"); return;
         }
         driver.initialize_frame();
-        // For each layer in the view
-        for (layer_id l = get_first_layer(v); l != nlayer && is_layer_enabled(l); l = get_next_layer(l)) {
+        // For each scene in the view
+        for (scene_id l = get_first_scene(v); l != nscene && is_scene_enabled(l); l = get_next_scene(l)) {
             // Convert tree into list and filter out non-enabled nodes
-            current_layer = l;
-            nodes_to_render = get_descendant_nodes(current_layer, get_layer_root_node(l));
+            current_scene = l;
+            nodes_to_render = get_descendant_nodes(current_scene, get_scene_root_node(l));
             driver_context = gl_driver_context();
-            get_layer_properties();
+            get_scene_properties();
             render_phong_nodes();
             render_environment_mapping_nodes();
             render_skybox();

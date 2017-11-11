@@ -37,7 +37,7 @@ namespace cgs
             m_glass_bunny_node(nnode),
             m_max_errors(max_errors),
             m_view(0U),
-            m_layer(nlayer),
+            m_scene(nscene),
             m_fps_camera_controller(),
             m_framerate_controller(),
             m_perspective_controller(),
@@ -133,65 +133,65 @@ namespace cgs
             initialize_renderer();
 
             m_view = add_view();
-            m_layer = add_layer(m_view);
-            set_layer_skybox(m_layer, skybox.get());
-            set_directional_light_ambient_color(m_layer,  glm::vec3(0.05f, 0.05f, 0.05f));
-            set_directional_light_diffuse_color(m_layer,  glm::vec3(0.5f, 0.5f, 0.5f));
-            set_directional_light_specular_color(m_layer, glm::vec3(0.5f, 0.5f, 0.5f));
-            set_directional_light_direction(m_layer, glm::vec3(0.0f, -1.0f, 0.0f));
+            m_scene = add_scene(m_view);
+            set_scene_skybox(m_scene, skybox.get());
+            set_directional_light_ambient_color(m_scene,  glm::vec3(0.05f, 0.05f, 0.05f));
+            set_directional_light_diffuse_color(m_scene,  glm::vec3(0.5f, 0.5f, 0.5f));
+            set_directional_light_specular_color(m_scene, glm::vec3(0.5f, 0.5f, 0.5f));
+            set_directional_light_direction(m_scene, glm::vec3(0.0f, -1.0f, 0.0f));
 
             // Create the floor
-            m_root_node = get_layer_root_node(m_layer);
-            m_floor_node = add_node(m_layer, m_root_node, floor_resource.get());
-            set_node_transform(m_layer, m_floor_node, glm::translate(glm::vec3(50.0f, -3.0f, -5.0f)) * glm::scale(glm::vec3(120.0f, 120.0f, 120.0f)));
+            m_root_node = get_scene_root_node(m_scene);
+            m_floor_node = add_node(m_scene, m_root_node, floor_resource.get());
+            set_node_transform(m_scene, m_floor_node, glm::translate(glm::vec3(50.0f, -3.0f, -5.0f)) * glm::scale(glm::vec3(120.0f, 120.0f, 120.0f)));
 
             // Create the plane
-            m_plane_node = add_node(m_layer, m_root_node, plane_resource.get());
+            m_plane_node = add_node(m_scene, m_root_node, plane_resource.get());
         
             // Create the diffuse teapot
-            m_diffuse_teapot_node = add_node(m_layer, m_root_node, teapot_resource.get());
-            set_node_transform(m_layer, m_diffuse_teapot_node, glm::translate(glm::vec3(22.0f, -3.0f, -20.0f)) * glm::scale(glm::vec3(8.0f, 8.0f, 8.0f)));
-            set_node_material(m_layer, get_first_child_node(m_layer, m_diffuse_teapot_node), diffuse_teapot_material.get());
+            m_diffuse_teapot_node = add_node(m_scene, m_root_node, teapot_resource.get());
+            set_node_transform(m_scene, m_diffuse_teapot_node, glm::translate(glm::vec3(22.0f, -3.0f, -20.0f)) * glm::scale(glm::vec3(8.0f, 8.0f, 8.0f)));
+            set_node_material(m_scene, get_first_child_node(m_scene, m_diffuse_teapot_node), diffuse_teapot_material.get());
         
             // Create the bunny
-            m_bunny_node = add_node(m_layer, m_root_node, bunny_resource.get());
-            set_node_transform(m_layer, m_bunny_node, glm::translate(glm::vec3(47.0f, -5.0f, 0.0f)) * glm::scale(glm::vec3(60.0f, 60.0f, 60.0f)));
+            m_bunny_node = add_node(m_scene, m_root_node, bunny_resource.get());
+            set_node_transform(m_scene, m_bunny_node, glm::translate(glm::vec3(47.0f, -5.0f, 0.0f)) * glm::scale(glm::vec3(60.0f, 60.0f, 60.0f)));
         
             // Create the diffuse dragon
-            m_diffuse_dragon_node = add_node(m_layer, m_root_node, dragon_resource.get());
-            set_node_transform(m_layer, m_diffuse_dragon_node, glm::translate(glm::vec3(65.0f, -3.0f, 0.0f)));
+            m_diffuse_dragon_node = add_node(m_scene, m_root_node, dragon_resource.get());
+            set_node_transform(m_scene, m_diffuse_dragon_node, glm::translate(glm::vec3(65.0f, -3.0f, 0.0f)));
 
             // Create the steel dragon
-            m_steel_dragon_node = add_node(m_layer, m_root_node, dragon_resource.get());
-            set_node_material(m_layer, get_first_child_node(m_layer, m_steel_dragon_node), steel_material.get());
+            m_steel_dragon_node = add_node(m_scene, m_root_node, dragon_resource.get());
+            set_node_material(m_scene, get_first_child_node(m_scene, m_steel_dragon_node), steel_material.get());
 
             // Create the steel teapot
-            m_steel_teapot_node = add_node(m_layer, m_root_node, teapot_resource.get());
-            set_node_material(m_layer, get_first_child_node(m_layer, m_steel_teapot_node), steel_material.get());
+            m_steel_teapot_node = add_node(m_scene, m_root_node, teapot_resource.get());
+            set_node_material(m_scene, get_first_child_node(m_scene, m_steel_teapot_node), steel_material.get());
 
             // Create the glass bunny
-            m_glass_bunny_node = add_node(m_layer, m_root_node, bunny_resource.get());
-            set_node_material(m_layer, m_glass_bunny_node, glass_material.get());
+            m_glass_bunny_node = add_node(m_scene, m_root_node, bunny_resource.get());
+            set_node_material(m_scene, m_glass_bunny_node, glass_material.get());
 
-            point_light_id point_light = add_point_light(m_layer);
-            set_point_light_position(m_layer, point_light, glm::vec3(4.0f, 4.0f, 4.0f));
-            set_point_light_ambient_color(m_layer, point_light, glm::vec3(0.1f, 0.1f, 0.1f));
-            set_point_light_diffuse_color(m_layer, point_light, glm::vec3(1.0f, 1.0f, 1.0f));
-            set_point_light_specular_color(m_layer, point_light, glm::vec3(0.3f, 0.3f, 0.3f));
-            set_point_light_constant_attenuation(m_layer, point_light, 1.0f);
-            set_point_light_linear_attenuation(m_layer, point_light, 0.0f); // Be careful with this parameter, it can dim your point light pretty fast
-            set_point_light_quadratic_attenuation(m_layer, point_light, 0.0f); // Be careful with this parameter, it can dim your point light pretty fast
+            point_light_id point_light = add_point_light(m_scene);
+            set_point_light_position(m_scene, point_light, glm::vec3(4.0f, 4.0f, 4.0f));
+            set_point_light_ambient_color(m_scene, point_light, glm::vec3(0.1f, 0.1f, 0.1f));
+            set_point_light_diffuse_color(m_scene, point_light, glm::vec3(1.0f, 1.0f, 1.0f));
+            set_point_light_specular_color(m_scene, point_light, glm::vec3(0.3f, 0.3f, 0.3f));
+            set_point_light_constant_attenuation(m_scene, point_light, 1.0f);
+            set_point_light_linear_attenuation(m_scene, point_light, 0.0f); // Be careful with this parameter, it can dim your point light pretty fast
+            set_point_light_quadratic_attenuation(m_scene, point_light, 0.0f); // Be careful with this parameter, it can dim your point light pretty fast
 
             m_last_time = get_time();
 
-            m_fps_camera_controller.set_layer(m_layer);
+            m_fps_camera_controller.set_scene(m_scene);
             m_fps_camera_controller.set_position(glm::vec3(-14.28f, 13.71f, 29.35f));
             m_fps_camera_controller.set_yaw(-41.50f);
             m_fps_camera_controller.set_pitch(-20.37f);
             m_fps_camera_controller.set_speed(40.0f);
             m_fps_camera_controller.set_mouse_speed(0.1f);
 
-            m_perspective_controller.set_layer(m_layer);
+            m_perspective_controller.set_scene(m_scene);
             m_perspective_controller.set_window_width(1920.0f);
             m_perspective_controller.set_window_height(1080.0f);
             m_perspective_controller.set_fov_speed(0.5f);
@@ -295,16 +295,16 @@ namespace cgs
         void update_simulation(float dt)
         {
             m_sim_rotation_yaw += m_sim_rotation_speed * dt;
-            set_node_transform(m_layer, m_plane_node, glm::rotate(m_sim_rotation_yaw, glm::vec3{0.0f, 1.0f, 0.0f}));
+            set_node_transform(m_scene, m_plane_node, glm::rotate(m_sim_rotation_yaw, glm::vec3{0.0f, 1.0f, 0.0f}));
 
-            set_node_transform(m_layer, m_steel_dragon_node, glm::translate(glm::vec3(65.0f, -3.0f, -20.0f))
+            set_node_transform(m_scene, m_steel_dragon_node, glm::translate(glm::vec3(65.0f, -3.0f, -20.0f))
                                            * glm::rotate(m_sim_rotation_yaw, glm::vec3{0.0f, 1.0f, 0.0f}));
 
-            set_node_transform(m_layer, m_glass_bunny_node, glm::translate(glm::vec3(47.0f, -5.0f, -20.0f))
+            set_node_transform(m_scene, m_glass_bunny_node, glm::translate(glm::vec3(47.0f, -5.0f, -20.0f))
                                            * glm::rotate(m_sim_rotation_yaw, glm::vec3{0.0f, 1.0f, 0.0f})
                                            * glm::scale(glm::vec3(60.0f, 60.0f, 60.0f)));
 
-            set_node_transform(m_layer, m_steel_teapot_node, glm::translate(glm::vec3(22.0f, -3.0f, 0.0f))
+            set_node_transform(m_scene, m_steel_teapot_node, glm::translate(glm::vec3(22.0f, -3.0f, 0.0f))
                                            * glm::rotate(m_sim_rotation_yaw, glm::vec3{0.0f, 1.0f, 0.0f})
                                            * glm::scale(glm::vec3(8.0f, 8.0f, 8.0f)));
         }
@@ -355,7 +355,7 @@ namespace cgs
         node_id                m_glass_bunny_node;
         unsigned int           m_max_errors;
         view_id                m_view;
-        layer_id               m_layer;
+        scene_id               m_scene;
         fps_camera_controller  m_fps_camera_controller;
         framerate_controller   m_framerate_controller;
         perspective_controller m_perspective_controller;
