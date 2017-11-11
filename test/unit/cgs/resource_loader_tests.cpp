@@ -33,19 +33,21 @@ protected:
 TEST_F(resources_loader_test, load_resources_negative) {
   material_vector materials_out;
   mesh_vector meshes_out;
-  unique_resource resource_out;
-  ASSERT_ANY_THROW(load_resources("", &resource_out, &materials_out, &meshes_out));
-  ASSERT_ANY_THROW(load_resources("some_file.3ds", &resource_out, nullptr, &meshes_out));
-  ASSERT_ANY_THROW(load_resources("some_file.3ds", &resource_out, &materials_out, &meshes_out));
-  ASSERT_ANY_THROW(load_resources("some_file.3ds", &resource_out, &materials_out, nullptr));
-  ASSERT_ANY_THROW(load_resources("some_file.3ds", &resource_out, &materials_out, &meshes_out));
+  resource_vector resources_out;
+  resource_id resource_out = nresource;
+  ASSERT_ANY_THROW(load_resources("", &resource_out, &resources_out, &materials_out, &meshes_out));
+  ASSERT_ANY_THROW(load_resources("some_file.3ds", &resource_out, &resources_out, nullptr, &meshes_out));
+  ASSERT_ANY_THROW(load_resources("some_file.3ds", &resource_out, &resources_out, &materials_out, &meshes_out));
+  ASSERT_ANY_THROW(load_resources("some_file.3ds", &resource_out, &resources_out, &materials_out, nullptr));
+  ASSERT_ANY_THROW(load_resources("some_file.3ds", &resource_out, &resources_out, &materials_out, &meshes_out));
 }
 
 TEST_F(resources_loader_test, load_resources_positive1) {
   material_vector materials_out;
   mesh_vector meshes_out;
-  unique_resource resource_out;
-  load_resources(RESOURCES_PATH + SPONZA, &resource_out, &materials_out, &meshes_out);
+  resource_vector resources_out;
+  resource_id resource_out = nresource;
+  load_resources(RESOURCES_PATH + SPONZA, &resource_out, &resources_out, &materials_out, &meshes_out);
 
   default_logstream_tail_dump(cgs::LOG_LEVEL_DEBUG);
   glm::vec3 color_diffuse = get_material_diffuse_color(materials_out[0].get());
@@ -86,15 +88,16 @@ TEST_F(resources_loader_test, load_resources_positive1) {
   ASSERT_EQ(indices[indices.size() - 2], 146U);
   ASSERT_EQ(indices[indices.size() - 1], 79U);
 
-  ASSERT_NE(resource_out.get(), nresource);
+  ASSERT_NE(resource_out, nresource);
 }
 
 TEST_F(resources_loader_test, load_resources_three_levels) {
   // Load a scene with more than two levels
   material_vector materials_out;
   mesh_vector meshes_out;
-  unique_resource resource_out;
-  load_resources(RESOURCES_PATH + THREE_LEVELS, &resource_out, &materials_out, &meshes_out);
+  resource_id resource_out = nresource;
+  resource_vector resources_out;
+  load_resources(RESOURCES_PATH + THREE_LEVELS, &resource_out, &resources_out, &materials_out, &meshes_out);
   default_logstream_tail_dump(cgs::LOG_LEVEL_DEBUG);
 }
 
@@ -102,16 +105,18 @@ TEST_F(resources_loader_test, load_resources_no_texture_info) {
   // Load a scene with no texture info
   material_vector materials_out;
   mesh_vector meshes_out;
-  unique_resource resource_out;
-  load_resources(RESOURCES_PATH + STANFORD_BUNNY, &resource_out, &materials_out, &meshes_out);
+  resource_id resource_out = nresource;
+  resource_vector resources_out;
+  load_resources(RESOURCES_PATH + STANFORD_BUNNY, &resource_out, &resources_out, &materials_out, &meshes_out);
   default_logstream_tail_dump(cgs::LOG_LEVEL_DEBUG);
 }
 
 TEST_F(resources_loader_test, load_resources_billiard_table) {
   material_vector materials_out;
   mesh_vector meshes_out;
-  unique_resource resource_out;
-  load_resources(RESOURCES_PATH + BILLIARD_TABLE, &resource_out, &materials_out, &meshes_out);
+  resource_id resource_out = nresource;
+  resource_vector resources_out;
+  load_resources(RESOURCES_PATH + BILLIARD_TABLE, &resource_out, &resources_out, &materials_out, &meshes_out);
   default_logstream_tail_dump(cgs::LOG_LEVEL_DEBUG);
 }
 

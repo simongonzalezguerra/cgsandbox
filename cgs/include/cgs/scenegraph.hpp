@@ -14,11 +14,6 @@ namespace cgs
     //-----------------------------------------------------------------------------------------------
 
     //-----------------------------------------------------------------------------------------------
-    //! @brief Handle to a view.
-    //-----------------------------------------------------------------------------------------------
-    typedef std::size_t view_id;
-
-    //-----------------------------------------------------------------------------------------------
     //! @brief Handle to a scene.
     //-----------------------------------------------------------------------------------------------
     typedef std::size_t scene_id;
@@ -63,32 +58,13 @@ namespace cgs
     void scenegraph_init();
 
     //-----------------------------------------------------------------------------------------------
-    //! @brief Creates a view.
-    //! @remark The view is created as enabled.
-    //! @return The handle to the new view.
-    //-----------------------------------------------------------------------------------------------
-    view_id add_view();
-
-    //-----------------------------------------------------------------------------------------------
-    //! @brief Returns whether a view is enabled.
-    //! @param vid Handle to the view.
-    //! @return true if the view is enabled, false otherwise
-    //-----------------------------------------------------------------------------------------------
-    bool is_view_enabled(view_id vid);
-
-    //-----------------------------------------------------------------------------------------------
-    //! @brief Sets the enabled flag of a view.
-    //! @param vid Handle to the view.
-    //! @param enabled Value to set in the enabled flag of the view.
-    //-----------------------------------------------------------------------------------------------
-    void set_view_enabled(view_id vid, bool enabled);
-
-    //-----------------------------------------------------------------------------------------------
     //! @brief Adds a scene to a view.
     //! @param view Id of the view to add the scene to.
     //! @return Id of the new scene, or nscene on error.
     //-----------------------------------------------------------------------------------------------
-    scene_id add_scene(view_id view);
+    scene_id add_scene();
+
+    void remove_scene(scene_id scene);
 
     //-----------------------------------------------------------------------------------------------
     //! @brief Returns the id of the first scene of a view.
@@ -96,7 +72,7 @@ namespace cgs
     //! @return Id of the first scene if the view. If the view has no scenes, or an error occurs,
     //!  nscene is returned.
     //-----------------------------------------------------------------------------------------------
-    scene_id get_first_scene(view_id view);
+    scene_id get_first_scene();
 
     //-----------------------------------------------------------------------------------------------
     //! @brief Returns the id of the next scene in the sequence of scenes of a view.
@@ -132,12 +108,39 @@ namespace cgs
 
     node_id get_scene_root_node(scene_id scene);
 
+    struct scene_handle
+    {   
+        scene_handle() : m_scene_id(nscene) {}
+        scene_handle(scene_id s) : m_scene_id(s) {}
+        scene_handle(std::nullptr_t) : m_scene_id(nscene) {}
+        operator int() {return m_scene_id;}
+        operator scene_id() {return m_scene_id;}
+        bool operator ==(const scene_handle &other) const {return m_scene_id == other.m_scene_id;}
+        bool operator !=(const scene_handle &other) const {return m_scene_id != other.m_scene_id;}
+        bool operator ==(std::nullptr_t) const {return m_scene_id == nscene;}
+        bool operator !=(std::nullptr_t) const {return m_scene_id != nscene;}
+
+        scene_id m_scene_id;
+    };
+
+    struct scene_deleter
+    {   
+        typedef scene_handle pointer;
+        scene_deleter() {}
+        template<class other> scene_deleter(const other&) {}; 
+        void operator()(pointer p) const { remove_scene(p); }
+    };
+
+    typedef std::unique_ptr<scene_id, scene_deleter> unique_scene;
+    typedef std::vector<unique_scene> scene_vector;
+    unique_scene make_scene();
+
     //-----------------------------------------------------------------------------------------------
     //! @brief Adds a root node to the node hierarchy.
     //! @param scene Id of the scene to add the node to.
     //! @return The id of the new node.
     //-----------------------------------------------------------------------------------------------
-    node_id add_node(scene_id scene);
+    node_id add_node();
 
     //-----------------------------------------------------------------------------------------------
     //! @brief Adds a node to the node hierarchy.
@@ -145,18 +148,7 @@ namespace cgs
     //! @param parent If of the parent node within that scene to insert the new node under.
     //! @return The id of the new node.
     //-----------------------------------------------------------------------------------------------
-    node_id add_node(scene_id scene, node_id parent);
-
-    //-----------------------------------------------------------------------------------------------
-    //! @brief Adds a node to the node hierarchy by instantiating a resource tree. 
-    //! @param scene Id of the scene to add the node to.
-    //! @param parent Id of the parent node within that scene to insert the new node under.
-    //! @param resource Id of the resource to instantiate.
-    //! @return The id of the new node.
-    //! @remarks One node node will created for the given resource and each of its descendants,
-    //!  containing the same meshes and local transforms.
-    //-----------------------------------------------------------------------------------------------
-    node_id add_node(scene_id scene, node_id parent, resource_id resource);
+    node_id add_node(node_id parent);
 
     //-----------------------------------------------------------------------------------------------
     //! @brief Removes a node from the node hierarchy.
@@ -164,7 +156,7 @@ namespace cgs
     //! @param node If of the node to remove within that scene.
     //! @remarks The root node of a scene (node id = 0) cannot be removed.
     //-----------------------------------------------------------------------------------------------
-    void remove_node(scene_id scene, node_id node);
+    void remove_node(node_id node);
 
     //-----------------------------------------------------------------------------------------------
     //! @brief Updates the local and accumulated transforms of a node.
@@ -177,7 +169,7 @@ namespace cgs
     //!  along the path from the root node to the node, starting from the root and including
     //!  the node.
     //-----------------------------------------------------------------------------------------------
-    void set_node_transform(scene_id scene, node_id node, const glm::mat4& local_transform);
+    void set_node_transform(node_id node, const glm::mat4& local_transform);
 
     //-----------------------------------------------------------------------------------------------
     //! @brief Reads the local and accumulated transforms of a node.
@@ -188,7 +180,7 @@ namespace cgs
     //! @param accum_transform Pointer to a matrix in which to store the nodes's accumulated
     //!  transform. Can't be nullptr.
     //-----------------------------------------------------------------------------------------------
-    void get_node_transform(scene_id scene, node_id node, glm::mat4* local_transform, glm::mat4* accum_transform);
+    void get_node_transform(node_id node, glm::mat4* local_transform, glm::mat4* accum_transform);
 
     //-----------------------------------------------------------------------------------------------
     //! @brief Updates the list of meshes contained in a node.
@@ -200,7 +192,7 @@ namespace cgs
     //!  empty set of meshes.
     //! @remarks If some of the meshes in the provided array do not exist, they will not be added.
     //-----------------------------------------------------------------------------------------------
-    void set_node_meshes(scene_id scene, node_id node, const std::vector<mesh_id>& meshes);
+    void set_node_meshes(node_id node, const std::vector<mesh_id>& meshes);
 
     //-----------------------------------------------------------------------------------------------
     //! @brief Reads the list of meshes contained in a node.
@@ -211,12 +203,12 @@ namespace cgs
     //! @param num_meshes Address of an object to store the number of meshes contained in the
     //!  resource node. Can't be nullptr.
     //-----------------------------------------------------------------------------------------------
-    std::vector<mesh_id> get_node_meshes(scene_id scene, node_id node);
+    std::vector<mesh_id> get_node_meshes(node_id node);
 
-    void set_node_mesh(scene_id scene, node_id node, mesh_id mesh);
-    mesh_id get_node_mesh(scene_id scene, node_id node);
-    void set_node_material(scene_id scene, node_id node, mat_id mat);
-    mat_id get_node_material(scene_id scene, node_id node);
+    void set_node_mesh(node_id node, mesh_id mesh);
+    mesh_id get_node_mesh(node_id node);
+    void set_node_material(node_id node, mat_id mat);
+    mat_id get_node_material(node_id node);
 
     //-----------------------------------------------------------------------------------------------
     //! @brief Updates the enabled flag of a node, which determines if the node and its descendants
@@ -226,7 +218,7 @@ namespace cgs
     //! @param enabled Value to set to the flag.
     //! @remarks When a node is first created, it is enabled by default.
     //-----------------------------------------------------------------------------------------------
-    void set_node_enabled(scene_id scene, node_id node, bool enabled);
+    void set_node_enabled(node_id node, bool enabled);
 
     //-----------------------------------------------------------------------------------------------
     //! @brief Reads the value of the enabled flag of a node. See set_node_enabled for the meaning
@@ -236,7 +228,7 @@ namespace cgs
     //! @return True of the node is found and is enabled, false otherwise.
     //! @remarks
     //-----------------------------------------------------------------------------------------------
-    bool is_node_enabled(scene_id scene, node_id node);
+    bool is_node_enabled(node_id node);
 
     //-----------------------------------------------------------------------------------------------
     //! @brief Reads the id of the fist child of a node.
@@ -244,7 +236,7 @@ namespace cgs
     //! @param node Id of the node within that scene.
     //! @return The id of the first child node, or nnode if the node is not found.
     //-----------------------------------------------------------------------------------------------
-    node_id get_first_child_node(scene_id scene, node_id node);
+    node_id get_first_child_node(node_id node);
 
     //-----------------------------------------------------------------------------------------------
     //! @brief Reads the id of the next sibling of a node.
@@ -252,7 +244,36 @@ namespace cgs
     //! @param node Id of the node within that scene.
     //! @return The id of the next sibling node, or nnode if the node is not found.
     //-----------------------------------------------------------------------------------------------
-    node_id get_next_sibling_node(scene_id scene, node_id node);
+    node_id get_next_sibling_node(node_id node);
+
+    struct node_handle
+    {   
+        node_handle() : m_node_id(nnode) {}
+        node_handle(node_id n) : m_node_id(n) {}
+        node_handle(std::nullptr_t) : m_node_id(nnode) {}
+        operator int() {return m_node_id;}
+        operator node_id() {return m_node_id;}
+        bool operator ==(const node_handle &other) const {return m_node_id == other.m_node_id;}
+        bool operator !=(const node_handle &other) const {return m_node_id != other.m_node_id;}
+        bool operator ==(std::nullptr_t) const {return m_node_id == nnode;}
+        bool operator !=(std::nullptr_t) const {return m_node_id != nnode;}
+
+        node_id m_node_id;
+    };  
+
+    struct node_deleter
+    {   
+        typedef node_handle pointer;
+        node_deleter() {}
+        template<class other> node_deleter(const other&) {}; 
+        void operator()(pointer p) const { remove_node(p); }
+    };
+
+    typedef std::unique_ptr<node_id, node_deleter> unique_node;
+    typedef std::vector<unique_node> node_vector;
+    unique_node make_node();
+    unique_node make_node(node_id parent);
+    void make_node(node_id parent, resource_id resource, node_id* root_out, node_vector* nodes_out);
 
     void set_directional_light_ambient_color(scene_id scene, glm::vec3 ambient_color);
     void set_directional_light_diffuse_color(scene_id scene, glm::vec3 diffuse_color);
@@ -281,7 +302,7 @@ namespace cgs
     float get_point_light_linear_attenuation(scene_id scene, point_light_id light);
     float get_point_light_quadratic_attenuation(scene_id scene, point_light_id light);
 
-    std::vector<node_id> get_descendant_nodes(scene_id scene, node_id node);
+    std::vector<node_id> get_descendant_nodes(node_id node);
 } // namespace cgs
 
 #endif // SCENE_GRAPH_HPP

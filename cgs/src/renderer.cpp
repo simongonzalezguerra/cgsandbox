@@ -260,24 +260,24 @@ namespace cgs
         driver_context.m_depth_func = depth_func::less;
     }
 
-    void get_node_properties(scene_id l, node_id n)
+    void get_node_properties(node_id n)
     {
-        driver_context.m_node.m_texture = get_material_texture_id(get_node_material(l, n));
-        mesh_id mid = get_node_mesh(l, n);
+        driver_context.m_node.m_texture = get_material_texture_id(get_node_material(n));
+        mesh_id mid = get_node_mesh(n);
         driver_context.m_node.m_position_buffer = get_mesh_position_buffer_id(mid);
         driver_context.m_node.m_texture_coords_buffer = get_mesh_uv_buffer_id(mid);
         driver_context.m_node.m_normal_buffer = get_mesh_normal_buffer_id(mid);
         driver_context.m_node.m_index_buffer = get_mesh_index_buffer_id(mid);
         driver_context.m_node.m_num_indices = get_mesh_indices(mid).size();
-        driver_context.m_node.m_material.m_diffuse_color = get_material_diffuse_color(get_node_material(l, n));
-        driver_context.m_node.m_material.m_specular_color = get_material_specular_color(get_node_material(l, n));
-        driver_context.m_node.m_material.m_smoothness = get_material_smoothness(get_node_material(l, n));
-        driver_context.m_node.m_material.m_reflectivity = get_material_reflectivity(get_node_material(l, n));
-        driver_context.m_node.m_material.m_translucency = get_material_translucency(get_node_material(l, n));
-        driver_context.m_node.m_material.m_refractive_index = get_material_refractive_index(get_node_material(l, n));
+        driver_context.m_node.m_material.m_diffuse_color = get_material_diffuse_color(get_node_material(n));
+        driver_context.m_node.m_material.m_specular_color = get_material_specular_color(get_node_material(n));
+        driver_context.m_node.m_material.m_smoothness = get_material_smoothness(get_node_material(n));
+        driver_context.m_node.m_material.m_reflectivity = get_material_reflectivity(get_node_material(n));
+        driver_context.m_node.m_material.m_translucency = get_material_translucency(get_node_material(n));
+        driver_context.m_node.m_material.m_refractive_index = get_material_refractive_index(get_node_material(n));
         glm::mat4 local_transform;
         glm::mat4 accum_transform;
-        get_node_transform(l, n, &local_transform, &accum_transform);
+        get_node_transform(n, &local_transform, &accum_transform);
         driver_context.m_node.m_model = accum_transform;
     }
 
@@ -286,12 +286,12 @@ namespace cgs
         // Render nodes that are neither reflective nor tranlucent with the phong model
         driver_context.m_program = phong_programs[0].get();
         for (auto n : nodes_to_render) {
-            mat_id mat = get_node_material(current_scene, n);
+            mat_id mat = get_node_material(n);
             float reflectivity = get_material_reflectivity(mat);
             float translucency = get_material_translucency(mat);
-            if (get_node_material(current_scene, n) != nmat && reflectivity == 0.0f && translucency == 0.0f) {
+            if (get_node_material(n) != nmat && reflectivity == 0.0f && translucency == 0.0f) {
                 driver_context.m_node = gl_node_context();
-                get_node_properties(current_scene, n);
+                get_node_properties(n);
                 driver.draw(driver_context);
             }
         }
@@ -302,12 +302,12 @@ namespace cgs
         // Render reflective or translucent nodes
         driver_context.m_program = environment_mapping_programs[0].get();
         for (auto n : nodes_to_render) {
-            mat_id mat = get_node_material(current_scene, n);
+            mat_id mat = get_node_material(n);
             float reflectivity = get_material_reflectivity(mat);
             float translucency = get_material_translucency(mat);
             if (reflectivity > 0.0f || translucency > 0.0f) {
                 driver_context.m_node = gl_node_context();
-                get_node_properties(current_scene, n);
+                get_node_properties(n);
                 driver.draw(driver_context);
             }
         }
@@ -330,17 +330,14 @@ namespace cgs
         }
     }
 
-    void render(view_id v)
+    void render()
     {
-        if (!is_view_enabled(v)) {
-            log(LOG_LEVEL_ERROR, "render_old: view is not enabled"); return;
-        }
         driver.initialize_frame();
         // For each scene in the view
-        for (scene_id l = get_first_scene(v); l != nscene && is_scene_enabled(l); l = get_next_scene(l)) {
+        for (scene_id s = get_first_scene(); s != nscene && is_scene_enabled(s); s = get_next_scene(s)) {
             // Convert tree into list and filter out non-enabled nodes
-            current_scene = l;
-            nodes_to_render = get_descendant_nodes(current_scene, get_scene_root_node(l));
+            current_scene = s;
+            nodes_to_render = get_descendant_nodes(get_scene_root_node(s));
             driver_context = gl_driver_context();
             get_scene_properties();
             render_phong_nodes();

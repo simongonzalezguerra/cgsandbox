@@ -26,18 +26,13 @@ namespace cgs
             m_meshes(),
             m_resources(),
             m_cubemaps(),
-            m_root_node(nnode),
-            m_floor_node(nnode),
+            m_nodes(),
             m_plane_node(nnode),
-            m_diffuse_teapot_node(nnode),
-            m_bunny_node(nnode),
-            m_diffuse_dragon_node(nnode),
             m_steel_dragon_node(nnode),
             m_steel_teapot_node(nnode),
             m_glass_bunny_node(nnode),
             m_max_errors(max_errors),
-            m_view(0U),
-            m_scene(nscene),
+            m_scene(),
             m_fps_camera_controller(),
             m_framerate_controller(),
             m_perspective_controller(),
@@ -64,19 +59,18 @@ namespace cgs
             attach_logstream(default_logstream_file_callback);
             resource_database_init();
 
-            unique_resource floor_resource;
-            unique_material floor_material;
-            unique_mesh floor_mesh;
-            make_floor_resource(&floor_resource, &floor_material, &floor_mesh);
+            material_vector added_materials;
+            mesh_vector added_meshes;
+            resource_vector added_resources;
 
-            material_vector materials;
-            mesh_vector meshes;
+            resource_id floor_resource = nresource;
+            make_floor_resource(&floor_resource, &added_resources, &added_materials, &added_meshes);
 
-            unique_resource plane_resource;
-            load_resources("../../../resources/f-14D-super-tomcat/F-14D_SuperTomcatRotated.obj", &plane_resource, &materials, &meshes);
+            resource_id plane_resource = nresource;
+            load_resources("../../../resources/f-14D-super-tomcat/F-14D_SuperTomcatRotated.obj", &plane_resource, &added_resources, &added_materials, &added_meshes);
 
-            unique_resource teapot_resource;
-            load_resources("../../../resources/Teapot/Teapot.obj", &teapot_resource, &materials, &meshes);
+            resource_id teapot_resource = nresource;
+            load_resources("../../../resources/Teapot/Teapot.obj", &teapot_resource, &added_resources, &added_materials, &added_meshes);
 
             unique_material diffuse_teapot_material = make_material();
             set_material_diffuse_color(diffuse_teapot_material.get(), glm::vec3(1.0f, 0.0f, 0.0f));
@@ -96,23 +90,23 @@ namespace cgs
             set_material_translucency(glass_material.get(), 1.0f);
             set_material_refractive_index(glass_material.get(), 1.52f); // Glass
 
-            unique_resource bunny_resource;
-            load_resources("../../../resources/stanford-bunny/bun_zipper.ply", &bunny_resource, &materials, &meshes);
+            resource_id bunny_resource = nresource;
+            load_resources("../../../resources/stanford-bunny/bun_zipper.ply", &bunny_resource, &added_resources, &added_materials, &added_meshes);
 
             unique_material bunny_material = make_material();
             set_material_diffuse_color(bunny_material.get(), glm::vec3(0.0f, 0.2f, 0.4f));
             set_material_specular_color(bunny_material.get(), glm::vec3(1.0f, 1.0f, 1.0f));
             set_material_smoothness(bunny_material.get(), 1.0f);
-            set_resource_material(bunny_resource.get(), bunny_material.get());
+            set_resource_material(bunny_resource, bunny_material.get());
 
-            unique_resource dragon_resource;
-            load_resources("../../../resources/stanford-dragon2/dragon.obj", &dragon_resource, &materials, &meshes);
+            resource_id dragon_resource = nresource;
+            load_resources("../../../resources/stanford-dragon2/dragon.obj", &dragon_resource, &added_resources, &added_materials, &added_meshes);
 
             unique_material dragon_material = make_material();
             set_material_diffuse_color(dragon_material.get(), glm::vec3(0.05f, 0.5f, 0.0f));
             set_material_specular_color(dragon_material.get(), glm::vec3(0.5f, 0.5f, 0.5f));
             set_material_smoothness(dragon_material.get(), 1.0f);
-            set_resource_material(dragon_resource.get(), dragon_material.get());
+            set_resource_material(dragon_resource, dragon_material.get());
 
             unique_cubemap skybox = make_cubemap();
             std::vector<std::string> skybox_faces
@@ -132,66 +126,74 @@ namespace cgs
 
             initialize_renderer();
 
-            m_view = add_view();
-            m_scene = add_scene(m_view);
-            set_scene_skybox(m_scene, skybox.get());
-            set_directional_light_ambient_color(m_scene,  glm::vec3(0.05f, 0.05f, 0.05f));
-            set_directional_light_diffuse_color(m_scene,  glm::vec3(0.5f, 0.5f, 0.5f));
-            set_directional_light_specular_color(m_scene, glm::vec3(0.5f, 0.5f, 0.5f));
-            set_directional_light_direction(m_scene, glm::vec3(0.0f, -1.0f, 0.0f));
+            m_scene = make_scene();
+            set_scene_skybox(m_scene.get(), skybox.get());
+            set_directional_light_ambient_color(m_scene.get(),  glm::vec3(0.05f, 0.05f, 0.05f));
+            set_directional_light_diffuse_color(m_scene.get(),  glm::vec3(0.5f, 0.5f, 0.5f));
+            set_directional_light_specular_color(m_scene.get(), glm::vec3(0.5f, 0.5f, 0.5f));
+            set_directional_light_direction(m_scene.get(), glm::vec3(0.0f, -1.0f, 0.0f));
 
+            node_vector added_nodes;
             // Create the floor
-            m_root_node = get_scene_root_node(m_scene);
-            m_floor_node = add_node(m_scene, m_root_node, floor_resource.get());
-            set_node_transform(m_scene, m_floor_node, glm::translate(glm::vec3(50.0f, -3.0f, -5.0f)) * glm::scale(glm::vec3(120.0f, 120.0f, 120.0f)));
+            node_id root_node = get_scene_root_node(m_scene.get());
+            node_id floor_node = nnode;
+            make_node(root_node, floor_resource, &floor_node, &added_nodes);
+            set_node_transform(floor_node, glm::translate(glm::vec3(50.0f, -3.0f, -5.0f)) * glm::scale(glm::vec3(120.0f, 120.0f, 120.0f)));
 
             // Create the plane
-            m_plane_node = add_node(m_scene, m_root_node, plane_resource.get());
+            node_id plane_node = nnode;
+            make_node(root_node, plane_resource, &plane_node, &added_nodes);
         
             // Create the diffuse teapot
-            m_diffuse_teapot_node = add_node(m_scene, m_root_node, teapot_resource.get());
-            set_node_transform(m_scene, m_diffuse_teapot_node, glm::translate(glm::vec3(22.0f, -3.0f, -20.0f)) * glm::scale(glm::vec3(8.0f, 8.0f, 8.0f)));
-            set_node_material(m_scene, get_first_child_node(m_scene, m_diffuse_teapot_node), diffuse_teapot_material.get());
+            node_id diffuse_teapot_node = nnode;
+            make_node(root_node, teapot_resource, &diffuse_teapot_node, &added_nodes);
+            set_node_transform(diffuse_teapot_node, glm::translate(glm::vec3(22.0f, -3.0f, -20.0f)) * glm::scale(glm::vec3(8.0f, 8.0f, 8.0f)));
+            set_node_material(get_first_child_node(diffuse_teapot_node), diffuse_teapot_material.get());
         
             // Create the bunny
-            m_bunny_node = add_node(m_scene, m_root_node, bunny_resource.get());
-            set_node_transform(m_scene, m_bunny_node, glm::translate(glm::vec3(47.0f, -5.0f, 0.0f)) * glm::scale(glm::vec3(60.0f, 60.0f, 60.0f)));
+            node_id bunny_node = nnode;
+            make_node(root_node, bunny_resource, &bunny_node, &added_nodes);
+            set_node_transform(bunny_node, glm::translate(glm::vec3(47.0f, -5.0f, 0.0f)) * glm::scale(glm::vec3(60.0f, 60.0f, 60.0f)));
         
             // Create the diffuse dragon
-            m_diffuse_dragon_node = add_node(m_scene, m_root_node, dragon_resource.get());
-            set_node_transform(m_scene, m_diffuse_dragon_node, glm::translate(glm::vec3(65.0f, -3.0f, 0.0f)));
+            node_id dragon_node = nnode;
+            make_node(root_node, dragon_resource, &dragon_node, &added_nodes);
+            set_node_transform(dragon_node, glm::translate(glm::vec3(65.0f, -3.0f, 0.0f)));
 
             // Create the steel dragon
-            m_steel_dragon_node = add_node(m_scene, m_root_node, dragon_resource.get());
-            set_node_material(m_scene, get_first_child_node(m_scene, m_steel_dragon_node), steel_material.get());
+            node_id steel_dragon_node = nnode;
+            make_node(root_node, dragon_resource, &steel_dragon_node, &added_nodes);;
+            set_node_material(get_first_child_node(steel_dragon_node), steel_material.get());
 
             // Create the steel teapot
-            m_steel_teapot_node = add_node(m_scene, m_root_node, teapot_resource.get());
-            set_node_material(m_scene, get_first_child_node(m_scene, m_steel_teapot_node), steel_material.get());
+            node_id steel_teapot_node = nnode;
+            make_node(root_node, teapot_resource, &steel_teapot_node, &added_nodes);
+            set_node_material(get_first_child_node(steel_teapot_node), steel_material.get());
 
             // Create the glass bunny
-            m_glass_bunny_node = add_node(m_scene, m_root_node, bunny_resource.get());
-            set_node_material(m_scene, m_glass_bunny_node, glass_material.get());
+            node_id glass_bunny_node = nnode;
+            make_node(root_node, bunny_resource, &glass_bunny_node, &added_nodes);
+            set_node_material(glass_bunny_node, glass_material.get());
 
-            point_light_id point_light = add_point_light(m_scene);
-            set_point_light_position(m_scene, point_light, glm::vec3(4.0f, 4.0f, 4.0f));
-            set_point_light_ambient_color(m_scene, point_light, glm::vec3(0.1f, 0.1f, 0.1f));
-            set_point_light_diffuse_color(m_scene, point_light, glm::vec3(1.0f, 1.0f, 1.0f));
-            set_point_light_specular_color(m_scene, point_light, glm::vec3(0.3f, 0.3f, 0.3f));
-            set_point_light_constant_attenuation(m_scene, point_light, 1.0f);
-            set_point_light_linear_attenuation(m_scene, point_light, 0.0f); // Be careful with this parameter, it can dim your point light pretty fast
-            set_point_light_quadratic_attenuation(m_scene, point_light, 0.0f); // Be careful with this parameter, it can dim your point light pretty fast
+            point_light_id point_light = add_point_light(m_scene.get());
+            set_point_light_position(m_scene.get(), point_light, glm::vec3(4.0f, 4.0f, 4.0f));
+            set_point_light_ambient_color(m_scene.get(), point_light, glm::vec3(0.1f, 0.1f, 0.1f));
+            set_point_light_diffuse_color(m_scene.get(), point_light, glm::vec3(1.0f, 1.0f, 1.0f));
+            set_point_light_specular_color(m_scene.get(), point_light, glm::vec3(0.3f, 0.3f, 0.3f));
+            set_point_light_constant_attenuation(m_scene.get(), point_light, 1.0f);
+            set_point_light_linear_attenuation(m_scene.get(), point_light, 0.0f); // Be careful with this parameter, it can dim your point light pretty fast
+            set_point_light_quadratic_attenuation(m_scene.get(), point_light, 0.0f); // Be careful with this parameter, it can dim your point light pretty fast
 
             m_last_time = get_time();
 
-            m_fps_camera_controller.set_scene(m_scene);
+            m_fps_camera_controller.set_scene(m_scene.get());
             m_fps_camera_controller.set_position(glm::vec3(-14.28f, 13.71f, 29.35f));
             m_fps_camera_controller.set_yaw(-41.50f);
             m_fps_camera_controller.set_pitch(-20.37f);
             m_fps_camera_controller.set_speed(40.0f);
             m_fps_camera_controller.set_mouse_speed(0.1f);
 
-            m_perspective_controller.set_scene(m_scene);
+            m_perspective_controller.set_scene(m_scene.get());
             m_perspective_controller.set_window_width(1920.0f);
             m_perspective_controller.set_window_height(1080.0f);
             m_perspective_controller.set_fov_speed(0.5f);
@@ -202,21 +204,20 @@ namespace cgs
             m_sim_rotation_speed = 1.5f;
             m_sim_rotation_yaw = 0.0f;
 
-            m_materials.insert(m_materials.end(), make_move_iterator(materials.begin()), make_move_iterator(materials.end()));
+            m_materials.insert(m_materials.end(), make_move_iterator(added_materials.begin()), make_move_iterator(added_materials.end()));
             m_materials.push_back(std::move(diffuse_teapot_material));
-            m_materials.push_back(std::move(floor_material));
             m_materials.push_back(std::move(steel_material));
             m_materials.push_back(std::move(glass_material));
             m_materials.push_back(std::move(bunny_material));
             m_materials.push_back(std::move(dragon_material));
-            m_meshes.insert(m_meshes.end(), make_move_iterator(meshes.begin()), make_move_iterator(meshes.end()));
-            m_meshes.push_back(std::move(floor_mesh));
-            m_resources.push_back(std::move(floor_resource));
-            m_resources.push_back(std::move(plane_resource));
-            m_resources.push_back(std::move(teapot_resource ));
-            m_resources.push_back(std::move(bunny_resource));
-            m_resources.push_back(std::move(dragon_resource ));
+            m_meshes.insert(m_meshes.end(), make_move_iterator(added_meshes.begin()), make_move_iterator(added_meshes.end()));
+            m_resources.insert(m_resources.end(), make_move_iterator(added_resources.begin()), make_move_iterator(added_resources.end()));
             m_cubemaps.push_back(std::move(skybox));
+            m_nodes.insert(m_nodes.end(), make_move_iterator(added_nodes.begin()), make_move_iterator(added_nodes.end()));
+            m_plane_node = plane_node;
+            m_steel_dragon_node = steel_dragon_node;
+            m_steel_teapot_node = steel_teapot_node;
+            m_glass_bunny_node = glass_bunny_node;
             m_is_initialized = true;
         }
 
@@ -239,7 +240,7 @@ namespace cgs
             }            
         }
 
-        void make_floor_resource(unique_resource* res, unique_material* mat, unique_mesh* mesh)
+        void make_floor_resource(resource_id* root_out, resource_vector* resources_out, material_vector* materials_out, mesh_vector* meshes_out)
         {
             unique_mesh floor_mesh = make_mesh();
             std::vector<glm::vec3> vertices =
@@ -279,9 +280,10 @@ namespace cgs
             auto floor_resource = make_resource();
             set_resource_mesh(floor_resource.get(), floor_mesh.get());
             set_resource_material(floor_resource.get(),  floor_mat.get());
-            *res = std::move(floor_resource);
-            *mat = std::move(floor_mat);
-            *mesh = std::move(floor_mesh);
+            *root_out = floor_resource.get();
+            resources_out->push_back(std::move(floor_resource));
+            materials_out->push_back(std::move(floor_mat));
+            meshes_out->push_back(std::move(floor_mesh));
         }
 
        void process_events(const std::vector<event>& events) {
@@ -295,16 +297,16 @@ namespace cgs
         void update_simulation(float dt)
         {
             m_sim_rotation_yaw += m_sim_rotation_speed * dt;
-            set_node_transform(m_scene, m_plane_node, glm::rotate(m_sim_rotation_yaw, glm::vec3{0.0f, 1.0f, 0.0f}));
+            set_node_transform(m_plane_node, glm::rotate(m_sim_rotation_yaw, glm::vec3{0.0f, 1.0f, 0.0f}));
 
-            set_node_transform(m_scene, m_steel_dragon_node, glm::translate(glm::vec3(65.0f, -3.0f, -20.0f))
+            set_node_transform(m_steel_dragon_node, glm::translate(glm::vec3(65.0f, -3.0f, -20.0f))
                                            * glm::rotate(m_sim_rotation_yaw, glm::vec3{0.0f, 1.0f, 0.0f}));
 
-            set_node_transform(m_scene, m_glass_bunny_node, glm::translate(glm::vec3(47.0f, -5.0f, -20.0f))
+            set_node_transform(m_glass_bunny_node, glm::translate(glm::vec3(47.0f, -5.0f, -20.0f))
                                            * glm::rotate(m_sim_rotation_yaw, glm::vec3{0.0f, 1.0f, 0.0f})
                                            * glm::scale(glm::vec3(60.0f, 60.0f, 60.0f)));
 
-            set_node_transform(m_scene, m_steel_teapot_node, glm::translate(glm::vec3(22.0f, -3.0f, 0.0f))
+            set_node_transform(m_steel_teapot_node, glm::translate(glm::vec3(22.0f, -3.0f, 0.0f))
                                            * glm::rotate(m_sim_rotation_yaw, glm::vec3{0.0f, 1.0f, 0.0f})
                                            * glm::scale(glm::vec3(8.0f, 8.0f, 8.0f)));
         }
@@ -331,7 +333,7 @@ namespace cgs
             m_perspective_controller.process(dt, events);
 
             // Render the scene
-            render(m_view);
+            render();
             swap_buffers();
 
             // Control framerate
@@ -344,18 +346,13 @@ namespace cgs
         mesh_vector            m_meshes;
         resource_vector        m_resources;
         cubemap_vector         m_cubemaps;
-        node_id                m_root_node;
-        node_id                m_floor_node;
+        node_vector            m_nodes;
         node_id                m_plane_node;
-        node_id                m_diffuse_teapot_node;
-        node_id                m_bunny_node;
-        node_id                m_diffuse_dragon_node;
         node_id                m_steel_dragon_node;
         node_id                m_steel_teapot_node;
         node_id                m_glass_bunny_node;
         unsigned int           m_max_errors;
-        view_id                m_view;
-        scene_id               m_scene;
+        unique_scene           m_scene;
         fps_camera_controller  m_fps_camera_controller;
         framerate_controller   m_framerate_controller;
         perspective_controller m_perspective_controller;

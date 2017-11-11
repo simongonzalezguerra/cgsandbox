@@ -12,7 +12,7 @@ namespace cgs
     void set_gl_driver(const gl_driver& driver);
     void initialize_renderer();
     void finalize_renderer();
-    void render(view_id view);
+    void render();
 } // namespace cgs
 
 #endif // RENDERER_HPP

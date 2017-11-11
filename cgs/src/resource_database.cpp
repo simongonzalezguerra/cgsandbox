@@ -489,19 +489,8 @@ namespace cgs
             rit++;
         }
 
-        // Mark all its descendants as not used
-        std::queue<resource_id> pending_nodes;
-        pending_nodes.push(r);
-        while (!pending_nodes.empty()) {
-            auto current = pending_nodes.front();
-            pending_nodes.pop();
-            resources[current] = resource(); // reset all fields back to default state
-            for (auto child = get_first_child_resource(current); child != nresource; child = get_next_sibling_resource(child)) {
-                pending_nodes.push(child);
-            }
-            resources[current].m_used = false; // soft removal
-        }
-
+        // Set all members to default values
+        resources[r] = resource{};
         // Mark the vector entry as not used
         resources[r].m_used = false; // soft removal
     }

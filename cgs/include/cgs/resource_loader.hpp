@@ -27,7 +27,8 @@ namespace cgs
     //! @return The id of the root resource created from the file.
     //-----------------------------------------------------------------------------------------------
     void load_resources(const std::string& file_name,
-                       unique_resource* root_out,
+                       resource_id* root_out,
+                       resource_vector* resources_out,
                        material_vector* materials_out,
                        mesh_vector* meshes_out);
 } // namespace cgs

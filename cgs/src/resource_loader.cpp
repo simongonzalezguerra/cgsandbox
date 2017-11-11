@@ -36,7 +36,12 @@ namespace cgs
         //---------------------------------------------------------------------------------------------
         void log_callback(const char* message, char*)
         {
-            log(LOG_LEVEL_DEBUG, message);
+            std::string message_trimmed(message);
+            std::size_t n = message_trimmed.find('\n');
+            if (n != std::string::npos) {
+              message_trimmed[n] = '\0';
+            }
+            log(LOG_LEVEL_DEBUG, message_trimmed);
         }
 
         std::string extract_dir(const std::string& file_name)
@@ -145,12 +150,14 @@ namespace cgs
         }
 
 
-        void create_resources(const struct aiScene* scene, unique_resource* resource_out)
+        void create_resources(const struct aiScene* scene, resource_id* root_out, resource_vector* resources_out)
         {
-            unique_resource added_root = make_resource();
+            resource_vector added_resources;
+            added_resources.push_back(make_resource());
+            *root_out = added_resources[added_resources.size() - 1].get();
             struct context{ resource_id added_resource; aiNode* ai_node; };
             std::queue<context> pending_nodes;
-            pending_nodes.push({added_root.get(), scene->mRootNode});
+            pending_nodes.push({added_resources[0].get(), scene->mRootNode});
             while (!pending_nodes.empty()) {
                 auto current = pending_nodes.front();
                 pending_nodes.pop();
@@ -183,7 +190,8 @@ namespace cgs
                 resource_id last_parent = current.added_resource;
                 unsigned int ai_mesh = 1;
                 while (ai_mesh < current.ai_node->mNumMeshes) {
-                    last_parent = add_resource(last_parent);
+                    added_resources.push_back(make_resource(last_parent));
+                    last_parent = added_resources[added_resources.size() - 1].get();
                     set_resource_mesh(last_parent, mesh_ids[current.ai_node->mMeshes[ai_mesh]]);
                     set_resource_material(last_parent, material_ids[scene->mMeshes[current.ai_node->mMeshes[ai_mesh]]->mMaterialIndex]);
                     set_resource_local_transform(last_parent, glm::mat4(1.0f));
@@ -192,12 +200,13 @@ namespace cgs
 
                 // Push the children to be processed next
                 for (unsigned int i = 0; i < current.ai_node->mNumChildren; ++i) {
-                    resource_id child = add_resource(last_parent);
+                    added_resources.push_back(make_resource(last_parent));
+                    resource_id child = added_resources[added_resources.size() - 1].get();
                     pending_nodes.push({child, current.ai_node->mChildren[i]});
                 }
             }
 
-            *resource_out = std::move(added_root);
+            resources_out->insert(resources_out->end(), make_move_iterator(added_resources.begin()), make_move_iterator(added_resources.end()));
         }
 
         template<typename T>
@@ -389,7 +398,8 @@ namespace cgs
     // Public functions
     //-----------------------------------------------------------------------------------------------
     void load_resources(const std::string& file_name,
-                        unique_resource* resource_out,
+                        resource_id* root_out,
+                        resource_vector* resources_out,
                         material_vector* materials_out,
                         mesh_vector* meshes_out)
     {
@@ -412,16 +422,18 @@ namespace cgs
         create_materials(scene, &materials, file_name);
         mesh_vector meshes;
         create_meshes(scene, &meshes);
-        unique_resource added_root;
-        create_resources(scene, &added_root);
+        resource_vector added_resources;
+        resource_id added_root_out = nresource;
+        create_resources(scene, &added_root_out, &added_resources);
 
-        log_statistics(added_root.get(), materials, *meshes_out);
+        log_statistics(added_root_out, materials, *meshes_out);
 
         aiReleaseImport(scene);
         aiDetachAllLogStreams();
 
         materials_out->insert(materials_out->end(), make_move_iterator(materials.begin()), make_move_iterator(materials.end()));
         meshes_out->insert(meshes_out->end(), make_move_iterator(meshes.begin()), make_move_iterator(meshes.end()));
-        *resource_out = std::move(added_root);
+        resources_out->insert(resources_out->end(), make_move_iterator(added_resources.begin()), make_move_iterator(added_resources.end()));
+        *root_out = added_root_out;
     }
 } // namespace cgs
