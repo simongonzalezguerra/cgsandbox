@@ -1,13 +1,13 @@
 #ifndef GL_DRIVER_HPP
 #define GL_DRIVER_HPP
 
-#include "cgs_common.hpp"
+#include "rte_common.hpp"
 #include "glm/glm.hpp"
 
 #include <string>
 #include <vector>
 
-namespace cgs
+namespace rte
 {
     struct material_data
     {
@@ -230,6 +230,6 @@ namespace cgs
         initialize_frame_func       initialize_frame;
         draw_func                   draw;
     };
-} // namespace cgs
+} // namespace rte
 
 #endif // GL_DRIVER_HPP

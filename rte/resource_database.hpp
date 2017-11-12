@@ -1,7 +1,7 @@
 #ifndef RESOURCE_DATABASE_HPP
 #define RESOURCE_DATABASE_HPP
 
-#include "cgs_common.hpp"
+#include "rte_common.hpp"
 #include "glm/glm.hpp"
 
 #include <cstddef> // for size_t
@@ -9,7 +9,7 @@
 #include <vector>
 #include <string>
 
-namespace cgs
+namespace rte
 {
     //-----------------------------------------------------------------------------------------------
     // Types
@@ -295,6 +295,6 @@ namespace cgs
     typedef std::unique_ptr<cubemap_id, cubemap_deleter> unique_cubemap;
     typedef std::vector<unique_cubemap> cubemap_vector;
     unique_cubemap make_cubemap();
-} // namespace cgs
+} // namespace rte
 
 #endif // RESOURCE_DATABASE_HPP

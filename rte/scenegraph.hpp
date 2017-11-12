@@ -7,7 +7,7 @@
 #include <cstddef> // for size_t
 #include <vector>
 
-namespace cgs
+namespace rte
 {
     //-----------------------------------------------------------------------------------------------
     // Types
@@ -331,6 +331,6 @@ namespace cgs
     unique_point_light make_point_light(scene_id scene);
 
     std::vector<node_id> get_descendant_nodes(node_id node);
-} // namespace cgs
+} // namespace rte
 
 #endif // SCENE_GRAPH_HPP

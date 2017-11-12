@@ -5,7 +5,7 @@
 #include <cstring>
 #include <set>
 
-namespace cgs
+namespace rte
 {
     namespace
     {
@@ -128,4 +128,4 @@ namespace cgs
     {
         std::cout << message << "\n";
     }
-} // namespace cgs
+} // namespace rte

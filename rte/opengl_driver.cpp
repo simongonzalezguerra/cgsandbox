@@ -11,7 +11,7 @@
 #include <string>
 #include <map>
 
-namespace cgs
+namespace rte
 {
     namespace
     {
@@ -476,4 +476,4 @@ namespace cgs
 
         return driver;
     }
-} // namespace cgs
+} // namespace rte

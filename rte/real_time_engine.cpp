@@ -13,7 +13,7 @@
 #include <iostream>
 #include <sstream>
 
-namespace cgs
+namespace rte
 {
     //-------------------------------------------------------------------------------------------------
     // real_time_engine

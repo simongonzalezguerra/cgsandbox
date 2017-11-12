@@ -1,7 +1,7 @@
 #ifndef CGS_TYPES_HPP
 #define CGS_TYPES_HPP
 
-namespace cgs
+namespace rte
 {
     //-----------------------------------------------------------------------------------------------
     //! @brief Type used to represent the format of an image in memory.
@@ -34,6 +34,6 @@ namespace cgs
     //! @brief Type used to store a handle to a shader program (vertex and fragment shader). Non-zero.
     //-----------------------------------------------------------------------------------------------
     typedef unsigned int gl_program_id;
-} // namespace cgs
+} // namespace rte
 
 #endif // CGS_TYPES_HPP

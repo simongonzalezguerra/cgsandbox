@@ -6,13 +6,13 @@
 int main()
 {
     try {
-        cgs::log_init();
-        cgs::real_time_engine engine;
+        rte::log_init();
+        rte::real_time_engine engine;
         engine.initialize();
         engine.process();
         engine.finalize();
     } catch(std::exception& ex) {
-        cgs::log(cgs::LOG_LEVEL_ERROR, "real_time_engine: closing application");
+        rte::log(rte::LOG_LEVEL_ERROR, "real_time_engine: closing application");
     }
 
 	return 0;

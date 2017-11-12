@@ -4,7 +4,7 @@
 #include "gl_driver_util.hpp"
 #include "scenegraph.hpp"
 
-namespace cgs
+namespace rte
 {
     //-----------------------------------------------------------------------------------------------
     // Public functions
@@ -13,6 +13,6 @@ namespace cgs
     void initialize_renderer();
     void finalize_renderer();
     void render();
-} // namespace cgs
+} // namespace rte
 
 #endif // RENDERER_HPP

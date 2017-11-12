@@ -6,7 +6,7 @@
 #include <vector>
 #include <queue>
 
-namespace cgs
+namespace rte
 {
     namespace
     {
@@ -630,4 +630,4 @@ namespace cgs
     {
         return unique_cubemap(new_cubemap());
     }
-} // namespace cgs
+} // namespace rte

@@ -8,7 +8,7 @@
 #include <iomanip>
 #include <sstream>
 
-namespace cgs
+namespace rte
 {
     //-----------------------------------------------------------------------------------------------
     // fps_camera_controller
@@ -20,7 +20,7 @@ namespace cgs
     {
     public:
         fps_camera_controller_impl() :
-            m_scene(cgs::nscene),
+            m_scene(rte::nscene),
             m_position{0.0f},
             m_yaw(0.0f),
             m_pitch(0.0f),
@@ -36,10 +36,10 @@ namespace cgs
             // std::ostringstream oss;
             // oss << "fps_camera_controller: updated position, position: " << std::fixed << std::setprecision(2)
             //     << m_position.x << ", " << m_position.y << ", " << m_position.z;
-            // cgs::log(cgs::LOG_LEVEL_DEBUG, oss.str());
+            // rte::log(rte::LOG_LEVEL_DEBUG, oss.str());
         }
 
-        cgs:: scene_id m_scene;
+        rte:: scene_id m_scene;
         glm::vec3      m_position;
         float          m_yaw;
         float          m_pitch;
@@ -56,7 +56,7 @@ namespace cgs
 
     fps_camera_controller::~fps_camera_controller() {}
 
-    void fps_camera_controller::set_scene(cgs::scene_id scene)
+    void fps_camera_controller::set_scene(rte::scene_id scene)
     {
         m_impl->m_scene = scene;
     }
@@ -86,7 +86,7 @@ namespace cgs
         m_impl->m_mouse_speed = m_mouse_speed;
     }
 
-    cgs::scene_id fps_camera_controller::get_scene()
+    rte::scene_id fps_camera_controller::get_scene()
     {
         return m_impl->m_scene;
     }
@@ -116,11 +116,11 @@ namespace cgs
         return m_impl->m_mouse_speed;
     }
 
-    void fps_camera_controller::process(float dt, const std::vector<cgs::event>& events)
+    void fps_camera_controller::process(float dt, const std::vector<rte::event>& events)
     {
         // Process events
         for (auto it = events.cbegin(); it != events.cend(); it++) {
-            if (it->type == cgs::EVENT_MOUSE_MOVE) {
+            if (it->type == rte::EVENT_MOUSE_MOVE) {
                 // Compute new orientation
                 // Yaw rotates the camera around the Y axis counter-clockwise. Mouse X coordinates increase
                 // to the right, so we use mouse motion to substract from yaw.
@@ -132,28 +132,28 @@ namespace cgs
                 // std::ostringstream oss;
                 // oss << "fps_camera_controller: updated angles, "<< std::fixed << std::setprecision(2)
                 //     << " yaw: " << m_impl->m_yaw << ", pitch: " << m_impl->m_pitch;
-                // cgs::log(cgs::LOG_LEVEL_DEBUG, oss.str());
+                // rte::log(rte::LOG_LEVEL_DEBUG, oss.str());
             }
 
-            if (it->type == cgs::EVENT_KEY_PRESS) {
-                if (it->value == cgs::KEY_W) {
+            if (it->type == rte::EVENT_KEY_PRESS) {
+                if (it->value == rte::KEY_W) {
                     m_impl->m_moving_forward = true;
                     m_impl->m_moving_backward = false;
-                } else if (it->value == cgs::KEY_S) {
+                } else if (it->value == rte::KEY_S) {
                     m_impl->m_moving_forward = false;
                     m_impl->m_moving_backward = true;
-                } else if (it->value == cgs::KEY_D) {
+                } else if (it->value == rte::KEY_D) {
                     m_impl->m_moving_right = true;
                     m_impl->m_moving_left = false;
-                } else if (it->value == cgs::KEY_A) {
+                } else if (it->value == rte::KEY_A) {
                     m_impl->m_moving_right = false;
                     m_impl->m_moving_left = true;
                 }
-            } else if (it->type == cgs::EVENT_KEY_RELEASE) {
-                if (it->value == cgs::KEY_W || it->value == cgs::KEY_S) {
+            } else if (it->type == rte::EVENT_KEY_RELEASE) {
+                if (it->value == rte::KEY_W || it->value == rte::KEY_S) {
                     m_impl->m_moving_forward = false;
                     m_impl->m_moving_backward = false;
-                } else if (it->value == cgs::KEY_D || it->value == cgs::KEY_A) {
+                } else if (it->value == rte::KEY_D || it->value == rte::KEY_A) {
                     m_impl->m_moving_right = false;
                     m_impl->m_moving_left = false;
                 }
@@ -194,7 +194,7 @@ namespace cgs
             m_impl->log_position();
         }
 
-        cgs::set_scene_view_transform(m_impl->m_scene, glm::lookAt(m_impl->m_position, m_impl->m_position + direction, up));
+        rte::set_scene_view_transform(m_impl->m_scene, glm::lookAt(m_impl->m_position, m_impl->m_position + direction, up));
     }
 
     //-----------------------------------------------------------------------------------------------
@@ -226,23 +226,23 @@ namespace cgs
             oss << "perspective_controller, fov degrees: "
                 << glm::degrees(m_fov_radians)
                 << ", fovy degrees: "
-                << glm::degrees(cgs::fov_to_fovy(m_fov_radians, m_window_width, m_window_height));
-            cgs::log(cgs::LOG_LEVEL_DEBUG, oss.str());
+                << glm::degrees(rte::fov_to_fovy(m_fov_radians, m_window_width, m_window_height));
+            rte::log(rte::LOG_LEVEL_DEBUG, oss.str());
         }
 
-        void process(float dt, const std::vector<cgs::event>& events)
+        void process(float dt, const std::vector<rte::event>& events)
         {
             for (auto it = events.cbegin(); it != events.cend(); it++) {
-                if (it->type == cgs::EVENT_KEY_PRESS) {
-                    if (it->value == cgs::KEY_9) {
+                if (it->type == rte::EVENT_KEY_PRESS) {
+                    if (it->value == rte::KEY_9) {
                         m_increasing_fov = false;
                         m_decreasing_fov = true;
-                    } else if (it->value == cgs::KEY_0) {
+                    } else if (it->value == rte::KEY_0) {
                         m_increasing_fov = true;
                         m_decreasing_fov = false;
                     }
-                } else if (it->type == cgs::EVENT_KEY_RELEASE) {
-                    if (it->value == cgs::KEY_9 || it->value == cgs::KEY_0) {
+                } else if (it->type == rte::EVENT_KEY_RELEASE) {
+                    if (it->value == rte::KEY_9 || it->value == rte::KEY_0) {
                         m_increasing_fov = false;
                         m_decreasing_fov = false; 
                     }
@@ -264,13 +264,13 @@ namespace cgs
             // version 0.9.7 states explicitly that it's in radians:
             // http://glm.g-truc.net/0.9.7/api/a00174.html#gac3613dcb6c6916465ad5b7ad5a786175
             // This is why our utility function fov_to_fovy takes radians and returns radians
-            float fovy_radians = cgs::fov_to_fovy(m_fov_radians, m_window_width, m_window_height);
+            float fovy_radians = rte::fov_to_fovy(m_fov_radians, m_window_width, m_window_height);
             glm::mat4 projection_transform = glm::perspective(fovy_radians, m_window_width / m_window_height, m_near, m_far);
-            cgs::set_scene_projection_transform(m_scene, projection_transform);
+            rte::set_scene_projection_transform(m_scene, projection_transform);
         }
 
         // Member variables
-        cgs::scene_id m_scene;
+        rte::scene_id m_scene;
         float         m_window_width;
         float         m_window_height;
         bool          m_increasing_fov;
@@ -286,7 +286,7 @@ namespace cgs
 
     perspective_controller::~perspective_controller() {}
 
-    void perspective_controller::set_scene(cgs::scene_id scene)
+    void perspective_controller::set_scene(rte::scene_id scene)
     {
         m_impl->m_scene = scene;
     }
@@ -331,7 +331,7 @@ namespace cgs
         return m_impl->m_fov_radians;
     }
 
-    cgs::scene_id perspective_controller::get_scene()
+    rte::scene_id perspective_controller::get_scene()
     {
         return m_impl->m_scene;
     }
@@ -356,7 +356,7 @@ namespace cgs
         return m_impl->m_far;
     }
 
-    void perspective_controller::process(float dt, const std::vector<cgs::event>& events)
+    void perspective_controller::process(float dt, const std::vector<rte::event>& events)
     {
         m_impl->process(dt, events);
     }
@@ -426,10 +426,10 @@ namespace cgs
             << "min: " << m_impl->m_minimum_framerate
             << ", max: " << m_impl->m_maximum_framerate
             << ", avg: " << m_impl->m_average_framerate;
-        cgs::log(cgs::LOG_LEVEL_DEBUG, oss.str());
+        rte::log(rte::LOG_LEVEL_DEBUG, oss.str());
     }
 
-    void framerate_controller::process(float dt, const std::vector<cgs::event>&)
+    void framerate_controller::process(float dt, const std::vector<rte::event>&)
     {
         m_impl->process(dt);
     }

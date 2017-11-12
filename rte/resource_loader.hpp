@@ -7,7 +7,7 @@
 #include <vector>
 #include <string>
 
-namespace cgs
+namespace rte
 {
     //-----------------------------------------------------------------------------------------------
     //! @brief Loads resources from a file (materials, meshes and resource nodes).
@@ -31,6 +31,6 @@ namespace cgs
                        resource_vector* resources_out,
                        material_vector* materials_out,
                        mesh_vector* meshes_out);
-} // namespace cgs
+} // namespace rte
 
 #endif // RESOURCE_LOADER_HPP

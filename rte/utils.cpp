@@ -1,7 +1,7 @@
 #include "utils.hpp"
 #include "glm/glm.hpp"
 
-namespace cgs
+namespace rte
 {
     float fov_to_fovy(float fov_radians, float width, float height)
     {

@@ -3,7 +3,7 @@
 
 #include <memory>
 
-namespace cgs
+namespace rte
 {
     class real_time_engine
     {

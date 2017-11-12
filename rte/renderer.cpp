@@ -8,7 +8,7 @@
 #include <memory>
 #include <vector>
 
-namespace cgs
+namespace rte
 {
     namespace
     {
@@ -345,4 +345,4 @@ namespace cgs
             render_skybox();
         }
     }
-} // namespace cgs
+} // namespace rte

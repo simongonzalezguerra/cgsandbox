@@ -8,7 +8,7 @@
 #include <sstream>
 #include <map>
 
-namespace cgs
+namespace rte
 {
     namespace
     {
@@ -244,7 +244,7 @@ namespace cgs
         glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
         // Open a glfw window and create its OpenGL context
-        new_window.m_glfw_window = glfwCreateWindow(width, height, "cgs", fullscreen? glfwGetPrimaryMonitor() : nullptr, nullptr);
+        new_window.m_glfw_window = glfwCreateWindow(width, height, "rte", fullscreen? glfwGetPrimaryMonitor() : nullptr, nullptr);
         if(new_window.m_glfw_window == nullptr) {
             throw std::runtime_error("new_window: failed to open GLFW new_window.m_glfw_window. If you have an Intel GPU prior to HD 4000, they are not OpenGL 3.3 compatible.");
         }
@@ -319,7 +319,7 @@ namespace cgs
         glfwPollEvents();
     }
 
-    void get_window_events(window_id w, std::vector<cgs::event>* events)
+    void get_window_events(window_id w, std::vector<rte::event>* events)
     {
         if (!is_glfw_initialized) return;
 
@@ -355,4 +355,4 @@ namespace cgs
             is_glfw_initialized = false;
         }
     }
-} // namespace cgs
+} // namespace rte

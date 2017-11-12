@@ -4,7 +4,7 @@
 #include <cstddef>
 #include <string>
 
-namespace cgs
+namespace rte
 {
     //-----------------------------------------------------------------------------------------------
     // Types
@@ -15,7 +15,7 @@ namespace cgs
     //-----------------------------------------------------------------------------------------------
     // Constants
     //-----------------------------------------------------------------------------------------------
-    constexpr const char* const DEFAULT_LOGSTREAM_FILENAME = "cgs.log";
+    constexpr const char* const DEFAULT_LOGSTREAM_FILENAME = "rte.log";
     constexpr std::size_t MAX_MESSAGE_LENGTH = 2048;
     constexpr log_level LOG_LEVEL_DEBUG = 0;
     constexpr log_level LOG_LEVEL_ERROR = 1;
@@ -115,6 +115,6 @@ namespace cgs
     //! @param message The message to log.
     //----------------------------------------------------------------------------------------------
     void default_logstream_stdout_callback(log_level level, const char* message);
-} // namespace cgs
+} // namespace rte
 
 #endif // LOG_HPP

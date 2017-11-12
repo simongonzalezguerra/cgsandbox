@@ -6,7 +6,7 @@
 #include <memory>
 #include <vector>
 
-namespace cgs
+namespace rte
 {
     //-----------------------------------------------------------------------------------------------
     // Default textures
@@ -182,6 +182,6 @@ namespace cgs
     typedef std::unique_ptr<gl_program_id, program_deleter> unique_program;
     typedef std::vector<unique_program> program_vector;
     unique_program make_program(const gl_driver& driver, program_type type);
-} // namespace cgs
+} // namespace rte
 
 #endif // GL_DRIVER_UTIL_HPP

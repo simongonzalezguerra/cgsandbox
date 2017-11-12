@@ -21,7 +21,7 @@
 #define CURRENT_DIR     ""
 #endif
 
-namespace cgs
+namespace rte
 {
     namespace
     {
@@ -436,4 +436,4 @@ namespace cgs
         resources_out->insert(resources_out->end(), make_move_iterator(added_resources.begin()), make_move_iterator(added_resources.end()));
         *root_out = added_root_out;
     }
-} // namespace cgs
+} // namespace rte

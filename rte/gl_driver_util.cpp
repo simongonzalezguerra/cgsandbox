@@ -1,6 +1,6 @@
 #include "gl_driver_util.hpp"
 
-namespace cgs
+namespace rte
 {
     //-----------------------------------------------------------------------------------------------
     // Public functions
@@ -69,4 +69,4 @@ namespace cgs
         unique_program ret(handle, program_deleter(driver));
         return std::move(ret);
     }
-} // namespace cgs
+} // namespace rte

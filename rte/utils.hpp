@@ -7,7 +7,7 @@
 #include <stdexcept>
 #include <sstream>
 
-namespace cgs
+namespace rte
 {
     //-----------------------------------------------------------------------------------------------
     //! @brief Function type used to call an arbitrary function without arguments.

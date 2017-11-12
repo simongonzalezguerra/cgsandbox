@@ -7,26 +7,26 @@
 #include <vector>
 #include <memory>
 
-namespace cgs
+namespace rte
 {
     class fps_camera_controller
     {
     public:
         fps_camera_controller();
         ~fps_camera_controller();
-        void set_scene(cgs::scene_id scene);
+        void set_scene(rte::scene_id scene);
         void set_position(glm::vec3 position);
         void set_yaw(float yaw);
         void set_pitch(float pitch);
         void set_speed(float speed);
         void set_mouse_speed(float mouse_speed);
-        cgs::scene_id get_scene();
+        rte::scene_id get_scene();
         glm::vec3 get_position();
         float get_yaw();
         float get_pitch();
         float get_speed();
         float get_mouse_speed();
-        void process(float dt, const std::vector<cgs::event>& events);
+        void process(float dt, const std::vector<rte::event>& events);
 
     private:
         class fps_camera_controller_impl;
@@ -38,7 +38,7 @@ namespace cgs
     public:
         perspective_controller();
         ~perspective_controller();
-        void set_scene(cgs::scene_id scene);
+        void set_scene(rte::scene_id scene);
         void set_window_width(float window_width);
         void set_window_height(float window_height);
         void set_fov_speed(float fov_speed);
@@ -47,12 +47,12 @@ namespace cgs
         void set_far(float far);
         float get_fov_speed();
         float get_fov_radians();
-        cgs::scene_id get_scene();
+        rte::scene_id get_scene();
         float get_window_width();
         float get_window_height();
         float get_near();
         float get_far();
-        void process(float dt, const std::vector<cgs::event>& events);
+        void process(float dt, const std::vector<rte::event>& events);
 
     private:
         class perspective_controller_impl;
@@ -68,7 +68,7 @@ namespace cgs
         float get_maximum_framerate();
         float get_average_framerate();
         void log_stats();
-        void process(float dt, const std::vector<cgs::event>& events);
+        void process(float dt, const std::vector<rte::event>& events);
 
     private:
         class framerate_controller_impl;

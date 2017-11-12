@@ -1,13 +1,13 @@
 #ifndef SYSTEM_HPP
 #define SYSTEM_HPP
 
-#include "cgs_common.hpp"
+#include "rte_common.hpp"
 
 #include <memory>
 #include <string>
 #include <vector>
 
-namespace cgs
+namespace rte
 {
     //-----------------------------------------------------------------------------------------------
     // Types
@@ -199,7 +199,7 @@ namespace cgs
     window_id get_first_window();
     window_id get_next_window(window_id window);
     void poll_window_events();
-    void get_window_events(window_id window, std::vector<cgs::event>* events);
+    void get_window_events(window_id window, std::vector<rte::event>* events);
     float get_time();
     void swap_buffers(window_id window);
 
@@ -231,6 +231,6 @@ namespace cgs
     unique_window make_window(std::size_t width, std::size_t height, bool fullscreen);
     
     void system_finalize();
-} // namespace cgs
+} // namespace rte
 
 #endif // SYSTEM_HPP

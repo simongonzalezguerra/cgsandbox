@@ -9,7 +9,7 @@
 #include <queue>
 #include <set>
 
-namespace cgs
+namespace rte
 {
     namespace
     {
@@ -636,4 +636,4 @@ namespace cgs
 
         return ret;
     }
-} // namespace cgs
+} // namespace rte
