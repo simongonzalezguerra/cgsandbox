@@ -48,6 +48,7 @@ namespace cgs
                 m_constant_attenuation(0.0f),
                 m_linear_attenuation(0.0f),
                 m_quadratic_attenuation(0.0f),
+                m_scene(nscene),
                 m_used(true) {}
 
             glm::vec3 m_position;
@@ -57,6 +58,7 @@ namespace cgs
             float     m_constant_attenuation;
             float     m_linear_attenuation;
             float     m_quadratic_attenuation;
+            scene_id  m_scene;
             bool      m_used;
         };
 
@@ -487,7 +489,7 @@ namespace cgs
         return (s < scenes.size()? scenes[s].m_directional_light_direction : glm::vec3());
     }
 
-    point_light_id add_point_light(scene_id scene)
+    point_light_id add_point_light(scene_id s)
     {
         point_light_id pl = std::find_if(point_lights.begin(), point_lights.end(), [](const point_light& pl) { return !pl.m_used; }) - point_lights.begin();
         if (pl == point_lights.size()) {
@@ -495,6 +497,7 @@ namespace cgs
         } else {
             point_lights[pl] = point_light{};
         }
+        point_lights[pl].m_scene = s;
 
         return pl;
     }
