@@ -22,6 +22,7 @@ namespace cgs
     {
     public:
         real_time_engine_impl(unsigned int max_errors) :
+            m_events(),
             m_materials(),
             m_meshes(),
             m_resources(),
@@ -57,7 +58,10 @@ namespace cgs
 
             attach_logstream(default_logstream_stdout_callback);
             attach_logstream(default_logstream_file_callback);
+
             resource_database_init();
+
+            system_initialize();
 
             material_vector added_materials;
             mesh_vector added_meshes;
@@ -120,7 +124,7 @@ namespace cgs
             };
             set_cubemap_faces(skybox.get(), skybox_faces);
 
-            open_window(1920, 1080, false);
+            unique_window window = make_window(1920, 1080, false);
 
             set_gl_driver(get_opengl_driver());
 
@@ -204,6 +208,7 @@ namespace cgs
             m_sim_rotation_speed = 1.5f;
             m_sim_rotation_yaw = 0.0f;
 
+            m_window = std::move(window);
             m_materials.insert(m_materials.end(), make_move_iterator(added_materials.begin()), make_move_iterator(added_materials.end()));
             m_materials.push_back(std::move(diffuse_teapot_material));
             m_materials.push_back(std::move(steel_material));
@@ -230,7 +235,8 @@ namespace cgs
                 log(LOG_LEVEL_DEBUG, "real_time_engine: finalizing application");
                 m_framerate_controller.log_stats();
                 finalize_renderer();
-                close_window();
+                m_window.reset();
+                system_finalize();
                 m_cubemaps.clear();
                 m_resources.clear();
                 m_meshes.clear();
@@ -287,8 +293,8 @@ namespace cgs
             meshes_out->push_back(std::move(floor_mesh));
         }
 
-       void process_events(const std::vector<event>& events) {
-            for (auto it = events.cbegin(); it != events.cend(); it++) {
+       void process_events(const std::vector<event>& m_events) {
+            for (auto it = m_events.cbegin(); it != m_events.cend(); it++) {
                 if (it->type == EVENT_KEY_PRESS && it->value == KEY_ESCAPE) {
                     m_should_continue = false;
                 }
@@ -319,30 +325,34 @@ namespace cgs
             float dt = float(current_time - m_last_time);
             m_last_time = current_time;
 
-            std::vector<event> events = poll_events();
+            poll_window_events();
+            m_events.clear();
+            get_window_events(m_window.get(), &m_events);
 
             // Update the simulation with time passed since last frame
             update_simulation(dt);
       
             // Check for escape key
-            process_events(events);
+            process_events(m_events);
         
             // Control camera
-            m_fps_camera_controller.process(dt, events);
+            m_fps_camera_controller.process(dt, m_events);
         
             // Control projection (update fov)
-            m_perspective_controller.process(dt, events);
+            m_perspective_controller.process(dt, m_events);
 
             // Render the scene
             render();
-            swap_buffers();
+            swap_buffers(m_window.get());
 
             // Control framerate
-            m_framerate_controller.process(dt, events);
+            m_framerate_controller.process(dt, m_events);
 
             return !m_should_continue;            
         }
 
+        std::vector<event>     m_events;
+        unique_window          m_window;
         material_vector        m_materials;
         mesh_vector            m_meshes;
         resource_vector        m_resources;

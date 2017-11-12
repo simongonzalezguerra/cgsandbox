@@ -4,6 +4,7 @@
 #include "glfw3.h"
 
 #include <stdexcept>
+#include <algorithm>
 #include <sstream>
 #include <map>
 
@@ -18,16 +19,29 @@ namespace cgs
         typedef key_event_type_map::iterator         event_type_it;
         typedef std::map<int, std::string>           error_code_map;
 
+        struct window
+        {
+            window() :
+                m_glfw_window(nullptr),
+                m_events(),
+                m_last_mouse_x(0.0f),
+                m_last_mouse_y(0.0f),
+                m_used(true) {}
+
+            GLFWwindow*        m_glfw_window;
+            std::vector<event> m_events;
+            float              m_last_mouse_x;
+            float              m_last_mouse_y;
+            bool               m_used;
+        };
+
         //---------------------------------------------------------------------------------------------
         // Internal data structures
         //---------------------------------------------------------------------------------------------
-        GLFWwindow*              window = nullptr;
-        bool                     ok = false;
-        std::vector<event>       events;
-        key_event_type_map       event_types;     // map from GLFW key action value to event_type value
-        error_code_map           error_codes;     // map from GLFW error codes to their names
-        float                    last_mouse_x = 0.0f;
-        float                    last_mouse_y = 0.0f;
+        key_event_type_map       event_types;                  // map from GLFW key action value to event_type value
+        error_code_map           error_codes;                  // map from GLFW error codes to their names
+        std::vector<window>      windows;                      // collection of all windows created
+        bool                     is_glfw_initialized = false;  // has GLFW been initialized?
 
         //---------------------------------------------------------------------------------------------
         // Helper functions
@@ -56,39 +70,46 @@ namespace cgs
             }
         }
 
-        void key_callback(GLFWwindow*, int key, int, int action, int)
+        void key_callback(GLFWwindow* glfw_window, int key, int, int action, int)
         {
-            if (ok && window) {
-                // Our key code is the same value that GLFW gives us. This works because we have defined our
-                // keycode constants with the same values as GLFW's constants. If we update GLFW and its
-                // key constants change, we need to update our keycode constants accordingly.
-                key_code key_code = key;
+            if (!is_glfw_initialized) return;
 
-                // Translate GLFW key action value to an event type
-                fill_event_type_map();
-                event_type event_type = EVENT_KEY_PRESS;
-                event_type_it eit = event_types.find(action);
-                if (eit != event_types.end()) {
-                    event_type = eit->second;
-                    event e = {event_type, key_code, 0.0f, 0.0f, 0.0f, 0.0f};
-                    events.push_back(e);
-                }
+            auto it = std::find_if(windows.begin(), windows.end(), [glfw_window](const window& m) {
+                return m.m_used && m.m_glfw_window == glfw_window;
+            });
+
+            if (it == windows.end()) return;
+
+            // Our key code is the same value that GLFW gives us. This works because we have defined our
+            // keycode constants with the same values as GLFW's constants. If we update GLFW and its
+            // key constants change, we need to update our keycode constants accordingly.
+            key_code key_code = key;
+
+            // Translate GLFW key action value to an event type
+            fill_event_type_map();
+            event_type event_type = EVENT_KEY_PRESS;
+            event_type_it eit = event_types.find(action);
+            if (eit != event_types.end()) {
+                event_type = eit->second;
+                event e = {event_type, key_code, 0.0f, 0.0f, 0.0f, 0.0f};
+                it->m_events.push_back(e);
             }
         }
 
-        void mouse_move_callback(GLFWwindow*, double x, double y)
+        void mouse_move_callback(GLFWwindow* glfw_window, double x, double y)
         {
-            if (ok && window) {
-                event e{EVENT_MOUSE_MOVE, KEY_UNKNOWN, (float) x, (float) y, (float) x - last_mouse_x, (float) y - last_mouse_y};
-                events.push_back(e);
-                last_mouse_x = x;
-                last_mouse_y = y;
+            if (!is_glfw_initialized) return;
 
-                // std::ostringstream oss;
-                // oss << "mouse_move_callback: new delta_mouse_x: " << std::fixed << std::setprecision(2)
-                //     << e.delta_mouse_x << ", new delta_mouse_y: " << e.delta_mouse_y;
-                // cgs::log(cgs::LOG_LEVEL_DEBUG, oss.str());
-            }
+            auto it = std::find_if(windows.begin(), windows.end(), [glfw_window](const window& m) {
+                return m.m_used && m.m_glfw_window == glfw_window;
+            });
+
+            if (it == windows.end()) return;
+
+            event e{EVENT_MOUSE_MOVE, KEY_UNKNOWN, (float) x, (float) y, (float) x - it->m_last_mouse_x, (float) y - it->   m_last_mouse_y};
+            it->m_events.push_back(e);
+            it->m_last_mouse_x = x;
+            it->m_last_mouse_y = y;
         }
 
         void error_callback(int error_code, const char* description)
@@ -99,7 +120,6 @@ namespace cgs
             oss << "GLFW error " << error_codes[error_code] << ", " << description;
             log(LOG_LEVEL_ERROR, oss.str());
         }
-
     } // anonymous namespace
 
     //-----------------------------------------------------------------------------------------------
@@ -199,14 +219,23 @@ namespace cgs
         return (m_impl->m_img != nullptr? FreeImage_GetBits(m_impl->m_img) : nullptr);
     }
 
-    void open_window(std::size_t width, std::size_t height, bool fullscreen)
+    void system_initialize()
     {
-        // Initialise GLFW
-        if(!glfwInit())
-        {
-            log(LOG_LEVEL_ERROR, "open_window: failed to initialize GLFW.");
-            throw std::runtime_error("");
+        if (!is_glfw_initialized) {
+            log(LOG_LEVEL_DEBUG, "initializing system");
+            if(!glfwInit())
+            {
+                throw std::runtime_error("open_window: failed to initialize GLFW.");
+            }
+            is_glfw_initialized = true;
         }
+    }
+
+    window_id new_window(std::size_t width, std::size_t height, bool fullscreen)
+    {
+        if (!is_glfw_initialized) return nwindow;
+
+        window new_window;
 
         glfwWindowHint(GLFW_SAMPLES, 4);
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -214,20 +243,17 @@ namespace cgs
         glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); // To make MacOS happy; should not be needed
         glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-        // Open a window and create its OpenGL context
-        window = glfwCreateWindow(width, height, "cgs", fullscreen? glfwGetPrimaryMonitor() : nullptr, nullptr);
-        if(window == nullptr){
-            log(LOG_LEVEL_ERROR, "open_window: failed to open GLFW window. If you have an Intel GPU prior to HD 4000, they are not OpenGL 3.3 compatible.");
-            glfwTerminate();
-            throw std::runtime_error("");
+        // Open a glfw window and create its OpenGL context
+        new_window.m_glfw_window = glfwCreateWindow(width, height, "cgs", fullscreen? glfwGetPrimaryMonitor() : nullptr, nullptr);
+        if(new_window.m_glfw_window == nullptr) {
+            throw std::runtime_error("new_window: failed to open GLFW new_window.m_glfw_window. If you have an Intel GPU prior to HD 4000, they are not OpenGL 3.3 compatible.");
         }
-        ok = true;
-        glfwMakeContextCurrent(window);
+        glfwMakeContextCurrent(new_window.m_glfw_window);
 
         // Register callbacks
         glfwSetErrorCallback(error_callback);
-        glfwSetKeyCallback(window, key_callback);
-        glfwSetCursorPosCallback(window, mouse_move_callback);
+        glfwSetKeyCallback(new_window.m_glfw_window, key_callback);
+        glfwSetCursorPosCallback(new_window.m_glfw_window, mouse_move_callback);
 
         // Disable vertical synchronization (results in a noticeable fps gain). This needs to be done
         // after calling glfwMakeContextCurrent, since it acts on the current context, and the context
@@ -235,51 +261,98 @@ namespace cgs
         // glfwMakeContextCurrent
         glfwSwapInterval(1);
 
-        last_mouse_x = (float) width / 2.0f;
-        last_mouse_y = (float) height / 2.0f;
+        new_window.m_last_mouse_x = (float) width / 2.0f;
+        new_window.m_last_mouse_y = (float) height / 2.0f;
 
         // Ensure we can capture the escape key being pressed below
-        glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
+        glfwSetInputMode(new_window.m_glfw_window, GLFW_STICKY_KEYS, GL_TRUE);
         // Hide the mouse and enable unlimited mouvement
-        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+        glfwSetInputMode(new_window.m_glfw_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
         // Set the mouse at the center of the screen
         glfwPollEvents();
-        glfwSetCursorPos(window, width / 2, height / 2);
+        glfwSetCursorPos(new_window.m_glfw_window, width / 2, height / 2);
+
+        window_id w = std::find_if(windows.begin(), windows.end(), [](const window& w) { return !w.m_used; }) - windows.begin();
+        if (w == windows.size()) {
+            windows.push_back(new_window);
+        } else {
+            windows[w] = new_window;
+        }
+
+        return w;
     }
 
-    void close_window()
+    void delete_window(window_id w)
     {
-        if (window) {
-            glfwTerminate();
-            window = nullptr;
-            ok = false;
-            events.clear();
+        if (is_glfw_initialized && w < windows.size() && windows[w].m_used) {
+            log(LOG_LEVEL_DEBUG, "closing window");
+            glfwDestroyWindow(windows[w].m_glfw_window);
+            windows[w] = window{};     // set all members to default values
+            windows[w].m_used = false; // soft removal
         }
     }
 
-    bool is_context_created()
+    window_id get_first_window()
     {
-        return (window != nullptr);
+        if (!is_glfw_initialized) return nwindow;
+        auto it = std::find_if(windows.begin(), windows.end(), [](const window& w) { return w.m_used; });
+        return (it != windows.end() ? it - windows.begin() : nwindow);
     }
 
-    std::vector<cgs::event> poll_events()
+    window_id get_next_window(window_id w)
     {
-        events.clear();
-        glfwPollEvents();
+        if (!is_glfw_initialized) return nwindow;
+        auto it = std::find_if(windows.begin() + w + 1, windows.end(), [](const window& w) { return w.m_used; });
+        return (it != windows.end() ? it - windows.begin() : nwindow);
+    }
 
-        return events;
+
+    void poll_window_events()
+    {
+        if (!is_glfw_initialized) return;
+
+        for (auto &w : windows) {
+            w.m_events.clear();
+        }
+
+        glfwPollEvents();
+    }
+
+    void get_window_events(window_id w, std::vector<cgs::event>* events)
+    {
+        if (!is_glfw_initialized) return;
+
+        if (is_glfw_initialized && w < windows.size() && windows[w].m_used) {
+            *events = windows[w].m_events;
+        }
     }
 
     float get_time()
     {
+        if (!is_glfw_initialized) return 0.0f;
+
         return (float) glfwGetTime();
     }
 
-    void swap_buffers()
+    void swap_buffers(window_id w)
     {
-        if (window) {
-            glfwSwapBuffers(window);        
+        if (is_glfw_initialized && w < windows.size() && windows[w].m_used) {
+            glfwSwapBuffers(windows[w].m_glfw_window);
+        }
+    }
+
+    unique_window make_window(std::size_t width, std::size_t height, bool fullscreen)
+    {
+        return unique_window(new_window(width, height, fullscreen));
+    }
+
+    void system_finalize()
+    {
+        if (is_glfw_initialized) {
+            log(LOG_LEVEL_DEBUG, "finalizing system");
+            glfwTerminate();
+            is_glfw_initialized = false;
         }
     }
 } // namespace cgs

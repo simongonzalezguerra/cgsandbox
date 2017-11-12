@@ -191,7 +191,7 @@ namespace cgs
 
     void initialize_renderer()
     {
-        if (!is_context_created()) {
+        if (get_first_window() == nwindow) {
             throw std::logic_error("initialize_renderer: error, trying to initialize renderer but a context hasn't been created");
         }
 

@@ -23,6 +23,17 @@ namespace cgs
     // Based on GLFW's key codes (we use the same values and names)
     typedef int key_code;
 
+    //-----------------------------------------------------------------------------------------------
+    //! @brief Handle to a window.
+    //-----------------------------------------------------------------------------------------------
+    typedef std::size_t window_id;
+
+    //-----------------------------------------------------------------------------------------------
+    //! @brief Constant representing 'not a window'. Used as a wildcard when iterating windows
+    //!  to indicate the end of the sequence has been reached.
+    //-----------------------------------------------------------------------------------------------
+    constexpr window_id nwindow = -1;
+
     /* The unknown key */
     constexpr key_code KEY_UNKNOWN           = 0; /* The unknown key */
 
@@ -182,12 +193,44 @@ namespace cgs
     //-----------------------------------------------------------------------------------------------
     // Public functions
     //-----------------------------------------------------------------------------------------------
-    void open_window(std::size_t width, std::size_t height, bool fullscreen);
-    void close_window();
-    bool is_context_created();
-    std::vector<event> poll_events();
+    void system_initialize();
+    window_id new_window(std::size_t width, std::size_t height, bool fullscreen);
+    void delete_window(window_id window);
+    window_id get_first_window();
+    window_id get_next_window(window_id window);
+    void poll_window_events();
+    void get_window_events(window_id window, std::vector<cgs::event>* events);
     float get_time();
-    void swap_buffers();
+    void swap_buffers(window_id window);
+
+    struct window_handle
+    {   
+        window_handle() : m_window_id(nwindow) {}
+        window_handle(window_id window_id) : m_window_id(window_id) {}
+        window_handle(std::nullptr_t) : m_window_id(nwindow) {}
+        operator int() {return m_window_id;}
+        operator window_id() {return m_window_id;}
+        bool operator ==(const window_handle &other) const {return m_window_id == other.m_window_id;}
+        bool operator !=(const window_handle &other) const {return m_window_id != other.m_window_id;}
+        bool operator ==(std::nullptr_t) const {return m_window_id == nwindow;}
+        bool operator !=(std::nullptr_t) const {return m_window_id != nwindow;}
+
+        window_id m_window_id;
+    };  
+
+    struct window_deleter
+    {   
+        typedef window_handle pointer;
+        window_deleter() {}
+        template<class other> window_deleter(const other&) {}; 
+        void operator()(pointer p) const { delete_window(p); }
+    };  
+
+    typedef std::unique_ptr<window_id, window_deleter> unique_window;
+    typedef std::vector<unique_window> window_vector;
+    unique_window make_window(std::size_t width, std::size_t height, bool fullscreen);
+    
+    void system_finalize();
 } // namespace cgs
 
 #endif // SYSTEM_HPP
