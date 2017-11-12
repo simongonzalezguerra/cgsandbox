@@ -1,5 +1,5 @@
-#include "cgs/real_time_engine.hpp"
-#include "cgs/log.hpp"
+#include "real_time_engine.hpp"
+#include "log.hpp"
 
 #include <stdexcept>
 

@@ -1,7 +1,7 @@
 #ifndef RESOURCE_DATABASE_HPP
 #define RESOURCE_DATABASE_HPP
 
-#include "cgs/cgs_common.hpp"
+#include "cgs_common.hpp"
 #include "glm/glm.hpp"
 
 #include <cstddef> // for size_t

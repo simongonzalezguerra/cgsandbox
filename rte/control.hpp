@@ -1,8 +1,8 @@
 #ifndef CONTROL_HPP
 #define CONTROL_HPP
 
-#include "cgs/renderer.hpp"
-#include "cgs/system.hpp"
+#include "renderer.hpp"
+#include "system.hpp"
 
 #include <vector>
 #include <memory>

@@ -1,7 +1,7 @@
 #ifndef GL_DRIVER_UTIL_HPP
 #define GL_DRIVER_UTIL_HPP
 
-#include "cgs/gl_driver.hpp"
+#include "gl_driver.hpp"
 
 #include <memory>
 #include <vector>

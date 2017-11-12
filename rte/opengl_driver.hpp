@@ -1,7 +1,7 @@
 #ifndef OPENGL_DRIVER_HPP
 #define OPENGL_DRIVER_HPP
 
-#include "cgs/gl_driver.hpp"
+#include "gl_driver.hpp"
 
 namespace cgs
 {

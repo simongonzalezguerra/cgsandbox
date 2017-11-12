@@ -1,9 +1,9 @@
-#include "cgs/environment_mapping.hpp"
-#include "cgs/opengl_driver.hpp"
-#include "cgs/skybox.hpp"
-#include "cgs/phong.hpp"
-#include "cgs/utils.hpp"
-#include "cgs/log.hpp"
+#include "environment_mapping.hpp"
+#include "opengl_driver.hpp"
+#include "skybox.hpp"
+#include "phong.hpp"
+#include "utils.hpp"
+#include "log.hpp"
 #include "GL/glew.h"
 
 #include <stdexcept>

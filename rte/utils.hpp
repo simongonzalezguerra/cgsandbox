@@ -2,7 +2,7 @@
 #define GLSANDBOX_UTILS_HPP
 
 #include "glm/glm.hpp"
-#include "cgs/log.hpp"
+#include "log.hpp"
 
 #include <stdexcept>
 #include <sstream>

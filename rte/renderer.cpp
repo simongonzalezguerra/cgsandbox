@@ -1,7 +1,7 @@
-#include "cgs/resource_database.hpp"
-#include "cgs/renderer.hpp"
-#include "cgs/system.hpp"
-#include "cgs/log.hpp"
+#include "resource_database.hpp"
+#include "renderer.hpp"
+#include "system.hpp"
+#include "log.hpp"
 
 #include <algorithm>
 #include <sstream>

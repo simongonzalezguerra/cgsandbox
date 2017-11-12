@@ -1,7 +1,7 @@
 #ifndef SYSTEM_HPP
 #define SYSTEM_HPP
 
-#include "cgs/cgs_common.hpp"
+#include "cgs_common.hpp"
 
 #include <memory>
 #include <string>

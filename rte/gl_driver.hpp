@@ -1,7 +1,7 @@
 #ifndef GL_DRIVER_HPP
 #define GL_DRIVER_HPP
 
-#include "cgs/cgs_common.hpp"
+#include "cgs_common.hpp"
 #include "glm/glm.hpp"
 
 #include <string>

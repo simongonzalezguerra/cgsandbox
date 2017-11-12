@@ -1,8 +1,8 @@
 #ifndef RENDERER_HPP
 #define RENDERER_HPP
 
-#include "cgs/gl_driver_util.hpp"
-#include "cgs/scenegraph.hpp"
+#include "gl_driver_util.hpp"
+#include "scenegraph.hpp"
 
 namespace cgs
 {

@@ -1,4 +1,4 @@
-#include "cgs/log.hpp"
+#include "log.hpp"
 
 #include <iostream>
 #include <fstream>

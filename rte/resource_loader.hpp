@@ -1,7 +1,7 @@
 #ifndef RESOURCE_LOADER_HPP
 #define RESOURCE_LOADER_HPP
 
-#include "cgs/resource_database.hpp"
+#include "resource_database.hpp"
 
 #include <cstddef> // for size_t
 #include <vector>

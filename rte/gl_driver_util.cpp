@@ -1,4 +1,4 @@
-#include "cgs/gl_driver_util.hpp"
+#include "gl_driver_util.hpp"
 
 namespace cgs
 {

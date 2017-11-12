@@ -1,13 +1,13 @@
-#include "cgs/resource_database.hpp"
-#include "cgs/real_time_engine.hpp"
-#include "cgs/resource_loader.hpp"
+#include "resource_database.hpp"
+#include "real_time_engine.hpp"
+#include "resource_loader.hpp"
 #include "glm/gtx/transform.hpp"
-#include "cgs/opengl_driver.hpp"
-#include "cgs/scenegraph.hpp"
-#include "cgs/renderer.hpp"
-#include "cgs/control.hpp"
-#include "cgs/system.hpp"
-#include "cgs/log.hpp"
+#include "opengl_driver.hpp"
+#include "scenegraph.hpp"
+#include "renderer.hpp"
+#include "control.hpp"
+#include "system.hpp"
+#include "log.hpp"
 
 #include <stdexcept>
 #include <iostream>

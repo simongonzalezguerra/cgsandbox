@@ -1,8 +1,8 @@
 #include "glm/gtc/matrix_transform.hpp"
 #include "glm/gtx/transform.hpp"
-#include "cgs/control.hpp"
-#include "cgs/utils.hpp"
-#include "cgs/log.hpp"
+#include "control.hpp"
+#include "utils.hpp"
+#include "log.hpp"
 #include "glm/glm.hpp"
 
 #include <iomanip>

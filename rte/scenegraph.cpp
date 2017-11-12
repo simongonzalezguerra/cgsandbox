@@ -1,6 +1,6 @@
 #include "glm/gtc/type_ptr.hpp"
-#include "cgs/scenegraph.hpp"
-#include "cgs/log.hpp"
+#include "scenegraph.hpp"
+#include "log.hpp"
 #include "glm/glm.hpp"
 
 #include <stdexcept>

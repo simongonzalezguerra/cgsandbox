@@ -1,6 +1,6 @@
-#include "cgs/resource_database.hpp"
+#include "resource_database.hpp"
 #include "glm/gtc/type_ptr.hpp"
-#include "cgs/log.hpp"
+#include "log.hpp"
 
 #include <algorithm>
 #include <vector>

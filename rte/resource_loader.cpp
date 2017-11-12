@@ -1,9 +1,9 @@
-#include "cgs/resource_loader.hpp"
+#include "resource_loader.hpp"
 #include "glm/gtc/type_ptr.hpp"
 #include "assimp/postprocess.h"
 #include "assimp/cimport.h"
 #include "assimp/scene.h"
-#include "cgs/log.hpp"
+#include "log.hpp"
 #include "glm/glm.hpp"
 
 #include <stdexcept>

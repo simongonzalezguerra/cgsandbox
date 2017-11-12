@@ -1,5 +1,5 @@
-#include "cgs/system.hpp"
-#include "cgs/log.hpp"
+#include "system.hpp"
+#include "log.hpp"
 #include "FreeImage.h"
 #include "glfw3.h"
 

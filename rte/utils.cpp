@@ -1,4 +1,4 @@
-#include "cgs/utils.hpp"
+#include "utils.hpp"
 #include "glm/glm.hpp"
 
 namespace cgs

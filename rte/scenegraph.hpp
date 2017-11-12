@@ -1,7 +1,7 @@
 #ifndef SCENE_GRAPH_HPP
 #define SCENE_GRAPH_HPP
 
-#include "cgs/resource_database.hpp"
+#include "resource_database.hpp"
 #include "glm/glm.hpp"
 
 #include <cstddef> // for size_t
