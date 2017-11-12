@@ -393,10 +393,10 @@ namespace rte
             try {
                 done = m_impl->frame();
             } catch(std::exception& ex) {
+                log(LOG_LEVEL_ERROR, ex.what());
                 n_errors++;
                 if (n_errors == 100) {
-                    log(LOG_LEVEL_ERROR, "real_time_engine: too many errors, stoping frame loop");
-                    throw std::logic_error("");
+                    throw std::logic_error("real_time_engine: too many errors, stoping frame loop");
                 }
             }
         } while (!done);

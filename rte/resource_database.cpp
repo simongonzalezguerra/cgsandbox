@@ -146,7 +146,7 @@ namespace rte
     void set_material_diffuse_color(mat_id m, glm::vec3 diffuse_color)
     {
         if (!(m < materials.size() && materials[m].m_used)) {
-            log(LOG_LEVEL_ERROR, "set_material_diffuse_color error: invalid material id"); return;
+            throw std::logic_error("set_material_diffuse_color error: invalid material id");
         }
 
         materials[m].m_color_diffuse = diffuse_color;
@@ -155,7 +155,7 @@ namespace rte
     void set_material_specular_color(mat_id m, glm::vec3 specular_color)
     {
         if (!(m < materials.size() && materials[m].m_used)) {
-            log(LOG_LEVEL_ERROR, "set_material_specular_color error: invalid material id"); return;
+            throw std::logic_error("set_material_specular_color error: invalid material id");
         }
 
         materials[m].m_color_spec = specular_color;
@@ -164,7 +164,7 @@ namespace rte
     void set_material_smoothness(mat_id m, float smoothness)
     {
         if (!(m < materials.size() && materials[m].m_used)) {
-            log(LOG_LEVEL_ERROR, "set_material_smoothness error: invalid material id"); return;
+            throw std::logic_error("set_material_smoothness error: invalid material id");
         }
 
         materials[m].m_smoothness = smoothness;
@@ -173,7 +173,7 @@ namespace rte
     void set_material_texture_path(mat_id m, const std::string& texture_path)
     {
         if (!(m < materials.size() && materials[m].m_used)) {
-            log(LOG_LEVEL_ERROR, "set_material_texture_path error: invalid material id"); return;
+            throw std::logic_error("set_material_texture_path error: invalid material id");
         }
 
         materials[m].m_texture_path = texture_path;
@@ -210,7 +210,7 @@ namespace rte
     glm::vec3 get_material_diffuse_color(mat_id m)
     {
         if (!(m < materials.size() && materials[m].m_used)) {
-            log(LOG_LEVEL_ERROR, "get_material_diffuse_color error: invalid material id"); return glm::vec3{1.0f};
+            throw std::logic_error("get_material_diffuse_color error: invalid material id");
         }
 
         return materials[m].m_color_diffuse;    
@@ -219,7 +219,7 @@ namespace rte
     glm::vec3 get_material_specular_color(mat_id m)
     {
         if (!(m < materials.size() && materials[m].m_used)) {
-            log(LOG_LEVEL_ERROR, "get_material_specular_color error: invalid material id"); return glm::vec3{1.0f};
+            throw std::logic_error("get_material_specular_color error: invalid material id");
         }
 
         return materials[m].m_color_spec;
@@ -228,7 +228,7 @@ namespace rte
     float get_material_smoothness(mat_id m)
     {
         if (!(m < materials.size() && materials[m].m_used)) {
-            log(LOG_LEVEL_ERROR, "get_material_smoothness error: invalid material id"); return 0.0f;
+            throw std::logic_error("get_material_smoothness error: invalid material id");
         }
 
         return materials[m].m_smoothness;
@@ -237,7 +237,7 @@ namespace rte
     std::string get_material_texture_path(mat_id m)
     {
         if (!(m < materials.size() && materials[m].m_used)) {
-            log(LOG_LEVEL_ERROR, "get_material_texture_path error: invalid material id"); return "";
+            throw std::logic_error("get_material_texture_path error: invalid material id");
         }
 
         return materials[m].m_texture_path;
@@ -245,23 +245,39 @@ namespace rte
 
     float get_material_reflectivity(mat_id m)
     {
-        return (m < materials.size() && materials[m].m_used)? materials[m].m_reflectivity : 0.0f;
+        if (!(m < materials.size() && materials[m].m_used)) {
+            throw std::logic_error("get_material_reflectivity error: invalid material id");
+        }
+
+        return materials[m].m_reflectivity;
     }
 
 
     float get_material_translucency(mat_id m)
     {
-        return (m < materials.size() && materials[m].m_used)? materials[m].m_translucency : 0.0f;
+        if (!(m < materials.size() && materials[m].m_used)) {
+            throw std::logic_error("get_material_translucency error: invalid material id");
+        }
+ 
+        return materials[m].m_translucency;
     }
 
     float get_material_refractive_index(mat_id m)
     {
-        return (m < materials.size() && materials[m].m_used)? materials[m].m_refractive_index : 0.0f;
+        if (!(m < materials.size() && materials[m].m_used)) {
+            throw std::logic_error("get_material_refractive_index error: invalid material id");
+        }
+
+        return materials[m].m_refractive_index;
     }
 
     gl_texture_id get_material_texture_id(mat_id m)
     {
-        return (m < materials.size() && materials[m].m_used)? materials[m].m_texture_id : 0U;
+        if (!(m < materials.size() && materials[m].m_used)) {
+            throw std::logic_error("get_material_texture_id error: invalid material id");
+        }
+
+        return materials[m].m_texture_id;
     }
 
     mat_id get_first_material()
@@ -303,7 +319,7 @@ namespace rte
     void set_mesh_vertices(mesh_id m, const std::vector<glm::vec3>& vertices)
     {
         if (!(m < meshes.size() && meshes[m].m_used)) {
-            log(LOG_LEVEL_ERROR, "set_mesh_vertices error: invalid arguments"); return;
+            throw std::logic_error("set_mesh_vertices error: invalid arguments");
         }
 
         meshes[m].m_vertices = vertices;
@@ -312,7 +328,7 @@ namespace rte
     void set_mesh_texture_coords(mesh_id m, const std::vector<glm::vec2>& texture_coords)
     {
         if (!(m < meshes.size() && meshes[m].m_used)) {
-            log(LOG_LEVEL_ERROR, "set_mesh_texture_coords error: invalid arguments"); return;
+            throw std::logic_error("set_mesh_texture_coords error: invalid arguments");
         }
 
         meshes[m].m_texture_coords = texture_coords;
@@ -321,7 +337,7 @@ namespace rte
     void set_mesh_normals(mesh_id m, const std::vector<glm::vec3>& normals)
     {
         if (!(m < meshes.size() && meshes[m].m_used)) {
-            log(LOG_LEVEL_ERROR, "set_mesh_normals error: invalid arguments"); return;
+            throw std::logic_error("set_mesh_normals error: invalid arguments");
         }
 
         meshes[m].m_normals = normals;
@@ -330,7 +346,7 @@ namespace rte
     void set_mesh_indices(mesh_id m, const std::vector<vindex>& indices)
     {
         if (!(m < meshes.size() && meshes[m].m_used)) {
-            log(LOG_LEVEL_ERROR, "set_mesh_indices error: invalid arguments"); return;
+            throw std::logic_error("set_mesh_indices error: invalid arguments");
         }
 
         meshes[m].m_indices = indices;
@@ -338,36 +354,44 @@ namespace rte
 
     void set_mesh_position_buffer_id(mesh_id m, gl_buffer_id id)
     {
-        if (m < meshes.size() && meshes[m].m_used) {
-            meshes[m].m_position_buffer_id = id;
+        if (!(m < meshes.size() && meshes[m].m_used)) {
+            throw std::logic_error("set_mesh_position_buffer_id error: invalid arguments");
         }
+
+        meshes[m].m_position_buffer_id = id;
     }
 
     void set_mesh_uv_buffer_id(mesh_id m, gl_buffer_id id)
     {
-        if (m < meshes.size() && meshes[m].m_used) {
-            meshes[m].m_uv_buffer_id = id;
+        if (!(m < meshes.size() && meshes[m].m_used)) {
+            throw std::logic_error("set_mesh_uv_buffer_id error: invalid arguments");
         }
+
+        meshes[m].m_uv_buffer_id = id;
     }
 
     void set_mesh_normal_buffer_id(mesh_id m, gl_buffer_id id)
     {
-        if (m < meshes.size() && meshes[m].m_used) {
-            meshes[m].m_normal_buffer_id = id;
+        if (!(m < meshes.size() && meshes[m].m_used)) {
+            throw std::logic_error("set_mesh_normal_buffer_id error: invalid arguments");
         }
+
+        meshes[m].m_normal_buffer_id = id;
     }
 
     void set_mesh_index_buffer_id(mesh_id m, gl_buffer_id id)
     {
-        if (m < meshes.size() && meshes[m].m_used) {
-            meshes[m].m_index_buffer_id = id;
+        if (!(m < meshes.size() && meshes[m].m_used)) {
+            throw std::logic_error("set_mesh_index_buffer_id error: invalid arguments");
         }
+
+        meshes[m].m_index_buffer_id = id;
     }
 
     std::vector<glm::vec3> get_mesh_vertices(mesh_id m)
     {
         if (!(m < meshes.size() && meshes[m].m_used)) {
-            log(LOG_LEVEL_ERROR, "get_mesh_vertices error: invalid arguments"); return std::vector<glm::vec3>();
+            throw std::logic_error("get_mesh_vertices error: invalid arguments");
         }
 
         return meshes[m].m_vertices;
@@ -376,7 +400,7 @@ namespace rte
     std::vector<glm::vec2> get_mesh_texture_coords(mesh_id m)
     {
         if (!(m < meshes.size() && meshes[m].m_used)) {
-            log(LOG_LEVEL_ERROR, "get_mesh_texture_coords error: invalid arguments"); return std::vector<glm::vec2>();
+            throw std::logic_error("get_mesh_texture_coords error: invalid arguments");
         }
 
         return meshes[m].m_texture_coords;
@@ -385,7 +409,7 @@ namespace rte
     std::vector<glm::vec3> get_mesh_normals(mesh_id m)
     {
         if (!(m < meshes.size() && meshes[m].m_used)) {
-            log(LOG_LEVEL_ERROR, "get_mesh_normals error: invalid arguments"); return std::vector<glm::vec3>();
+            throw std::logic_error("get_mesh_normals error: invalid arguments");
         }
 
         return meshes[m].m_normals;
@@ -394,7 +418,7 @@ namespace rte
     std::vector<vindex> get_mesh_indices(mesh_id m)
     {
         if (!(m < meshes.size() && meshes[m].m_used)) {
-            log(LOG_LEVEL_ERROR, "get_mesh_indices error: invalid arguments"); return std::vector<vindex>();
+            throw std::logic_error("get_mesh_indices error: invalid arguments");
         }
 
         return meshes[m].m_indices;
@@ -402,21 +426,37 @@ namespace rte
 
     gl_buffer_id get_mesh_position_buffer_id(mesh_id m)
     {
+        if (!(m < meshes.size() && meshes[m].m_used)) {
+            throw std::logic_error("get_mesh_position_buffer_id error: invalid arguments");
+        }
+
         return ((m < meshes.size() && meshes[m].m_used) ? meshes[m].m_position_buffer_id : 0U);
     }
 
     gl_buffer_id get_mesh_uv_buffer_id(mesh_id m)
     {
+        if (!(m < meshes.size() && meshes[m].m_used)) {
+            throw std::logic_error("get_mesh_uv_buffer_id error: invalid arguments");
+        }
+
         return ((m < meshes.size() && meshes[m].m_used)? meshes[m].m_uv_buffer_id : 0U);
     }
 
     gl_buffer_id get_mesh_normal_buffer_id(mesh_id m)
     {
+        if (!(m < meshes.size() && meshes[m].m_used)) {
+            throw std::logic_error("get_mesh_normal_buffer_id error: invalid arguments");
+        }
+
         return ((m < meshes.size() && meshes[m].m_used)? meshes[m].m_normal_buffer_id : 0U);
     }
 
     gl_buffer_id get_mesh_index_buffer_id(mesh_id m)
     {
+        if (!(m < meshes.size() && meshes[m].m_used)) {
+            throw std::logic_error("get_mesh_index_buffer_id error: invalid arguments");
+        }
+
         return ((m < meshes.size() && meshes[m].m_used)? meshes[m].m_index_buffer_id : 0U);
     }
 
@@ -498,7 +538,7 @@ namespace rte
     void set_resource_local_transform(resource_id r, const glm::mat4& local_transform)
     {
         if (!(r < resources.size() && resources[r].m_used)) {
-            log(LOG_LEVEL_ERROR, "set_resource_local_transform error: invalid arguments"); return;
+            throw std::logic_error("set_resource_local_transform error: invalid arguments");
         }
 
         resources[r].m_local_transform = local_transform;
@@ -507,7 +547,7 @@ namespace rte
     glm::mat4 get_resource_local_transform(resource_id r)
     {
         if (!(r < resources.size() && resources[r].m_used)) {
-            log(LOG_LEVEL_ERROR, "get_resource_local_transform error: invalid arguments"); return glm::mat4{1.0f};
+            throw std::logic_error("get_resource_local_transform error: invalid arguments");
         }
 
         return resources[r].m_local_transform;
@@ -515,32 +555,44 @@ namespace rte
 
     void set_resource_mesh(resource_id r, mesh_id m)
     {
-        if (r < resources.size()  && resources[r].m_used && m < meshes.size()) {
-            resources[r].m_mesh = m;
+        if (!(r < resources.size() && resources[r].m_used)) {
+            throw std::logic_error("set_resource_mesh error: invalid arguments");
         }
+
+        resources[r].m_mesh = m;
     }
 
     mesh_id get_resource_mesh(resource_id r)
     {
-        return (r < resources.size() && resources[r].m_used? resources[r].m_mesh : nmesh);
+        if (!(r < resources.size() && resources[r].m_used)) {
+            throw std::logic_error("get_resource_mesh error: invalid arguments");
+        }
+
+        return resources[r].m_mesh;
     }
 
     void set_resource_material(resource_id r, mat_id mat)
     {
-        if (r < resources.size() && resources[r].m_used && mat < materials.size()) {
-            resources[r].m_material = mat;
+        if (!(r < resources.size() && resources[r].m_used)) {
+            throw std::logic_error("set_resource_material error: invalid arguments");
         }
+
+        resources[r].m_material = mat;
     }
 
     mat_id get_resource_material(resource_id r)
     {
-        return (r < resources.size() && resources[r].m_used? resources[r].m_material : nmat);
+        if (!(r < resources.size() && resources[r].m_used)) {
+            throw std::logic_error("get_resource_material error: invalid arguments");
+        }
+
+        return resources[r].m_material;
     }
 
     resource_id get_first_child_resource(resource_id r)
     {
         if (!(r < resources.size() && resources[r].m_used)) {
-            log(LOG_LEVEL_ERROR, "get_first_child_resource error: invalid resource id"); return nresource;
+            throw std::logic_error("get_first_child_resource error: invalid arguments");
         }
 
         return resources[r].m_first_child;
@@ -549,7 +601,7 @@ namespace rte
     resource_id get_next_sibling_resource(resource_id r)
     {
         if (!(r < resources.size() && resources[r].m_used)) {
-            log(LOG_LEVEL_ERROR, "get_next_sibling_resource error: invalid resource id"); return nresource;
+            throw std::logic_error("get_next_sibling_resource error: invalid arguments");
         }
 
         return resources[r].m_next_sibling;
@@ -584,34 +636,40 @@ namespace rte
         }
     }
 
-    void set_cubemap_faces(cubemap_id id, const std::vector<std::string>& faces)
+    void set_cubemap_faces(cubemap_id cid, const std::vector<std::string>& faces)
     {
-        if (!(id < cubemaps.size() && cubemaps[id].m_used)) {
-            log(LOG_LEVEL_ERROR, "set_cubemap_faces error: invalid cubemap id"); return;
+        if (!(cid < cubemaps.size() && cubemaps[cid].m_used)) {
+            throw std::logic_error("set_cubemap_faces error: invalid arguments");
         }
 
-        cubemaps[id].m_faces = faces;
+        cubemaps[cid].m_faces = faces;
     }
 
     void set_cubemap_gl_cubemap_id(cubemap_id cid, gl_cubemap_id gl_id)
     {
-        if (cid < cubemaps.size() && cubemaps[cid].m_used) {
-            cubemaps[cid].m_gl_cubemap_id = gl_id;
+        if (!(cid < cubemaps.size() && cubemaps[cid].m_used)) {
+            throw std::logic_error("set_cubemap_gl_cubemap_id error: invalid arguments");
         }
+
+        cubemaps[cid].m_gl_cubemap_id = gl_id;
     }
 
-    std::vector<std::string> get_cubemap_faces(cubemap_id id)
+    std::vector<std::string> get_cubemap_faces(cubemap_id cid)
     {
-        if (!(id < cubemaps.size() && cubemaps[id].m_used)) {
-            log(LOG_LEVEL_ERROR, "get_cubemap_faces error: invalid cubemap id"); return std::vector<std::string>();
+        if (!(cid < cubemaps.size() && cubemaps[cid].m_used)) {
+            throw std::logic_error("get_cubemap_faces error: invalid arguments");
         }
 
-        return cubemaps[id].m_faces;
+        return cubemaps[cid].m_faces;
     }
 
     gl_cubemap_id get_cubemap_gl_cubemap_id(cubemap_id cid)
     {
-        return ((cid < cubemaps.size()  && cubemaps[cid].m_used) ? cubemaps[cid].m_gl_cubemap_id : 0U);
+        if (!(cid < cubemaps.size() && cubemaps[cid].m_used)) {
+            throw std::logic_error("get_cubemap_gl_cubemap_id error: invalid arguments");
+        }
+
+        return cubemaps[cid].m_gl_cubemap_id;
     }
 
     cubemap_id get_first_cubemap()
@@ -622,6 +680,10 @@ namespace rte
 
     cubemap_id get_next_cubemap(cubemap_id cid)
     {
+        if (!(cid < cubemaps.size() && cubemaps[cid].m_used)) {
+            throw std::logic_error("get_next_cubemap error: invalid arguments");
+        }
+
         auto it = std::find_if(cubemaps.begin() + cid + 1, cubemaps.end(), [](const cubemap& c) { return c.m_used; });
         return (it != cubemaps.end() ? it - cubemaps.begin() : ncubemap);
     }

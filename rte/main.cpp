@@ -12,6 +12,7 @@ int main()
         engine.process();
         engine.finalize();
     } catch(std::exception& ex) {
+        rte::log(rte::LOG_LEVEL_ERROR, ex.what());
         rte::log(rte::LOG_LEVEL_ERROR, "real_time_engine: closing application");
     }
 

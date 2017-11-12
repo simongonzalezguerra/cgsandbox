@@ -148,16 +148,18 @@ namespace rte
     bool is_scene_enabled(scene_id s)
     {
         if (!(s < scenes.size() && scenes[s].m_used)) {
-            log(LOG_LEVEL_ERROR, "is_scene_enabled error: invalid scene id"); return false;
+            throw std::logic_error("is_scene_enabled error: invalid arguments");
         }
+
         return scenes[s].m_enabled;
     }
 
     void set_scene_enabled(scene_id s, bool enabled)
     {
         if (!(s < scenes.size() && scenes[s].m_used)) {
-            log(LOG_LEVEL_ERROR, "set_scene_enabled error: invalid scene id"); return;
+            throw std::logic_error("set_scene_enabled error: invalid arguments");
         }
+
         scenes[s].m_enabled = enabled;
     }
 
@@ -178,14 +180,18 @@ namespace rte
 
     scene_id get_next_scene(scene_id s)
     {
+        if (!(s < scenes.size() && scenes[s].m_used)) {
+            throw std::logic_error("get_next_scene error: invalid arguments");
+        }
+
         auto it = std::find_if(scenes.begin() + s + 1, scenes.end(), [](const scene& s) { return s.m_used; });
         return (it != scenes.end() ? it - scenes.begin() : nscene);
     }
 
     void set_scene_view_transform(scene_id s, const glm::mat4& view_transform)
     {
-        if (!(s < scenes.size())) {
-            log(LOG_LEVEL_ERROR, "set_scene_view_transform error: invalid scene id"); return;
+        if (!(s < scenes.size() && scenes[s].m_used)) {
+            throw std::logic_error("set_scene_view_transform error: invalid arguments");
         }
 
         scenes[s].m_view_transform = view_transform;
@@ -193,8 +199,8 @@ namespace rte
 
     void get_scene_view_transform(scene_id s, glm::mat4* view_transform)
     {
-        if (!(view_transform)) {
-            log(LOG_LEVEL_ERROR, "get_scene_view_transform error: invalid scene id"); return;
+        if (!(s < scenes.size() && scenes[s].m_used)) {
+            throw std::logic_error("get_scene_view_transform error: invalid arguments");
         }
 
         *view_transform = scenes[s].m_view_transform;
@@ -202,8 +208,8 @@ namespace rte
 
     void set_scene_projection_transform(scene_id s, const glm::mat4& projection_transform)
     {
-        if (!(s < scenes.size())) {
-            log(LOG_LEVEL_ERROR, "set_scene_projection_transform error: invalid arguments"); return;
+        if (!(s < scenes.size() && scenes[s].m_used)) {
+            throw std::logic_error("set_scene_projection_transform error: invalid arguments");
         }
 
         scenes[s].m_projection_transform = projection_transform;
@@ -211,8 +217,8 @@ namespace rte
 
     void get_scene_projection_transform(scene_id s, glm::mat4* projection_transform)
     {
-        if (!(projection_transform)) {
-            log(LOG_LEVEL_ERROR, "get_scene_projection_transform error: invalid arguments"); return;
+        if (!(s < scenes.size() && scenes[s].m_used)) {
+            throw std::logic_error("get_scene_projection_transform error: invalid arguments");
         }
 
         *projection_transform = scenes[s].m_projection_transform;
@@ -220,8 +226,8 @@ namespace rte
 
     void set_scene_skybox(scene_id s, cubemap_id id)
     {
-        if (!(s < scenes.size())) {
-            log(LOG_LEVEL_ERROR, "set_scene_skybox error: invalid arguments"); return;
+        if (!(s < scenes.size() && scenes[s].m_used)) {
+            throw std::logic_error("set_scene_skybox error: invalid arguments");
         }
 
         scenes[s].m_skybox = id;
@@ -229,8 +235,8 @@ namespace rte
 
     cubemap_id get_scene_skybox(scene_id s)
     {
-        if (!(s < scenes.size())) {
-            log(LOG_LEVEL_ERROR, "get_scene_skybox error: invalid arguments"); return ncubemap;
+        if (!(s < scenes.size() && scenes[s].m_used)) {
+            throw std::logic_error("get_scene_skybox error: invalid arguments");
         }
 
         return scenes[s].m_skybox;
@@ -263,7 +269,6 @@ namespace rte
         return child;
     }
 
-
     void delete_node(node_id n)
     {
         if (!(n < nodes.size() && nodes[n].m_used)) {
@@ -282,13 +287,16 @@ namespace rte
             nit++;
         }
 
-
         // Mark the vector entry as not used
         nodes[n].m_used = false; // soft removal
     }
 
     void update_accum_transforms(node_id root_node, node_id n, std::set<node_id>* visited_nodes)
     {
+        if (!(n < nodes.size() && nodes[n].m_used && root_node < nodes.size() && nodes[root_node].m_used)) {
+            throw std::logic_error("update_accum_transforms error: invalid arguments");
+        }
+
         struct context{ node_id nid; bool intree; glm::mat4 prefix; };
         std::queue<context> pending_nodes;
         pending_nodes.push({root_node, n == root_node, glm::mat4{1.0f}});
@@ -311,8 +319,7 @@ namespace rte
     void set_node_transform(node_id n, const glm::mat4& local_transform)
     {
         if (!(n < nodes.size() && nodes[n].m_used)) {
-            log(LOG_LEVEL_ERROR, "set_node_transform error: invalid parameters");
-            throw std::logic_error("");
+            throw std::logic_error("set_node_transform error: invalid arguments");
         }
 
         nodes[n].m_local_transform = local_transform;
@@ -331,8 +338,8 @@ namespace rte
 
     void get_node_transform(node_id n, glm::mat4* local_transform, glm::mat4* accum_transform)
     {
-        if (!(n < nodes.size() && nodes[n].m_used && local_transform && accum_transform)) {
-            log(LOG_LEVEL_ERROR, "get_node_transform error: invalid parameters"); return;
+        if (!(n < nodes.size() && nodes[n].m_used)) {
+            throw std::logic_error("get_node_transform error: invalid arguments");
         }
 
         *local_transform = nodes[n].m_local_transform;
@@ -341,6 +348,10 @@ namespace rte
 
     void set_node_mesh(node_id n, mesh_id m)
     {
+        if (!(n < nodes.size() && nodes[n].m_used)) {
+            throw std::logic_error("set_node_mesh error: invalid arguments");
+        }
+
         if (n < nodes.size() && nodes[n].m_used) {
             nodes[n].m_mesh = m;
         }
@@ -348,11 +359,19 @@ namespace rte
 
     mesh_id get_node_mesh(node_id n)
     {
+        if (!(n < nodes.size() && nodes[n].m_used)) {
+            throw std::logic_error("get_node_mesh error: invalid arguments");
+        }
+
         return ((n < nodes.size() && nodes[n].m_used)? nodes[n].m_mesh : nmesh);
     }
 
     void set_node_material(node_id n, mat_id mat)
     {
+        if (!(n < nodes.size() && nodes[n].m_used)) {
+            throw std::logic_error("set_node_material error: invalid arguments");
+        }
+
         if (n < nodes.size() && nodes[n].m_used) {
             nodes[n].m_material = mat;
         }
@@ -360,13 +379,17 @@ namespace rte
 
     mat_id get_node_material(node_id n)
     {
+        if (!(n < nodes.size() && nodes[n].m_used)) {
+            throw std::logic_error("get_node_material error: invalid arguments");
+        }
+
         return ((n < nodes.size() && nodes[n].m_used)? nodes[n].m_material : nmat);
     }
 
     void set_node_enabled(node_id n, bool enabled)
     {
         if (!(n < nodes.size() && nodes[n].m_used)) {
-            log(LOG_LEVEL_ERROR, "set_node_enabled error: invalid parameters"); return;
+            throw std::logic_error("set_node_enabled error: invalid arguments");
         }
 
         nodes[n].m_enabled = enabled;
@@ -375,7 +398,7 @@ namespace rte
     bool is_node_enabled(node_id n)
     {
         if (!(n < nodes.size() && nodes[n].m_used)) {
-            log(LOG_LEVEL_ERROR, "is_node_enabled error: invalid parameters"); return false;
+            throw std::logic_error("is_node_enabled error: invalid arguments");
         }
 
         return nodes[n].m_enabled;
@@ -384,7 +407,7 @@ namespace rte
     node_id get_first_child_node(node_id n)
     {
         if (!(n < nodes.size() && nodes[n].m_used)) {
-            log(LOG_LEVEL_ERROR, "get_first_child_node error: invalid parameters"); return nnode;
+            throw std::logic_error("get_first_child_node error: invalid arguments");
         }
 
         return nodes[n].m_first_child;
@@ -393,7 +416,7 @@ namespace rte
     node_id get_next_sibling_node(node_id n)
     {
         if (!(n < nodes.size() && nodes[n].m_used)) {
-            log(LOG_LEVEL_ERROR, "get_next_sibling_node error: invalid parameters"); return nnode;
+            throw std::logic_error("get_next_sibling_node error: invalid arguments");
         }
 
         return nodes[n].m_next_sibling;
@@ -443,6 +466,10 @@ namespace rte
 
     void set_directional_light_ambient_color(scene_id s, glm::vec3 ambient_color)
     {
+        if (!(s < scenes.size() && scenes[s].m_used)) {
+            throw std::logic_error("set_directional_light_ambient_color error: invalid arguments");
+        }
+
         if (s < scenes.size()) {
             scenes[s].m_directional_light_ambient_color = ambient_color;
         }
@@ -450,43 +477,65 @@ namespace rte
 
     void set_directional_light_diffuse_color(scene_id s, glm::vec3 diffuse_color)
     {
-        if (s < scenes.size()) {
-            scenes[s].m_directional_light_diffuse_color = diffuse_color;
+        if (!(s < scenes.size() && scenes[s].m_used)) {
+            throw std::logic_error("set_directional_light_diffuse_color error: invalid arguments");
         }
+
+        scenes[s].m_directional_light_diffuse_color = diffuse_color;
     }
 
     void set_directional_light_specular_color(scene_id s, glm::vec3 specular_color)
     {
-        if (s < scenes.size()) {
-            scenes[s].m_directional_light_specular_color = specular_color;
+        if (!(s < scenes.size() && scenes[s].m_used)) {
+            throw std::logic_error("set_directional_light_specular_color error: invalid arguments");
         }
+
+        scenes[s].m_directional_light_specular_color = specular_color;
     }
 
     void set_directional_light_direction(scene_id s, glm::vec3 direction)
     {
-        if (s < scenes.size()) {
-            scenes[s].m_directional_light_direction = direction;
+        if (!(s < scenes.size() && scenes[s].m_used)) {
+            throw std::logic_error("set_directional_light_direction error: invalid arguments");
         }
+
+        scenes[s].m_directional_light_direction = direction;
     }
 
     glm::vec3 get_directional_light_ambient_color(scene_id s)
     {
-        return (s < scenes.size()? scenes[s].m_directional_light_ambient_color : glm::vec3());
+        if (!(s < scenes.size() && scenes[s].m_used)) {
+            throw std::logic_error("get_directional_light_ambient_color error: invalid arguments");
+        }
+
+        return scenes[s].m_directional_light_ambient_color;
     }
 
     glm::vec3 get_directional_light_diffuse_color(scene_id s)
     {
+        if (!(s < scenes.size() && scenes[s].m_used)) {
+            throw std::logic_error("get_directional_light_diffuse_color error: invalid arguments");
+        }
+
         return (s < scenes.size()? scenes[s].m_directional_light_diffuse_color : glm::vec3());
     }
 
     glm::vec3 get_directional_light_specular_color(scene_id s)
     {
-        return (s < scenes.size()? scenes[s].m_directional_light_specular_color : glm::vec3());
+        if (!(s < scenes.size() && scenes[s].m_used)) {
+            throw std::logic_error("get_directional_light_specular_color error: invalid arguments");
+        }
+
+        return scenes[s].m_directional_light_specular_color;
     }
 
     glm::vec3 get_directional_light_direction(scene_id s)
     {
-        return (s < scenes.size()? scenes[s].m_directional_light_direction : glm::vec3());
+        if (!(s < scenes.size() && scenes[s].m_used)) {
+            throw std::logic_error("get_directional_light_direction error: invalid arguments");
+        }
+
+        return scenes[s].m_directional_light_direction;
     }
 
     point_light_id new_point_light(scene_id s)
@@ -518,92 +567,135 @@ namespace rte
 
     point_light_id get_next_point_light(point_light_id pl)
     {
+        if (!(pl < point_lights.size() && point_lights[pl].m_used)) {
+            throw std::logic_error("get_next_point_light error: invalid arguments");
+        }
+
         auto it = std::find_if(point_lights.begin() + pl + 1, point_lights.end(), [](const point_light& pl) { return pl.m_used; });
         return (it != point_lights.end() ? it - point_lights.begin() : nmat);
     }
 
-    void set_point_light_position(point_light_id light, glm::vec3 position)
+    void set_point_light_position(point_light_id pl, glm::vec3 position)
     {
-        if (!(light < point_lights.size() && point_lights[light].m_used)) { return; }
-        point_lights[light].m_position = position;
+        if (!(pl < point_lights.size() && point_lights[pl].m_used)) {
+            throw std::logic_error("set_point_light_position error: invalid arguments");
+        }
+
+        point_lights[pl].m_position = position;
     }
 
-    void set_point_light_ambient_color(point_light_id light, glm::vec3 ambient_color)
+    void set_point_light_ambient_color(point_light_id pl, glm::vec3 ambient_color)
     {
-        if (!(light < point_lights.size() && point_lights[light].m_used)) { return; }
-        point_lights[light].m_ambient_color = ambient_color;
+        if (!(pl < point_lights.size() && point_lights[pl].m_used)) {
+            throw std::logic_error("set_point_light_ambient_color error: invalid arguments");
+        }
+
+        point_lights[pl].m_ambient_color = ambient_color;
     }
 
-    void set_point_light_diffuse_color(point_light_id light, glm::vec3 diffuse_color)
+    void set_point_light_diffuse_color(point_light_id pl, glm::vec3 diffuse_color)
     {
-        if (!(light < point_lights.size() && point_lights[light].m_used)) { return; }
-        point_lights[light].m_diffuse_color = diffuse_color;
+        if (!(pl < point_lights.size() && point_lights[pl].m_used)) {
+            throw std::logic_error("set_point_light_diffuse_color error: invalid arguments");
+        }
+
+        point_lights[pl].m_diffuse_color = diffuse_color;
     }
 
-    void set_point_light_specular_color(point_light_id light, glm::vec3 specular_color)
+    void set_point_light_specular_color(point_light_id pl, glm::vec3 specular_color)
     {
-        if (!(light < point_lights.size() && point_lights[light].m_used)) { return; }
-        point_lights[light].m_specular_color = specular_color;
+        if (!(pl < point_lights.size() && point_lights[pl].m_used)) {
+            throw std::logic_error("set_point_light_specular_color error: invalid arguments");
+        }
+
+        point_lights[pl].m_specular_color = specular_color;
     }
 
-    void set_point_light_constant_attenuation(point_light_id light, float constant_attenuation)
+    void set_point_light_constant_attenuation(point_light_id pl, float constant_attenuation)
     {
-        if (!(light < point_lights.size() && point_lights[light].m_used)) { return; }
-        point_lights[light].m_constant_attenuation = constant_attenuation;
+        if (!(pl < point_lights.size() && point_lights[pl].m_used)) {
+            throw std::logic_error("set_point_light_constant_attenuation error: invalid arguments");
+        }
+
+        point_lights[pl].m_constant_attenuation = constant_attenuation;
     }
 
-    void set_point_light_linear_attenuation(point_light_id light, float linear_attenuation)
+    void set_point_light_linear_attenuation(point_light_id pl, float linear_attenuation)
     {
-        if (!(light < point_lights.size() && point_lights[light].m_used)) { return; }
-        point_lights[light].m_linear_attenuation = linear_attenuation;
+        if (!(pl < point_lights.size() && point_lights[pl].m_used)) {
+            throw std::logic_error("set_point_light_linear_attenuation error: invalid arguments");
+        }
+
+        point_lights[pl].m_linear_attenuation = linear_attenuation;
     }
 
-    void set_point_light_quadratic_attenuation(point_light_id light, float quadratic_attenuation)
+    void set_point_light_quadratic_attenuation(point_light_id pl, float quadratic_attenuation)
     {
-        if (!(light < point_lights.size() && point_lights[light].m_used)) { return; }
-        point_lights[light].m_quadratic_attenuation = quadratic_attenuation;
+        if (!(pl < point_lights.size() && point_lights[pl].m_used)) {
+            throw std::logic_error("set_point_light_quadratic_attenuation error: invalid arguments");
+        }
+
+        point_lights[pl].m_quadratic_attenuation = quadratic_attenuation;
     }
 
-    glm::vec3 get_point_light_position(point_light_id light)
+    glm::vec3 get_point_light_position(point_light_id pl)
     {
-        if (!(light < point_lights.size() && point_lights[light].m_used)) { return glm::vec3(); }
-        return point_lights[light].m_position;
+        if (!(pl < point_lights.size() && point_lights[pl].m_used)) {
+            throw std::logic_error("get_point_light_position error: invalid arguments");
+        }
+
+        return point_lights[pl].m_position;
     }
 
-    glm::vec3 get_point_light_ambient_color(point_light_id light)
+    glm::vec3 get_point_light_ambient_color(point_light_id pl)
     {
-        if (!(light < point_lights.size() && point_lights[light].m_used)) { return glm::vec3(); }
-        return point_lights[light].m_ambient_color;
+        if (!(pl < point_lights.size() && point_lights[pl].m_used)) {
+            throw std::logic_error("get_point_light_ambient_color error: invalid arguments");
+        }
+
+        return point_lights[pl].m_ambient_color;
     }
 
-    glm::vec3 get_point_light_diffuse_color(point_light_id light)
+    glm::vec3 get_point_light_diffuse_color(point_light_id pl)
     {
-        if (!(light < point_lights.size() && point_lights[light].m_used)) { return glm::vec3(); }
-        return point_lights[light].m_diffuse_color;
+        if (!(pl < point_lights.size() && point_lights[pl].m_used)) {
+            throw std::logic_error("get_point_light_diffuse_color error: invalid arguments");
+        }
+
+        return point_lights[pl].m_diffuse_color;
     }
 
-    glm::vec3 get_point_light_specular_color(point_light_id light)
+    glm::vec3 get_point_light_specular_color(point_light_id pl)
     {
-        if (!(light < point_lights.size() && point_lights[light].m_used)) { return glm::vec3(); }
-        return point_lights[light].m_specular_color;
+        if (!(pl < point_lights.size() && point_lights[pl].m_used)) {
+            throw std::logic_error("get_point_light_specular_color error: invalid arguments");
+        }
+
+        return point_lights[pl].m_specular_color;
     }
 
-    float get_point_light_constant_attenuation(point_light_id light)
+    float get_point_light_constant_attenuation(point_light_id pl)
     {
-        if (!(light < point_lights.size() && point_lights[light].m_used)) { return 0.0f; }
-        return point_lights[light].m_constant_attenuation;
+        if (!(pl < point_lights.size() && point_lights[pl].m_used)) {
+            throw std::logic_error("get_point_light_constant_attenuation error: invalid arguments");
+        }
+
+        return point_lights[pl].m_constant_attenuation;
     }
 
-    float get_point_light_linear_attenuation(point_light_id light)
+    float get_point_light_linear_attenuation(point_light_id pl)
     {
-        if (!(light < point_lights.size() && point_lights[light].m_used)) { return 0.0f; }
-        return point_lights[light].m_linear_attenuation;
+        if (!(pl < point_lights.size() && point_lights[pl].m_used)) {
+            throw std::logic_error("get_point_light_linear_attenuation error: invalid arguments");
+        }
+
+        return point_lights[pl].m_linear_attenuation;
     }
 
-    float get_point_light_quadratic_attenuation(point_light_id light)
+    float get_point_light_quadratic_attenuation(point_light_id pl)
     {
-        if (!(light < point_lights.size() && point_lights[light].m_used)) { return 0.0f; }
-        return point_lights[light].m_quadratic_attenuation;
+        if (!(pl < point_lights.size() && point_lights[pl].m_used)) { return 0.0f; }
+        return point_lights[pl].m_quadratic_attenuation;
     }
 
     unique_point_light make_point_light(scene_id s)
