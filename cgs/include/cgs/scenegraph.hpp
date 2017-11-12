@@ -286,22 +286,22 @@ namespace cgs
 
     point_light_id add_point_light(scene_id scene);
     void remove_point_light(point_light_id light);
-    point_light_id get_first_point_light(scene_id scene);
-    point_light_id get_next_point_light(scene_id scene, point_light_id light);
-    void set_point_light_position(scene_id scene, point_light_id light, glm::vec3 position);
-    void set_point_light_ambient_color(scene_id scene, point_light_id light, glm::vec3 ambient_color);
-    void set_point_light_diffuse_color(scene_id scene, point_light_id light, glm::vec3 diffuse_color);
-    void set_point_light_specular_color(scene_id scene, point_light_id light, glm::vec3 specular_color);
-    void set_point_light_constant_attenuation(scene_id scene, point_light_id light, float constant_attenuation);
-    void set_point_light_linear_attenuation(scene_id scene, point_light_id light, float linear_attenuation);
-    void set_point_light_quadratic_attenuation(scene_id scene, point_light_id light, float quadratic_attenuation);
-    glm::vec3 get_point_light_position(scene_id scene, point_light_id light);
-    glm::vec3 get_point_light_ambient_color(scene_id scene, point_light_id light);
-    glm::vec3 get_point_light_diffuse_color(scene_id scene, point_light_id light);
-    glm::vec3 get_point_light_specular_color(scene_id scene, point_light_id light);
-    float get_point_light_constant_attenuation(scene_id scene, point_light_id light);
-    float get_point_light_linear_attenuation(scene_id scene, point_light_id light);
-    float get_point_light_quadratic_attenuation(scene_id scene, point_light_id light);
+    point_light_id get_first_point_light();
+    point_light_id get_next_point_light(point_light_id light);
+    void set_point_light_position(point_light_id light, glm::vec3 position);
+    void set_point_light_ambient_color(point_light_id light, glm::vec3 ambient_color);
+    void set_point_light_diffuse_color(point_light_id light, glm::vec3 diffuse_color);
+    void set_point_light_specular_color(point_light_id light, glm::vec3 specular_color);
+    void set_point_light_constant_attenuation(point_light_id light, float constant_attenuation);
+    void set_point_light_linear_attenuation(point_light_id light, float linear_attenuation);
+    void set_point_light_quadratic_attenuation(point_light_id light, float quadratic_attenuation);
+    glm::vec3 get_point_light_position(point_light_id light);
+    glm::vec3 get_point_light_ambient_color(point_light_id light);
+    glm::vec3 get_point_light_diffuse_color(point_light_id light);
+    glm::vec3 get_point_light_specular_color(point_light_id light);
+    float get_point_light_constant_attenuation(point_light_id light);
+    float get_point_light_linear_attenuation(point_light_id light);
+    float get_point_light_quadratic_attenuation(point_light_id light);
 
     struct point_light_handle
     {   
@@ -328,7 +328,7 @@ namespace cgs
 
     typedef std::unique_ptr<point_light_id, point_light_deleter> unique_point_light;
     typedef std::vector<unique_point_light> point_light_vector;
-    unique_point_light make_point_light();
+    unique_point_light make_point_light(scene_id scene);
 
     std::vector<node_id> get_descendant_nodes(node_id node);
 } // namespace cgs

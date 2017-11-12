@@ -38,7 +38,7 @@ namespace cgs
         float     m_quadratic_attenuation;
     };
 
-    typedef std::vector<point_light_data> point_light_vector;
+    typedef std::vector<point_light_data> point_light_data_vector;
 
     enum class program_type
     {
@@ -93,14 +93,14 @@ namespace cgs
             m_point_lights(),
             m_depth_func(depth_func::less) {}
 
-        gl_node_context    m_node;
-        gl_cubemap_id      m_gl_cubemap;
-        gl_program_id      m_program;
-        glm::mat4          m_view;
-        glm::mat4          m_projection;
-        dirlight_data      m_dirlight;
-        point_light_vector m_point_lights;
-        depth_func         m_depth_func;
+        gl_node_context         m_node;
+        gl_cubemap_id           m_gl_cubemap;
+        gl_program_id           m_program;
+        glm::mat4               m_view;
+        glm::mat4               m_projection;
+        dirlight_data           m_dirlight;
+        point_light_data_vector m_point_lights;
+        depth_func              m_depth_func;
     };
 
     //-----------------------------------------------------------------------------------------------

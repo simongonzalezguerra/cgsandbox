@@ -242,17 +242,17 @@ namespace cgs
         }
 
         // Set point light data
-        for (point_light_id pl = get_first_point_light(current_scene); pl != npoint_light; pl = get_next_point_light(current_scene, pl)) {
+        for (point_light_id pl = get_first_point_light(); pl != npoint_light; pl = get_next_point_light(pl)) {
             point_light_data pl_data;
             // TODO is this correct? The conversion from vec4 to vec3 discards the w component, which is not necessarily 1
-            glm::vec3 position_cameraspace(driver_context.m_view * glm::vec4(get_point_light_position(current_scene, pl), 0.0f));
+            glm::vec3 position_cameraspace(driver_context.m_view * glm::vec4(get_point_light_position(pl), 0.0f));
             pl_data.m_position_cameraspace = position_cameraspace;
-            pl_data.m_ambient_color = get_point_light_ambient_color(current_scene, pl);
-            pl_data.m_diffuse_color = get_point_light_diffuse_color(current_scene, pl);
-            pl_data.m_specular_color = get_point_light_specular_color(current_scene, pl);
-            pl_data.m_constant_attenuation = get_point_light_constant_attenuation(current_scene, pl);
-            pl_data.m_linear_attenuation = get_point_light_linear_attenuation(current_scene, pl);
-            pl_data.m_quadratic_attenuation = get_point_light_quadratic_attenuation(current_scene, pl);
+            pl_data.m_ambient_color = get_point_light_ambient_color(pl);
+            pl_data.m_diffuse_color = get_point_light_diffuse_color(pl);
+            pl_data.m_specular_color = get_point_light_specular_color(pl);
+            pl_data.m_constant_attenuation = get_point_light_constant_attenuation(pl);
+            pl_data.m_linear_attenuation = get_point_light_linear_attenuation(pl);
+            pl_data.m_quadratic_attenuation = get_point_light_quadratic_attenuation(pl);
             driver_context.m_point_lights.push_back(pl_data);
         }
 

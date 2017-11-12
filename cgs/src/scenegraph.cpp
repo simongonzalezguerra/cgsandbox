@@ -47,7 +47,8 @@ namespace cgs
                 m_specular_color(0.0f),
                 m_constant_attenuation(0.0f),
                 m_linear_attenuation(0.0f),
-                m_quadratic_attenuation(0.0f) {}
+                m_quadratic_attenuation(0.0f),
+                m_used(true) {}
 
             glm::vec3 m_position;
             glm::vec3 m_ambient_color;
@@ -56,9 +57,8 @@ namespace cgs
             float     m_constant_attenuation;
             float     m_linear_attenuation;
             float     m_quadratic_attenuation;
+            bool      m_used;
         };
-
-        typedef std::vector<point_light> point_light_vector;
 
         struct scene
         {
@@ -68,7 +68,6 @@ namespace cgs
                 m_view_transform{1.0f},
                 m_projection_transform{1.0f},
                 m_skybox(ncubemap),
-                m_point_lights(),
                 m_root_node(),
                 m_used(true) {}
 
@@ -81,7 +80,6 @@ namespace cgs
             glm::vec3          m_directional_light_diffuse_color;  //!< diffuse color of the directional light
             glm::vec3          m_directional_light_specular_color; //!< specular color of the directional light
             glm::vec3          m_directional_light_direction;      //!< direction of the directional light
-            point_light_vector m_point_lights;                     //!< collection of all the point lights in this scene
             unique_node        m_root_node;                        //!< handle to the root node of this scene
             bool               m_used;                             //!< is this entry in the vector used?
         };
@@ -91,6 +89,7 @@ namespace cgs
         //---------------------------------------------------------------------------------------------
         std::vector<scene> scenes;                                //!< collection of all the scenes
         std::vector<node> nodes;                                  //!< collection of all the nodes
+        std::vector<point_light> point_lights;                    //!< collection of all the point lights
 
         //---------------------------------------------------------------------------------------------
         // Helper functions
@@ -490,115 +489,123 @@ namespace cgs
 
     point_light_id add_point_light(scene_id scene)
     {
-        if (!(scene < scenes.size())) { return npoint_light; }
-        scenes[scene].m_point_lights.push_back(point_light{});
-        return scenes[scene].m_point_lights.size() - 1;
+        point_light_id pl = std::find_if(point_lights.begin(), point_lights.end(), [](const point_light& pl) { return !pl.m_used; }) - point_lights.begin();
+        if (pl == point_lights.size()) {
+            point_lights.push_back(point_light{});
+        } else {
+            point_lights[pl] = point_light{};
+        }
+
+        return pl;
     }
 
     void remove_point_light(point_light_id light)
     {
-        // TODO
+        if (light < point_lights.size() && point_lights[light].m_used) {
+            point_lights[light] = point_light{};
+            point_lights[light].m_used = false;
+        }
     }
 
-    point_light_id get_first_point_light(scene_id scene)
+    point_light_id get_first_point_light()
     {
-        if (!(scene < scenes.size())) { return npoint_light; }
-        return (scenes[scene].m_point_lights.size()? 0U : npoint_light);
+        auto it = std::find_if(point_lights.begin(), point_lights.end(), [](const point_light& pl) { return pl.m_used; });
+        return (it != point_lights.end() ? it - point_lights.begin() : npoint_light);
     }
 
-    point_light_id get_next_point_light(scene_id scene, point_light_id light)
+    point_light_id get_next_point_light(point_light_id pl)
     {
-        if (!(scene < scenes.size())) { return npoint_light; }
-        return (light + 1 < scenes[scene].m_point_lights.size()? light + 1 : npoint_light);
+        auto it = std::find_if(point_lights.begin() + pl + 1, point_lights.end(), [](const point_light& pl) { return pl.m_used; });
+        return (it != point_lights.end() ? it - point_lights.begin() : nmat);
     }
 
-    void set_point_light_position(scene_id scene, point_light_id light, glm::vec3 position)
+    void set_point_light_position(point_light_id light, glm::vec3 position)
     {
-        if (!(scene < scenes.size() && light < scenes[scene].m_point_lights.size())) { return; }
-        scenes[scene].m_point_lights[light].m_position = position;
+        if (!(light < point_lights.size() && point_lights[light].m_used)) { return; }
+        point_lights[light].m_position = position;
     }
 
-    void set_point_light_ambient_color(scene_id scene, point_light_id light, glm::vec3 ambient_color)
+    void set_point_light_ambient_color(point_light_id light, glm::vec3 ambient_color)
     {
-        if (!(scene < scenes.size() && light < scenes[scene].m_point_lights.size())) { return; }
-        scenes[scene].m_point_lights[light].m_ambient_color = ambient_color;
+        if (!(light < point_lights.size() && point_lights[light].m_used)) { return; }
+        point_lights[light].m_ambient_color = ambient_color;
     }
 
-    void set_point_light_diffuse_color(scene_id scene, point_light_id light, glm::vec3 diffuse_color)
+    void set_point_light_diffuse_color(point_light_id light, glm::vec3 diffuse_color)
     {
-        if (!(scene < scenes.size() && light < scenes[scene].m_point_lights.size())) { return; }
-        scenes[scene].m_point_lights[light].m_diffuse_color = diffuse_color;
+        if (!(light < point_lights.size() && point_lights[light].m_used)) { return; }
+        point_lights[light].m_diffuse_color = diffuse_color;
     }
 
-    void set_point_light_specular_color(scene_id scene, point_light_id light, glm::vec3 specular_color)
+    void set_point_light_specular_color(point_light_id light, glm::vec3 specular_color)
     {
-        if (!(scene < scenes.size() && light < scenes[scene].m_point_lights.size())) { return; }
-        scenes[scene].m_point_lights[light].m_specular_color = specular_color;
+        if (!(light < point_lights.size() && point_lights[light].m_used)) { return; }
+        point_lights[light].m_specular_color = specular_color;
     }
 
-    void set_point_light_constant_attenuation(scene_id scene, point_light_id light, float constant_attenuation)
+    void set_point_light_constant_attenuation(point_light_id light, float constant_attenuation)
     {
-        if (!(scene < scenes.size() && light < scenes[scene].m_point_lights.size())) { return; }
-        scenes[scene].m_point_lights[light].m_constant_attenuation = constant_attenuation;
+        if (!(light < point_lights.size() && point_lights[light].m_used)) { return; }
+        point_lights[light].m_constant_attenuation = constant_attenuation;
     }
 
-    void set_point_light_linear_attenuation(scene_id scene, point_light_id light, float linear_attenuation)
+    void set_point_light_linear_attenuation(point_light_id light, float linear_attenuation)
     {
-        if (!(scene < scenes.size() && light < scenes[scene].m_point_lights.size())) { return; }
-        scenes[scene].m_point_lights[light].m_linear_attenuation = linear_attenuation;
+        if (!(light < point_lights.size() && point_lights[light].m_used)) { return; }
+        point_lights[light].m_linear_attenuation = linear_attenuation;
     }
 
-    void set_point_light_quadratic_attenuation(scene_id scene, point_light_id light, float quadratic_attenuation)
+    void set_point_light_quadratic_attenuation(point_light_id light, float quadratic_attenuation)
     {
-        if (!(scene < scenes.size() && light < scenes[scene].m_point_lights.size())) { return; }
-        scenes[scene].m_point_lights[light].m_quadratic_attenuation = quadratic_attenuation;
+        if (!(light < point_lights.size() && point_lights[light].m_used)) { return; }
+        point_lights[light].m_quadratic_attenuation = quadratic_attenuation;
     }
 
-    glm::vec3 get_point_light_position(scene_id scene, point_light_id light)
+    glm::vec3 get_point_light_position(point_light_id light)
     {
-        if (!(scene < scenes.size() && light < scenes[scene].m_point_lights.size())) { return glm::vec3(); }
-        return scenes[scene].m_point_lights[light].m_position;
+        if (!(light < point_lights.size() && point_lights[light].m_used)) { return glm::vec3(); }
+        return point_lights[light].m_position;
     }
 
-    glm::vec3 get_point_light_ambient_color(scene_id scene, point_light_id light)
+    glm::vec3 get_point_light_ambient_color(point_light_id light)
     {
-        if (!(scene < scenes.size() && light < scenes[scene].m_point_lights.size())) { return glm::vec3(); }
-        return scenes[scene].m_point_lights[light].m_ambient_color;
+        if (!(light < point_lights.size() && point_lights[light].m_used)) { return glm::vec3(); }
+        return point_lights[light].m_ambient_color;
     }
 
-    glm::vec3 get_point_light_diffuse_color(scene_id scene, point_light_id light)
+    glm::vec3 get_point_light_diffuse_color(point_light_id light)
     {
-        if (!(scene < scenes.size() && light < scenes[scene].m_point_lights.size())) { return glm::vec3(); }
-        return scenes[scene].m_point_lights[light].m_diffuse_color;
+        if (!(light < point_lights.size() && point_lights[light].m_used)) { return glm::vec3(); }
+        return point_lights[light].m_diffuse_color;
     }
 
-    glm::vec3 get_point_light_specular_color(scene_id scene, point_light_id light)
+    glm::vec3 get_point_light_specular_color(point_light_id light)
     {
-        if (!(scene < scenes.size() && light < scenes[scene].m_point_lights.size())) { return glm::vec3(); }
-        return scenes[scene].m_point_lights[light].m_specular_color;
+        if (!(light < point_lights.size() && point_lights[light].m_used)) { return glm::vec3(); }
+        return point_lights[light].m_specular_color;
     }
 
-    float get_point_light_constant_attenuation(scene_id scene, point_light_id light)
+    float get_point_light_constant_attenuation(point_light_id light)
     {
-        if (!(scene < scenes.size() && light < scenes[scene].m_point_lights.size())) { return 0.0f; }
-        return scenes[scene].m_point_lights[light].m_constant_attenuation;
+        if (!(light < point_lights.size() && point_lights[light].m_used)) { return 0.0f; }
+        return point_lights[light].m_constant_attenuation;
     }
 
-    float get_point_light_linear_attenuation(scene_id scene, point_light_id light)
+    float get_point_light_linear_attenuation(point_light_id light)
     {
-        if (!(scene < scenes.size() && light < scenes[scene].m_point_lights.size())) { return 0.0f; }
-        return scenes[scene].m_point_lights[light].m_linear_attenuation;
+        if (!(light < point_lights.size() && point_lights[light].m_used)) { return 0.0f; }
+        return point_lights[light].m_linear_attenuation;
     }
 
-    float get_point_light_quadratic_attenuation(scene_id scene, point_light_id light)
+    float get_point_light_quadratic_attenuation(point_light_id light)
     {
-        if (!(scene < scenes.size() && light < scenes[scene].m_point_lights.size())) { return 0.0f; }
-        return scenes[scene].m_point_lights[light].m_quadratic_attenuation;
+        if (!(light < point_lights.size() && point_lights[light].m_used)) { return 0.0f; }
+        return point_lights[light].m_quadratic_attenuation;
     }
 
-    unique_point_light make_point_light()
+    unique_point_light make_point_light(scene_id s)
     {
-        // TODO
+        return unique_point_light(add_point_light(s));
     }
 
     std::vector<node_id> get_descendant_nodes(node_id n)

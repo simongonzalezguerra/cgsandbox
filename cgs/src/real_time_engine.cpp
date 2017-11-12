@@ -175,14 +175,14 @@ namespace cgs
             make_node(root_node, bunny_resource, &glass_bunny_node, &added_nodes);
             set_node_material(glass_bunny_node, glass_material.get());
 
-            point_light_id point_light = add_point_light(m_scene.get());
-            set_point_light_position(m_scene.get(), point_light, glm::vec3(4.0f, 4.0f, 4.0f));
-            set_point_light_ambient_color(m_scene.get(), point_light, glm::vec3(0.1f, 0.1f, 0.1f));
-            set_point_light_diffuse_color(m_scene.get(), point_light, glm::vec3(1.0f, 1.0f, 1.0f));
-            set_point_light_specular_color(m_scene.get(), point_light, glm::vec3(0.3f, 0.3f, 0.3f));
-            set_point_light_constant_attenuation(m_scene.get(), point_light, 1.0f);
-            set_point_light_linear_attenuation(m_scene.get(), point_light, 0.0f); // Be careful with this parameter, it can dim your point light pretty fast
-            set_point_light_quadratic_attenuation(m_scene.get(), point_light, 0.0f); // Be careful with this parameter, it can dim your point light pretty fast
+            unique_point_light pl = make_point_light(m_scene.get());
+            set_point_light_position(pl.get(), glm::vec3(4.0f, 4.0f, 4.0f));
+            set_point_light_ambient_color(pl.get(), glm::vec3(0.1f, 0.1f, 0.1f));
+            set_point_light_diffuse_color(pl.get(), glm::vec3(1.0f, 1.0f, 1.0f));
+            set_point_light_specular_color(pl.get(), glm::vec3(0.3f, 0.3f, 0.3f));
+            set_point_light_constant_attenuation(pl.get(), 1.0f);
+            set_point_light_linear_attenuation(pl.get(), 0.0f); // Be careful with this parameter, it can dim your point light pretty fast
+            set_point_light_quadratic_attenuation(pl.get(), 0.0f); // Be careful with this parameter, it can dim your point light pretty fast
 
             m_last_time = get_time();
 
@@ -214,6 +214,7 @@ namespace cgs
             m_resources.insert(m_resources.end(), make_move_iterator(added_resources.begin()), make_move_iterator(added_resources.end()));
             m_cubemaps.push_back(std::move(skybox));
             m_nodes.insert(m_nodes.end(), make_move_iterator(added_nodes.begin()), make_move_iterator(added_nodes.end()));
+            m_point_lights.push_back(std::move(pl));
             m_plane_node = plane_node;
             m_steel_dragon_node = steel_dragon_node;
             m_steel_teapot_node = steel_teapot_node;
@@ -347,6 +348,7 @@ namespace cgs
         resource_vector        m_resources;
         cubemap_vector         m_cubemaps;
         node_vector            m_nodes;
+        point_light_vector     m_point_lights;
         node_id                m_plane_node;
         node_id                m_steel_dragon_node;
         node_id                m_steel_teapot_node;
