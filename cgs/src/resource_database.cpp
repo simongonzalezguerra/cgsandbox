@@ -440,14 +440,14 @@ namespace cgs
     resource_id add_resource()
     {
         // Allocate a vector entry for the new resource
-        resource_id new_resource = std::find_if(resources.begin(), resources.end(), [](const resource& r) { return !r.m_used; }) - resources.begin();
-        if (new_resource == resources.size()) {
+        resource_id new_res = std::find_if(resources.begin(), resources.end(), [](const resource& r) { return !r.m_used; }) - resources.begin();
+        if (new_res == resources.size()) {
             resources.push_back(resource{});
         } else {
-            resources[new_resource] = resource{};
+            resources[new_res] = resource{};
         }
 
-        return new_resource;
+        return new_res;
     }
 
     resource_id add_resource(resource_id p)
@@ -457,7 +457,7 @@ namespace cgs
         }
 
         // Allocate a vector entry for the new resource
-        resource_id new_resource = add_resource();
+        resource_id new_res = add_resource();
 
         // Link the new resource as last child of p
         resource_id r = resources[p].m_first_child;
@@ -465,9 +465,9 @@ namespace cgs
         while (r != nresource && ((next = resources[r].m_next_sibling) != nresource)) {
             r = next;
         }
-        (r == nresource? resources[p].m_first_child : resources[r].m_next_sibling) = new_resource;
+        (r == nresource? resources[p].m_first_child : resources[r].m_next_sibling) = new_res;
 
-        return new_resource;
+        return new_res;
     }
 
     void remove_resource(resource_id r)
