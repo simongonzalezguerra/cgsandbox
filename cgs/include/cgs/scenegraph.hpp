@@ -285,6 +285,7 @@ namespace cgs
     glm::vec3 get_directional_light_direction(scene_id scene);
 
     point_light_id add_point_light(scene_id scene);
+    void remove_point_light(point_light_id light);
     point_light_id get_first_point_light(scene_id scene);
     point_light_id get_next_point_light(scene_id scene, point_light_id light);
     void set_point_light_position(scene_id scene, point_light_id light, glm::vec3 position);
@@ -301,6 +302,33 @@ namespace cgs
     float get_point_light_constant_attenuation(scene_id scene, point_light_id light);
     float get_point_light_linear_attenuation(scene_id scene, point_light_id light);
     float get_point_light_quadratic_attenuation(scene_id scene, point_light_id light);
+
+    struct point_light_handle
+    {   
+        point_light_handle() : m_point_light_id(npoint_light) {}
+        point_light_handle(point_light_id n) : m_point_light_id(n) {}
+        point_light_handle(std::nullptr_t) : m_point_light_id(npoint_light) {}
+        operator int() {return m_point_light_id;}
+        operator point_light_id() {return m_point_light_id;}
+        bool operator ==(const point_light_handle &other) const {return m_point_light_id == other.m_point_light_id;}
+        bool operator !=(const point_light_handle &other) const {return m_point_light_id != other.m_point_light_id;}
+        bool operator ==(std::nullptr_t) const {return m_point_light_id == npoint_light;}
+        bool operator !=(std::nullptr_t) const {return m_point_light_id != npoint_light;}
+
+        point_light_id m_point_light_id;
+    };  
+
+    struct point_light_deleter
+    {   
+        typedef point_light_handle pointer;
+        point_light_deleter() {}
+        template<class other> point_light_deleter(const other&) {}; 
+        void operator()(pointer p) const { remove_point_light(p); }
+    };
+
+    typedef std::unique_ptr<point_light_id, point_light_deleter> unique_point_light;
+    typedef std::vector<unique_point_light> point_light_vector;
+    unique_point_light make_point_light();
 
     std::vector<node_id> get_descendant_nodes(node_id node);
 } // namespace cgs

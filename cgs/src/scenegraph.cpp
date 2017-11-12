@@ -495,6 +495,11 @@ namespace cgs
         return scenes[scene].m_point_lights.size() - 1;
     }
 
+    void remove_point_light(point_light_id light)
+    {
+        // TODO
+    }
+
     point_light_id get_first_point_light(scene_id scene)
     {
         if (!(scene < scenes.size())) { return npoint_light; }
@@ -589,6 +594,11 @@ namespace cgs
     {
         if (!(scene < scenes.size() && light < scenes[scene].m_point_lights.size())) { return 0.0f; }
         return scenes[scene].m_point_lights[light].m_quadratic_attenuation;
+    }
+
+    unique_point_light make_point_light()
+    {
+        // TODO
     }
 
     std::vector<node_id> get_descendant_nodes(node_id n)
