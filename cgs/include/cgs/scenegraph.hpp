@@ -62,9 +62,9 @@ namespace cgs
     //! @param view Id of the view to add the scene to.
     //! @return Id of the new scene, or nscene on error.
     //-----------------------------------------------------------------------------------------------
-    scene_id add_scene();
+    scene_id new_scene();
 
-    void remove_scene(scene_id scene);
+    void delete_scene(scene_id scene);
 
     //-----------------------------------------------------------------------------------------------
     //! @brief Returns the id of the first scene of a view.
@@ -128,7 +128,7 @@ namespace cgs
         typedef scene_handle pointer;
         scene_deleter() {}
         template<class other> scene_deleter(const other&) {}; 
-        void operator()(pointer p) const { remove_scene(p); }
+        void operator()(pointer p) const { delete_scene(p); }
     };
 
     typedef std::unique_ptr<scene_id, scene_deleter> unique_scene;
@@ -140,7 +140,7 @@ namespace cgs
     //! @param scene Id of the scene to add the node to.
     //! @return The id of the new node.
     //-----------------------------------------------------------------------------------------------
-    node_id add_node();
+    node_id new_node();
 
     //-----------------------------------------------------------------------------------------------
     //! @brief Adds a node to the node hierarchy.
@@ -148,7 +148,7 @@ namespace cgs
     //! @param parent If of the parent node within that scene to insert the new node under.
     //! @return The id of the new node.
     //-----------------------------------------------------------------------------------------------
-    node_id add_node(node_id parent);
+    node_id new_node(node_id parent);
 
     //-----------------------------------------------------------------------------------------------
     //! @brief Removes a node from the node hierarchy.
@@ -156,7 +156,7 @@ namespace cgs
     //! @param node If of the node to remove within that scene.
     //! @remarks The root node of a scene (node id = 0) cannot be removed.
     //-----------------------------------------------------------------------------------------------
-    void remove_node(node_id node);
+    void delete_node(node_id node);
 
     //-----------------------------------------------------------------------------------------------
     //! @brief Updates the local and accumulated transforms of a node.
@@ -266,7 +266,7 @@ namespace cgs
         typedef node_handle pointer;
         node_deleter() {}
         template<class other> node_deleter(const other&) {}; 
-        void operator()(pointer p) const { remove_node(p); }
+        void operator()(pointer p) const { delete_node(p); }
     };
 
     typedef std::unique_ptr<node_id, node_deleter> unique_node;
@@ -284,8 +284,8 @@ namespace cgs
     glm::vec3 get_directional_light_specular_color(scene_id scene);
     glm::vec3 get_directional_light_direction(scene_id scene);
 
-    point_light_id add_point_light(scene_id scene);
-    void remove_point_light(point_light_id light);
+    point_light_id new_point_light(scene_id scene);
+    void delete_point_light(point_light_id light);
     point_light_id get_first_point_light();
     point_light_id get_next_point_light(point_light_id light);
     void set_point_light_position(point_light_id light, glm::vec3 position);
@@ -323,7 +323,7 @@ namespace cgs
         typedef point_light_handle pointer;
         point_light_deleter() {}
         template<class other> point_light_deleter(const other&) {}; 
-        void operator()(pointer p) const { remove_point_light(p); }
+        void operator()(pointer p) const { delete_point_light(p); }
     };
 
     typedef std::unique_ptr<point_light_id, point_light_deleter> unique_point_light;

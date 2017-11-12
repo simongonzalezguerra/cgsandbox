@@ -124,7 +124,7 @@ namespace cgs
         cubemaps.reserve(10);
     }
 
-    mat_id add_material()
+    mat_id new_material()
     {
         mat_id m = std::find_if(materials.begin(), materials.end(), [](const material& m) { return !m.m_used; }) - materials.begin();
         if (m == materials.size()) {
@@ -136,7 +136,7 @@ namespace cgs
         return m;
     }
 
-    void remove_material(mat_id m)
+    void delete_material(mat_id m)
     {
         if (m < materials.size() && materials[m].m_used) {
             materials[m].m_used = false; // soft removal
@@ -278,10 +278,10 @@ namespace cgs
 
     unique_material make_material()
     {
-        return unique_material(add_material());
+        return unique_material(new_material());
     }
 
-    mesh_id add_mesh()
+    mesh_id new_mesh()
     {
         mesh_id m = std::find_if(meshes.begin(), meshes.end(), [](const mesh& m) { return !m.m_used; }) - meshes.begin();
         if (m == meshes.size()) {
@@ -293,7 +293,7 @@ namespace cgs
         return m;
     }
 
-    void remove_mesh(mesh_id m)
+    void delete_mesh(mesh_id m)
     {
         if (m < meshes.size() && meshes[m].m_used) {
             meshes[m].m_used = false; // soft removal;
@@ -434,10 +434,10 @@ namespace cgs
 
     unique_mesh make_mesh()
     {
-        return unique_mesh(add_mesh());
+        return unique_mesh(new_mesh());
     }
 
-    resource_id add_resource()
+    resource_id new_resource()
     {
         // Allocate a vector entry for the new resource
         resource_id new_res = std::find_if(resources.begin(), resources.end(), [](const resource& r) { return !r.m_used; }) - resources.begin();
@@ -450,14 +450,14 @@ namespace cgs
         return new_res;
     }
 
-    resource_id add_resource(resource_id p)
+    resource_id new_resource(resource_id p)
     {
         if (!(p < resources.size() && resources[p].m_used)) {
-            log(LOG_LEVEL_ERROR, "add_resource error: invalid resource id for parent"); return nresource;
+            log(LOG_LEVEL_ERROR, "new_resource error: invalid resource id for parent"); return nresource;
         }
 
         // Allocate a vector entry for the new resource
-        resource_id new_res = add_resource();
+        resource_id new_res = new_resource();
 
         // Link the new resource as last child of p
         resource_id r = resources[p].m_first_child;
@@ -470,10 +470,10 @@ namespace cgs
         return new_res;
     }
 
-    void remove_resource(resource_id r)
+    void delete_resource(resource_id r)
     {
         if (!(r < resources.size() && resources[r].m_used)) {
-            log(LOG_LEVEL_ERROR, "remove_resource error: invalid parameters");
+            log(LOG_LEVEL_ERROR, "delete_resource error: invalid parameters");
         }
 
         // Remove the reference to the resource in its parent or previous sibling
@@ -557,15 +557,15 @@ namespace cgs
 
     unique_resource make_resource()
     {
-        return unique_resource(add_resource());
+        return unique_resource(new_resource());
     }
 
     unique_resource make_resource(resource_id p)
     {
-        return unique_resource(add_resource(p));
+        return unique_resource(new_resource(p));
     }
 
-    cubemap_id add_cubemap()
+    cubemap_id new_cubemap()
     {
         cubemap_id c = std::find_if(cubemaps.begin(), cubemaps.end(), [](const cubemap& c) { return !c.m_used; }) - cubemaps.begin();
         if (c == cubemaps.size()) {
@@ -577,7 +577,7 @@ namespace cgs
         return c;
     }
 
-    void remove_cubemap(cubemap_id c)
+    void delete_cubemap(cubemap_id c)
     {
         if (c < cubemaps.size() && cubemaps[c].m_used) {
             cubemaps[c].m_used = false; // soft removal
@@ -628,6 +628,6 @@ namespace cgs
 
     unique_cubemap make_cubemap()
     {
-        return unique_cubemap(add_cubemap());
+        return unique_cubemap(new_cubemap());
     }
 } // namespace cgs

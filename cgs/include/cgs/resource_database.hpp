@@ -81,8 +81,8 @@ namespace cgs
     //! @remarks The new material has color diffuse = 1, 1, 1, color specular = 1, 1, 1
     //!  and smoothness = 1.
     //-----------------------------------------------------------------------------------------------
-    mat_id add_material();
-    void remove_material(mat_id mat);
+    mat_id new_material();
+    void delete_material(mat_id mat);
     void set_material_diffuse_color(mat_id mat, glm::vec3 diffuse_color);
     void set_material_specular_color(mat_id mat, glm::vec3 specular_color);
     void set_material_smoothness(mat_id mat, float smoothness);
@@ -133,15 +133,15 @@ namespace cgs
         typedef material_handle pointer;
         material_deleter() {}
         template<class other> material_deleter(const other&) {};
-        void operator()(pointer p) const { remove_material(p); }
+        void operator()(pointer p) const { delete_material(p); }
     };
 
     typedef std::unique_ptr<mat_id, material_deleter> unique_material;
     typedef std::vector<unique_material> material_vector;
     unique_material make_material();
 
-    mesh_id add_mesh();
-    void remove_mesh(mesh_id mesh);
+    mesh_id new_mesh();
+    void delete_mesh(mesh_id mesh);
     void set_mesh_vertices(mesh_id mesh, const std::vector<glm::vec3>& vertices);
     void set_mesh_texture_coords(mesh_id mesh, const std::vector<glm::vec2>& texture_coords);
     void set_mesh_normals(mesh_id mesh, const std::vector<glm::vec3>& normals);
@@ -192,7 +192,7 @@ namespace cgs
         typedef mesh_handle pointer;
         mesh_deleter() {}
         template<class other> mesh_deleter(const other&) {};
-        void operator()(pointer p) const { remove_mesh(p); }
+        void operator()(pointer p) const { delete_mesh(p); }
     };
 
     typedef std::unique_ptr<mesh_id, mesh_deleter> unique_mesh;
@@ -207,9 +207,9 @@ namespace cgs
     //!  its local transform is the identity.
     //!  it contains has no meshes
     //-----------------------------------------------------------------------------------------------
-    resource_id add_resource();
-    resource_id add_resource(resource_id parent);
-    void remove_resource(resource_id r);
+    resource_id new_resource();
+    resource_id new_resource(resource_id parent);
+    void delete_resource(resource_id r);
     void set_resource_local_transform(resource_id r, const glm::mat4& local_transform);
     glm::mat4 get_resource_local_transform(resource_id r);
     void set_resource_mesh(resource_id r, mesh_id m);
@@ -252,7 +252,7 @@ namespace cgs
         typedef resource_handle pointer;
         resource_deleter() {}
         template<class other> resource_deleter(const other&) {};
-        void operator()(pointer p) const { remove_resource(p); }
+        void operator()(pointer p) const { delete_resource(p); }
     };
 
     typedef std::unique_ptr<resource_id, resource_deleter> unique_resource;
@@ -260,8 +260,8 @@ namespace cgs
     unique_resource make_resource();
     unique_resource make_resource(resource_id p);
 
-    cubemap_id add_cubemap();
-    void remove_cubemap(cubemap_id c);
+    cubemap_id new_cubemap();
+    void delete_cubemap(cubemap_id c);
     void set_cubemap_faces(cubemap_id cid, const std::vector<std::string>& faces);
     void set_cubemap_gl_cubemap_id(cubemap_id cid, gl_cubemap_id gl_id);
     std::vector<std::string> get_cubemap_faces(cubemap_id id);
@@ -289,7 +289,7 @@ namespace cgs
         typedef cubemap_handle pointer;
         cubemap_deleter() {}
         template<class other> cubemap_deleter(const other&) {};
-        void operator()(pointer p) const { remove_cubemap(p); }
+        void operator()(pointer p) const { delete_cubemap(p); }
     };
 
     typedef std::unique_ptr<cubemap_id, cubemap_deleter> unique_cubemap;

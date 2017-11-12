@@ -119,7 +119,7 @@ namespace cgs
         nodes.reserve(1000);
     }
 
-    scene_id add_scene()
+    scene_id new_scene()
     {
         scene_id s = std::find_if(scenes.begin(), scenes.end(), [](const scene& s) { return !s.m_used; }) - scenes.begin();
         if (s == scenes.size()) {
@@ -137,7 +137,7 @@ namespace cgs
         return s;
     }
 
-    void remove_scene(scene_id s)
+    void delete_scene(scene_id s)
     {
         if (s < scenes.size() && scenes[s].m_used) {
             scenes[s] = scene{}; // Implicitly removes the root node
@@ -238,18 +238,18 @@ namespace cgs
 
     unique_scene make_scene()
     {
-        return unique_scene(add_scene());
+        return unique_scene(new_scene());
     }
 
-    node_id add_node()
+    node_id new_node()
     {
         return allocate_node(nodes);
     }
 
-    node_id add_node(node_id parent)
+    node_id new_node(node_id parent)
     {
         if (!(parent < nodes.size() && nodes[parent].m_used)) {
-            log(LOG_LEVEL_ERROR, "add_node error: invalid parameters"); return nnode;
+            log(LOG_LEVEL_ERROR, "new_node error: invalid parameters"); return nnode;
         }
 
         node_id child = allocate_node(nodes);
@@ -264,10 +264,10 @@ namespace cgs
     }
 
 
-    void remove_node(node_id n)
+    void delete_node(node_id n)
     {
         if (!(n < nodes.size() && nodes[n].m_used)) {
-            log(LOG_LEVEL_ERROR, "remove_node error: invalid parameters"); return;
+            log(LOG_LEVEL_ERROR, "delete_node error: invalid parameters"); return;
         }
 
         auto nit = nodes.begin();
@@ -401,12 +401,12 @@ namespace cgs
 
     unique_node make_node()
     {
-        return unique_node(add_node());
+        return unique_node(new_node());
     }
 
     unique_node make_node(node_id parent)
     {
-        return unique_node(add_node(parent));
+        return unique_node(new_node(parent));
     }
 
     void make_node(node_id p, resource_id r, node_id* root_out, node_vector* nodes_out)
@@ -489,7 +489,7 @@ namespace cgs
         return (s < scenes.size()? scenes[s].m_directional_light_direction : glm::vec3());
     }
 
-    point_light_id add_point_light(scene_id s)
+    point_light_id new_point_light(scene_id s)
     {
         point_light_id pl = std::find_if(point_lights.begin(), point_lights.end(), [](const point_light& pl) { return !pl.m_used; }) - point_lights.begin();
         if (pl == point_lights.size()) {
@@ -502,7 +502,7 @@ namespace cgs
         return pl;
     }
 
-    void remove_point_light(point_light_id light)
+    void delete_point_light(point_light_id light)
     {
         if (light < point_lights.size() && point_lights[light].m_used) {
             point_lights[light] = point_light{};
@@ -608,7 +608,7 @@ namespace cgs
 
     unique_point_light make_point_light(scene_id s)
     {
-        return unique_point_light(add_point_light(s));
+        return unique_point_light(new_point_light(s));
     }
 
     std::vector<node_id> get_descendant_nodes(node_id n)
