@@ -327,19 +327,16 @@ namespace rte
         }
     }
 
-    void render()
+    void render(scene_id s)
     {
         driver.initialize_frame();
-        // For each scene in the view
-        for (scene_id s = get_first_scene(); s != nscene && is_scene_enabled(s); s = get_next_scene(s)) {
-            // Convert tree into list and filter out non-enabled nodes
-            current_scene = s;
-            nodes_to_render = get_descendant_nodes(get_scene_root_node(s));
-            driver_context = gl_driver_context();
-            get_scene_properties();
-            render_phong_nodes();
-            render_environment_mapping_nodes();
-            render_skybox();
-        }
+        // Convert tree into list and filter out non-enabled nodes
+        current_scene = s;
+        nodes_to_render = get_descendant_nodes(get_scene_root_node(s));
+        driver_context = gl_driver_context();
+        get_scene_properties();
+        render_phong_nodes();
+        render_environment_mapping_nodes();
+        render_skybox();
     }
 } // namespace rte

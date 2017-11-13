@@ -342,7 +342,7 @@ namespace rte
             m_perspective_controller.process(dt, m_events);
 
             // Render the scene
-            render();
+            render(m_scene.get());
             swap_buffers(m_window.get());
 
             // Control framerate
