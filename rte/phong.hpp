@@ -24,18 +24,23 @@ const char* phong_vertex_shader = R"glsl(
         gl_Position =  mvp * vec4(vertex_position_modelspace,1);
 
         // Position of the vertex, in worldspace : model * position
-        position_worldspace = (model * vec4(vertex_position_modelspace, 1)).xyz;
+        vec4 position_worldspace4 = model * vec4(vertex_position_modelspace, 1);
+        position_worldspace = position_worldspace4.xyz / position_worldspace4.w;
 
         // Vector that goes from the vertex to the camera, in camera space.
         // In camera space, the camera is at the origin (0,0,0).
-        position_cameraspace = (view * model * vec4(vertex_position_modelspace, 1)).xyz;
+        vec4 position_cameraspace4 = view * model * vec4(vertex_position_modelspace, 1);
+        position_cameraspace = position_cameraspace4.xyz / position_cameraspace4.w;
         direction_v_cameraspace = vec3(0,0,0) - position_cameraspace;
 
         // Normal of the the vertex, in camera space. Note this is only correct if the model
         // transform does not scale the model in a way that is non-uniform accross all axes! If not
         // you can use its inverse transpose, but keep in mind that computing the inverse is expensive
         // (direction_n_cameraspace = mat3(transpose(inverse(model))) * vertex_direction_n_modelspace;)
-        direction_n_cameraspace = ( view * model * vec4(vertex_direction_n_modelspace,0)).xyz;
+
+        // Also note that in order to transform a direction we don't divide by the w component as we do with
+        // positions. The w component of a direction vector has no meaning (it's supposed to be always 0).
+        direction_n_cameraspace = (view * model * vec4(vertex_direction_n_modelspace, 0)).xyz;
 
         // Texture coordinates of the vertex. No special space for this one.
         tex_coords = vertex_tex_coords;

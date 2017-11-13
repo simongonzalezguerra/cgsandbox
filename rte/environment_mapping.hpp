@@ -19,10 +19,11 @@ const char* environment_mapping_vertex_shader = R"glsl(
 
     void main(){
         // Output position of the vertex, in clip space : mvp * position
-        gl_Position =  mvp * vec4(vertex_position_modelspace,1);
+        gl_Position =  mvp * vec4(vertex_position_modelspace, 1);
 
         // Position of the vertex, in worldspace : model * position
-        position_worldspace = (model * vec4(vertex_position_modelspace, 1)).xyz;
+        vec4 position_worldspace4 = model * vec4(vertex_position_modelspace, 1);
+        position_worldspace = position_worldspace4.xyz / position_worldspace4.w;
 
         direction_n_worldspace = mat3(transpose(inverse(model))) * vertex_direction_n_modelspace;
 

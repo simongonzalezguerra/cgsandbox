@@ -1,6 +1,7 @@
 #include "resource_database.hpp"
 #include "renderer.hpp"
 #include "system.hpp"
+#include "utils.hpp"
 #include "log.hpp"
 
 #include <algorithm>
@@ -230,9 +231,7 @@ namespace rte
         driver_context.m_dirlight.m_ambient_color = get_directional_light_ambient_color(current_scene);
         driver_context.m_dirlight.m_diffuse_color = get_directional_light_diffuse_color(current_scene);
         driver_context.m_dirlight.m_specular_color = get_directional_light_specular_color(current_scene);
-        // TODO is this correct? The conversion from vec4 to vec3 discards the w component, which is not necessarily 1
-        glm::vec3 direction_cameraspace(driver_context.m_view * glm::vec4(get_directional_light_direction(current_scene), 0.0f));
-        driver_context.m_dirlight.m_direction_cameraspace = direction_cameraspace;
+        driver_context.m_dirlight.m_direction_cameraspace = from_homogenous_coords(driver_context.m_view * direction_to_homogenous_coords(get_directional_light_direction(current_scene)));
 
         // Set the cubemap texture to use
         driver_context.m_gl_cubemap = 0U;
@@ -244,9 +243,7 @@ namespace rte
         // Set point light data
         for (point_light_id pl = get_first_point_light(); pl != npoint_light; pl = get_next_point_light(pl)) {
             point_light_data pl_data;
-            // TODO is this correct? The conversion from vec4 to vec3 discards the w component, which is not necessarily 1
-            glm::vec3 position_cameraspace(driver_context.m_view * glm::vec4(get_point_light_position(pl), 0.0f));
-            pl_data.m_position_cameraspace = position_cameraspace;
+            pl_data.m_position_cameraspace = from_homogenous_coords(driver_context.m_view * position_to_homogenous_coords(get_point_light_position(pl)));
             pl_data.m_ambient_color = get_point_light_ambient_color(pl);
             pl_data.m_diffuse_color = get_point_light_diffuse_color(pl);
             pl_data.m_specular_color = get_point_light_specular_color(pl);

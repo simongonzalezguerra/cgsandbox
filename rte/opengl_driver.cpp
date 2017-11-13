@@ -365,8 +365,7 @@ namespace rte
             glUniform3fv(glGetUniformLocation(context.m_program, "dirlight.ambient_color"),  1, &context.m_dirlight.m_ambient_color[0]);
             glUniform3fv(glGetUniformLocation(context.m_program, "dirlight.diffuse_color"),  1, &context.m_dirlight.m_diffuse_color[0]);
             glUniform3fv(glGetUniformLocation(context.m_program, "dirlight.specular_color"), 1, &context.m_dirlight.m_specular_color[0]);
-            glm::vec3 direction_cameraspace(context.m_view * glm::vec4(context.m_dirlight.m_direction_cameraspace, 0.0f));
-            glUniform3fv(glGetUniformLocation(context.m_program, "dirlight.direction_cameraspace"), 1, &direction_cameraspace[0]);
+            glUniform3fv(glGetUniformLocation(context.m_program, "dirlight.direction_cameraspace"), 1, &context.m_dirlight.m_direction_cameraspace[0]);
 
             // Set camera position uniform
             glm::vec3 camera_position_worldspace = camera_position_worldspace_from_view_matrix(context.m_view);

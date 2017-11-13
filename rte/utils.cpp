@@ -17,4 +17,20 @@ namespace rte
         glm::vec3 d(view_matrix[3]); 
         return -d * rot_mat;
     }
+
+    glm::vec4 direction_to_homogenous_coords(const glm::vec3& v)
+    {
+        return glm::vec4(v, 0.0f);
+    }
+
+    glm::vec4 position_to_homogenous_coords(const glm::vec3& v)
+    {
+        return glm::vec4(v, 1.0f);
+    }
+
+    glm::vec3 from_homogenous_coords(const glm::vec4& v)
+    {
+        glm::vec4 cartesian = v / v.w;         // divide by w to convert back from homogenous coordinates
+        return glm::vec3(cartesian); // the vec3 constructor implicitly discards the w component
+    }
 }

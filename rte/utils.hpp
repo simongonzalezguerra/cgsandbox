@@ -21,6 +21,12 @@ namespace rte
     // For the more general case where the view matrix can include scaling see this page:
     // https://www.opengl.org/discussion_boards/showthread.php/178484-Extracting-camera-position-from-a-ModelView-Matrix
     glm::vec3 camera_position_worldspace_from_view_matrix(const glm::mat4 view_matrix);
+
+    glm::vec4 direction_to_homogenous_coords(const glm::vec3&);
+
+    glm::vec4 position_to_homogenous_coords(const glm::vec3&);
+
+    glm::vec3 from_homogenous_coords(const glm::vec4&);
 }
 
 #endif
