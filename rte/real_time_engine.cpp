@@ -180,7 +180,7 @@ namespace rte
             set_node_material(glass_bunny_node, glass_material.get());
 
             unique_point_light pl = make_point_light(m_scene.get());
-            set_point_light_position(pl.get(), glm::vec3(4.0f, 4.0f, 4.0f));
+            set_point_light_position(pl.get(), glm::vec3(34.5f, 15.0f, 10.0f));
             set_point_light_ambient_color(pl.get(), glm::vec3(0.1f, 0.1f, 0.1f));
             set_point_light_diffuse_color(pl.get(), glm::vec3(1.0f, 1.0f, 1.0f));
             set_point_light_specular_color(pl.get(), glm::vec3(0.3f, 0.3f, 0.3f));
