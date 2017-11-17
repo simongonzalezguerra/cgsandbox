@@ -24,7 +24,7 @@ namespace rte
         default_texture_vector default_textures;                    // placeholder, only contains one element
         texture_vector         textures;
         buffer_vector          buffers;
-        gl_cubemap_vector         gl_cubemaps;
+        gl_cubemap_vector      gl_cubemaps;
         buffer_vector          gl_cubemap_position_buffers;            // placeholder, only contains one element
         buffer_vector          gl_cubemap_index_buffers;               // placeholder, only contains one element
         program_vector         phong_programs;                      // placeholder, only contains one element

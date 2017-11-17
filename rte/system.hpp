@@ -231,6 +231,10 @@ namespace rte
     unique_window make_window(std::size_t width, std::size_t height, bool fullscreen);
     
     void system_finalize();
+
+    std::string extract_dir(const std::string& file_name);
+    std::string adapt_slashes(const std::string& path);
+    std::string make_path(const std::string& directory, const std::string& file_name);
 } // namespace rte
 
 #endif // SYSTEM_HPP

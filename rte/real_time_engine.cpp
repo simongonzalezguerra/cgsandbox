@@ -166,7 +166,7 @@ namespace rte
 
             // Create the steel dragon
             node_id steel_dragon_node = nnode;
-            make_node(root_node, dragon_resource, &steel_dragon_node, &added_nodes);;
+            make_node(root_node, dragon_resource, &steel_dragon_node, &added_nodes);
             set_node_material(get_first_child_node(steel_dragon_node), steel_material.get());
 
             // Create the steel teapot

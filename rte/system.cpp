@@ -354,4 +354,46 @@ namespace rte
             is_glfw_initialized = false;
         }
     }
+
+    std::string extract_dir(const std::string& file_name)
+    {
+#ifdef _WIN32
+        std::string dir = "";
+        std::size_t pos = file_name.rfind("\\");
+#else
+        std::string dir = "./";
+        std::size_t pos = file_name.rfind("/");
+#endif
+        if (pos != std::string::npos) {
+            dir.append(file_name.substr(0, pos));
+        }
+
+        return dir;
+    }
+
+    std::string adapt_slashes(const std::string& path)
+    {
+        std::string ret;
+        for (auto c : path) {
+#ifdef _WIN32
+            ret.append(1, c == '/' ? '\\' : c);
+#else
+            ret.append(1, c == '\\' ? '/' : c);
+#endif
+        }
+
+        return ret;
+    }
+
+    std::string make_path(const std::string& directory, const std::string& file_name)
+    {
+        std::string ret;
+#ifdef _WIN32
+        ret = directory + "\\" + file_name;
+#else
+        ret = directory + "/" + file_name;
+#endif
+
+        return ret;
+    }
 } // namespace rte

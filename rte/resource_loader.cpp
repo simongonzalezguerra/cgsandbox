@@ -3,8 +3,9 @@
 #include "assimp/postprocess.h"
 #include "assimp/cimport.h"
 #include "assimp/scene.h"
-#include "log.hpp"
 #include "glm/glm.hpp"
+#include "system.hpp"
+#include "log.hpp"
 
 #include <stdexcept>
 #include <iomanip>
@@ -12,14 +13,6 @@
 #include <sstream>
 #include <queue>
 #include <map>
-
-#ifndef _WIN32
-#define PATH_SEPARATOR  "/"
-#define CURRENT_DIR     "./"
-#else
-#define PATH_SEPARATOR  "\\"
-#define CURRENT_DIR     ""
-#endif
 
 namespace rte
 {
@@ -42,17 +35,6 @@ namespace rte
               message_trimmed[n] = '\0';
             }
             log(LOG_LEVEL_DEBUG, message_trimmed);
-        }
-
-        std::string extract_dir(const std::string& file_name)
-        {
-            std::string dir = CURRENT_DIR;
-            std::size_t pos = file_name.rfind(PATH_SEPARATOR);
-            if (pos != std::string::npos) {
-                dir.append(file_name.substr(0, pos));
-            }
-
-            return dir;
         }
 
         void create_materials(const struct aiScene* scene, material_vector* materials_out, const std::string& file_name)
@@ -78,7 +60,7 @@ namespace rte
                 aiGetMaterialString(scene->mMaterials[i], AI_MATKEY_TEXTURE(aiTextureType_DIFFUSE, 0), &relative_texture_path);
                 std::string texture_path;
                 if (strlen(relative_texture_path.C_Str())) {
-                    texture_path = extract_dir(file_name) + std::string(PATH_SEPARATOR) + std::string(relative_texture_path.C_Str());
+                    texture_path = make_path(adapt_slashes(extract_dir(file_name)), adapt_slashes(relative_texture_path.C_Str()));
                 }
 
                 float smoothness = 1.0f;
