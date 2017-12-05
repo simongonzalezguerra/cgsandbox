@@ -25,6 +25,7 @@ namespace rte
                 m_refractive_index(1.0f),
                 m_texture_id(0U),
                 m_user_id(nuser_id),
+                m_name(),
                 m_used(true) {}
 
             glm::vec3     m_color_diffuse;
@@ -36,6 +37,7 @@ namespace rte
             float         m_refractive_index;
             gl_texture_id m_texture_id;
             user_id       m_user_id;
+            std::string   m_name;
             bool          m_used;
         };
 
@@ -53,6 +55,7 @@ namespace rte
                 m_normal_buffer_id(0U),
                 m_index_buffer_id(0U),
                 m_user_id(nuser_id),
+                m_name(),
                 m_used(true) {}
 
             std::vector<glm::vec3> m_vertices;            //!< vertex coordinates
@@ -64,6 +67,7 @@ namespace rte
             gl_buffer_id           m_normal_buffer_id;    //!< id of the normal buffer in the graphics API
             gl_buffer_id           m_index_buffer_id;     //!< id of the index buffer in the graphics API
             user_id                m_user_id;             //!< user id of this mesh
+            std::string            m_name;                //!< name of this mesh
             bool                   m_used;                //!< is this entry in the vector used?
         };
 
@@ -86,6 +90,7 @@ namespace rte
             resource_id m_first_child;        //!< first child resource of this resource
             resource_id m_next_sibling;       //!< next sibling resource of this resource
             user_id     m_user_id;            //!< user id of this resource
+            std::string m_name;               //!< name of this resource
             bool        m_used;               //!< is this entry in the vector used?
         };
 
@@ -102,7 +107,8 @@ namespace rte
             std::vector<std::string> m_faces;          //!< paths to image files containing the six faces of the cubemap
             gl_cubemap_id            m_gl_cubemap_id;  //!< id of this cubemap in the graphics API
             user_id                  m_user_id;        //!< user id of this cubemap
-            bool                     m_used;
+            std::string              m_name;           //!< name of this resource
+            bool                     m_used;           //!< is this entry in the vector used?
         };
 
         typedef std::vector<cubemap> cubemap_vector;
@@ -232,6 +238,15 @@ namespace rte
         materials[m].m_user_id = uid;
     }
 
+    void set_material_name(mat_id m, const std::string& name)
+    {
+        if (!(m < materials.size() && materials[m].m_used)) {
+            throw std::logic_error("set_material_name error: invalid material id");
+        }
+
+        materials[m].m_name = name;
+    }
+
     glm::vec3 get_material_diffuse_color(mat_id m)
     {
         if (!(m < materials.size() && materials[m].m_used)) {
@@ -312,6 +327,15 @@ namespace rte
         }
 
         return materials[m].m_user_id;
+    }
+
+    std::string get_material_name(mat_id m)
+    {
+        if (!(m < materials.size() && materials[m].m_used)) {
+            throw std::logic_error("get_material_name error: invalid material id");
+        }
+
+        return materials[m].m_name;
     }
 
     mat_id get_first_material()
@@ -431,6 +455,15 @@ namespace rte
         meshes[m].m_user_id = uid;
     }
 
+    void set_mesh_name(mesh_id m, const std::string& name)
+    {
+        if (!(m < meshes.size() && meshes[m].m_used)) {
+            throw std::logic_error("set_mesh_name error: invalid arguments");
+        }
+
+        meshes[m].m_name = name;
+    }
+
     std::vector<glm::vec3> get_mesh_vertices(mesh_id m)
     {
         if (!(m < meshes.size() && meshes[m].m_used)) {
@@ -510,6 +543,15 @@ namespace rte
         }
 
         return meshes[m].m_user_id;
+    }
+
+    std::string get_mesh_name(mesh_id m)
+    {
+        if (!(m < meshes.size() && meshes[m].m_used)) {
+            throw std::logic_error("get_mesh_name error: invalid arguments");
+        }
+
+        return meshes[m].m_name;
     }
 
     mesh_id get_first_mesh()
@@ -659,6 +701,24 @@ namespace rte
         return resources[r].m_user_id;
     }
 
+    void set_resource_name(resource_id r, const std::string& name)
+    {
+        if (!(r < resources.size() && resources[r].m_used)) {
+            throw std::logic_error("set_resource_name error: invalid arguments");
+        }
+
+        resources[r].m_name = name;
+    }
+
+    std::string get_resource_name(resource_id r)
+    {
+        if (!(r < resources.size() && resources[r].m_used)) {
+            throw std::logic_error("get_resource_name error: invalid arguments");
+        }
+
+        return resources[r].m_name;
+    }
+
     resource_id get_first_child_resource(resource_id r)
     {
         if (!(r < resources.size() && resources[r].m_used)) {
@@ -733,6 +793,15 @@ namespace rte
         cubemaps[cid].m_user_id = uid;
     }
 
+    void set_cubemap_name(cubemap_id cid, const std::string& name)
+    {
+        if (!(cid < cubemaps.size() && cubemaps[cid].m_used)) {
+            throw std::logic_error("set_cubemap_name error: invalid arguments");
+        }
+
+        cubemaps[cid].m_name = name;
+    }
+
     std::vector<std::string> get_cubemap_faces(cubemap_id cid)
     {
         if (!(cid < cubemaps.size() && cubemaps[cid].m_used)) {
@@ -774,6 +843,15 @@ namespace rte
         }
 
         return cubemaps[cid].m_user_id;
+    }
+
+    std::string get_cubemap_name(cubemap_id cid)
+    {
+        if (!(cid < cubemaps.size() && cubemaps[cid].m_used)) {
+            throw std::logic_error("get_cubemap_name error: invalid arguments");
+        }
+
+        return cubemaps[cid].m_name;
     }
 
     unique_cubemap make_cubemap()

@@ -29,15 +29,16 @@ namespace rte
                 m_user_id(nuser_id),
                 m_used(true) {}
 
-            mesh_id   m_mesh;             //!< mesh contained in this node
-            mat_id    m_material;         //!< material of this node
-            glm::mat4 m_local_transform;  //!< node transform relative to the parent
-            glm::mat4 m_accum_transform;  //!< node transform relative to the root
-            node_id   m_first_child;      //!< first child node of this node
-            node_id   m_next_sibling;     //!< next sibling node of this node
-            bool      m_enabled;          //!< is this node enabled? (if it is not, all descendants are ignored when rendering)
-            user_id   m_user_id;          //!< user id of this node
-            bool      m_used;             //!< is this cell used? (used for soft deletion)
+            mesh_id     m_mesh;             //!< mesh contained in this node
+            mat_id      m_material;         //!< material of this node
+            glm::mat4   m_local_transform;  //!< node transform relative to the parent
+            glm::mat4   m_accum_transform;  //!< node transform relative to the root
+            node_id     m_first_child;      //!< first child node of this node
+            node_id     m_next_sibling;     //!< next sibling node of this node
+            bool        m_enabled;          //!< is this node enabled? (if it is not, all descendants are ignored when rendering)
+            user_id     m_user_id;          //!< user id of this node
+            std::string m_name;             //!< name of this node
+            bool        m_used;             //!< is this cell used? (used for soft deletion)
         };
 
         struct point_light
@@ -54,16 +55,17 @@ namespace rte
                 m_user_id(nuser_id),
                 m_used(true) {}
 
-            glm::vec3 m_position;
-            glm::vec3 m_ambient_color;
-            glm::vec3 m_diffuse_color;
-            glm::vec3 m_specular_color;
-            float     m_constant_attenuation;
-            float     m_linear_attenuation;
-            float     m_quadratic_attenuation;
-            scene_id  m_scene;
-            user_id   m_user_id;
-            bool      m_used;
+            glm::vec3   m_position;
+            glm::vec3   m_ambient_color;
+            glm::vec3   m_diffuse_color;
+            glm::vec3   m_specular_color;
+            float       m_constant_attenuation;
+            float       m_linear_attenuation;
+            float       m_quadratic_attenuation;
+            scene_id    m_scene;
+            user_id     m_user_id;
+            std::string m_name;
+            bool        m_used;
         };
 
         struct scene
@@ -76,6 +78,7 @@ namespace rte
                 m_skybox(ncubemap),
                 m_root_node(),
                 m_user_id(nuser_id),
+                m_name(),
                 m_used(true) {}
 
             bool               m_enabled;                          //!< is this scene enabled?
@@ -89,6 +92,7 @@ namespace rte
             glm::vec3          m_directional_light_direction;      //!< direction of the directional light
             unique_node        m_root_node;                        //!< handle to the root node of this scene
             user_id            m_user_id;                          //!< user id of this scene
+            std::string        m_name;                             //!< name of this scene
             bool               m_used;                             //!< is this entry in the vector used?
         };
 
@@ -196,6 +200,24 @@ namespace rte
         return scenes[s].m_user_id;
     }
     
+    void set_scene_name(scene_id s, const std::string& name)
+    {
+        if (!(s < scenes.size() && scenes[s].m_used)) {
+            throw std::logic_error("set_scene_name error: invalid arguments");
+        }
+
+        scenes[s].m_name = name;
+    }
+
+    std::string get_scene_name(scene_id s)
+    {
+        if (!(s < scenes.size() && scenes[s].m_used)) {
+            throw std::logic_error("get_scene_name error: invalid arguments");
+        }
+
+        return scenes[s].m_name;
+    }
+
     scene_id get_first_scene()
     {
         auto it = std::find_if(scenes.begin(), scenes.end(), [](const scene& m) { return m.m_used; });
@@ -387,6 +409,7 @@ namespace rte
             throw std::logic_error("get_node_mesh error: invalid arguments");
         }
 
+        // TODO remove conditional
         return ((n < nodes.size() && nodes[n].m_used)? nodes[n].m_mesh : nmesh);
     }
 
@@ -396,6 +419,7 @@ namespace rte
             throw std::logic_error("set_node_material error: invalid arguments");
         }
 
+        // TODO remove conditional
         if (n < nodes.size() && nodes[n].m_used) {
             nodes[n].m_material = mat;
         }
@@ -407,7 +431,26 @@ namespace rte
             throw std::logic_error("get_node_material error: invalid arguments");
         }
 
+        // TODO remove conditional
         return ((n < nodes.size() && nodes[n].m_used)? nodes[n].m_material : nmat);
+    }
+
+    void set_node_name(node_id n, const std::string& name)
+    {
+        if (!(n < nodes.size() && nodes[n].m_used)) {
+            throw std::logic_error("set_node_name error: invalid arguments");
+        }
+
+        nodes[n].m_name = name;
+    }
+
+    std::string get_node_name(node_id n)
+    {
+        if (!(n < nodes.size() && nodes[n].m_used)) {
+            throw std::logic_error("get_node_name error: invalid arguments");
+        }
+
+        return nodes[n].m_name;
     }
 
     void set_node_enabled(node_id n, bool enabled)
@@ -689,6 +732,15 @@ namespace rte
         point_lights[pl].m_user_id = uid;
     }
 
+    void set_point_light_name(point_light_id pl, const std::string& name)
+    {
+        if (!(pl < point_lights.size() && point_lights[pl].m_used)) {
+            throw std::logic_error("set_point_light_name error: invalid arguments");
+        }
+
+        point_lights[pl].m_name = name;
+    }
+
     glm::vec3 get_point_light_position(point_light_id pl)
     {
         if (!(pl < point_lights.size() && point_lights[pl].m_used)) {
@@ -759,6 +811,15 @@ namespace rte
         }
 
         return point_lights[pl].m_user_id;
+    }
+
+    std::string get_point_light_name(point_light_id pl)
+    {
+        if (!(pl < point_lights.size() && point_lights[pl].m_used)) {
+            throw std::logic_error("get_point_light_name error: invalid arguments");
+        }
+
+        return point_lights[pl].m_name;
     }
 
     unique_point_light make_point_light(scene_id s)

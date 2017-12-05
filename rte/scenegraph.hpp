@@ -110,6 +110,8 @@ namespace rte
 
     void set_scene_user_id(scene_id scene, user_id uid);
     user_id get_scene_user_id(scene_id scene);
+    void set_scene_name(scene_id scene, const std::string& name);
+    std::string get_scene_name(scene_id scene);
 
     struct scene_handle
     {   
@@ -212,6 +214,8 @@ namespace rte
     mesh_id get_node_mesh(node_id node);
     void set_node_material(node_id node, mat_id mat);
     mat_id get_node_material(node_id node);
+    void set_node_name(node_id node, const std::string& name);
+    std::string get_node_name(node_id node);
 
     //-----------------------------------------------------------------------------------------------
     //! @brief Updates the enabled flag of a node, which determines if the node and its descendants
@@ -302,6 +306,7 @@ namespace rte
     void set_point_light_linear_attenuation(point_light_id light, float linear_attenuation);
     void set_point_light_quadratic_attenuation(point_light_id light, float quadratic_attenuation);
     void set_point_light_user_id(point_light_id light, user_id uid);
+    void set_point_light_name(point_light_id light, const std::string& name);
     glm::vec3 get_point_light_position(point_light_id light);
     glm::vec3 get_point_light_ambient_color(point_light_id light);
     glm::vec3 get_point_light_diffuse_color(point_light_id light);
@@ -310,6 +315,7 @@ namespace rte
     float get_point_light_linear_attenuation(point_light_id light);
     float get_point_light_quadratic_attenuation(point_light_id light);
     user_id get_point_light_user_id(point_light_id light);
+    std::string get_point_light_name(point_light_id light);
 
     struct point_light_handle
     {   
