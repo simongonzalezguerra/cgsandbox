@@ -108,6 +108,9 @@ namespace rte
 
     node_id get_scene_root_node(scene_id scene);
 
+    void set_scene_user_id(scene_id scene, user_id uid);
+    user_id get_scene_user_id(scene_id scene);
+
     struct scene_handle
     {   
         scene_handle() : m_scene_id(nscene) {}
@@ -246,6 +249,9 @@ namespace rte
     //-----------------------------------------------------------------------------------------------
     node_id get_next_sibling_node(node_id node);
 
+    void set_node_user_id(node_id node, user_id);
+    user_id get_node_user_id(node_id node);
+
     struct node_handle
     {   
         node_handle() : m_node_id(nnode) {}
@@ -295,6 +301,7 @@ namespace rte
     void set_point_light_constant_attenuation(point_light_id light, float constant_attenuation);
     void set_point_light_linear_attenuation(point_light_id light, float linear_attenuation);
     void set_point_light_quadratic_attenuation(point_light_id light, float quadratic_attenuation);
+    void set_point_light_user_id(point_light_id light, user_id uid);
     glm::vec3 get_point_light_position(point_light_id light);
     glm::vec3 get_point_light_ambient_color(point_light_id light);
     glm::vec3 get_point_light_diffuse_color(point_light_id light);
@@ -302,6 +309,7 @@ namespace rte
     float get_point_light_constant_attenuation(point_light_id light);
     float get_point_light_linear_attenuation(point_light_id light);
     float get_point_light_quadratic_attenuation(point_light_id light);
+    user_id get_point_light_user_id(point_light_id light);
 
     struct point_light_handle
     {   

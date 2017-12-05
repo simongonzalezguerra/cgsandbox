@@ -26,6 +26,7 @@ namespace rte
                 m_first_child(nnode),
                 m_next_sibling(nnode),
                 m_enabled(true),
+                m_user_id(nuser_id),
                 m_used(true) {}
 
             mesh_id   m_mesh;             //!< mesh contained in this node
@@ -35,6 +36,7 @@ namespace rte
             node_id   m_first_child;      //!< first child node of this node
             node_id   m_next_sibling;     //!< next sibling node of this node
             bool      m_enabled;          //!< is this node enabled? (if it is not, all descendants are ignored when rendering)
+            user_id   m_user_id;          //!< user id of this node
             bool      m_used;             //!< is this cell used? (used for soft deletion)
         };
 
@@ -49,6 +51,7 @@ namespace rte
                 m_linear_attenuation(0.0f),
                 m_quadratic_attenuation(0.0f),
                 m_scene(nscene),
+                m_user_id(nuser_id),
                 m_used(true) {}
 
             glm::vec3 m_position;
@@ -59,6 +62,7 @@ namespace rte
             float     m_linear_attenuation;
             float     m_quadratic_attenuation;
             scene_id  m_scene;
+            user_id   m_user_id;
             bool      m_used;
         };
 
@@ -71,6 +75,7 @@ namespace rte
                 m_projection_transform{1.0f},
                 m_skybox(ncubemap),
                 m_root_node(),
+                m_user_id(nuser_id),
                 m_used(true) {}
 
             bool               m_enabled;                          //!< is this scene enabled?
@@ -83,6 +88,7 @@ namespace rte
             glm::vec3          m_directional_light_specular_color; //!< specular color of the directional light
             glm::vec3          m_directional_light_direction;      //!< direction of the directional light
             unique_node        m_root_node;                        //!< handle to the root node of this scene
+            user_id            m_user_id;                          //!< user id of this scene
             bool               m_used;                             //!< is this entry in the vector used?
         };
 
@@ -172,6 +178,24 @@ namespace rte
         return scenes[s].m_root_node.get();
     }
 
+    void set_scene_user_id(scene_id s, user_id uid)
+    {
+        if (!(s < scenes.size() && scenes[s].m_used)) {
+            throw std::logic_error("set_scene_user_id error: invalid arguments");
+        }
+
+        scenes[s].m_user_id = uid;
+    }
+    
+    user_id get_scene_user_id(scene_id s)
+    {
+        if (!(s < scenes.size() && scenes[s].m_used)) {
+            throw std::logic_error("get_scene_user_id error: invalid arguments");
+        }
+
+        return scenes[s].m_user_id;
+    }
+    
     scene_id get_first_scene()
     {
         auto it = std::find_if(scenes.begin(), scenes.end(), [](const scene& m) { return m.m_used; });
@@ -422,6 +446,24 @@ namespace rte
         return nodes[n].m_next_sibling;
     }
 
+    void set_node_user_id(node_id n, user_id uid)
+    {
+        if (!(n < nodes.size() && nodes[n].m_used)) {
+            throw std::logic_error("set_node_user_id error: invalid arguments");
+        }
+
+        nodes[n].m_user_id = uid;
+    }
+
+    user_id get_node_user_id(node_id n)
+    {
+        if (!(n < nodes.size() && nodes[n].m_used)) {
+            throw std::logic_error("get_node_user_id error: invalid arguments");
+        }
+
+        return nodes[n].m_user_id;
+    }
+
     unique_node make_node()
     {
         return unique_node(new_node());
@@ -638,6 +680,15 @@ namespace rte
         point_lights[pl].m_quadratic_attenuation = quadratic_attenuation;
     }
 
+    void set_point_light_user_id(point_light_id pl, user_id uid)
+    {
+        if (!(pl < point_lights.size() && point_lights[pl].m_used)) {
+            throw std::logic_error("set_point_light_user_id error: invalid arguments");
+        }
+
+        point_lights[pl].m_user_id = uid;
+    }
+
     glm::vec3 get_point_light_position(point_light_id pl)
     {
         if (!(pl < point_lights.size() && point_lights[pl].m_used)) {
@@ -694,8 +745,18 @@ namespace rte
 
     float get_point_light_quadratic_attenuation(point_light_id pl)
     {
+        // TODO remove confitional
         if (!(pl < point_lights.size() && point_lights[pl].m_used)) { return 0.0f; }
         return point_lights[pl].m_quadratic_attenuation;
+    }
+
+    user_id get_point_light_user_id(point_light_id pl)
+    {
+        if (!(pl < point_lights.size() && point_lights[pl].m_used)) {
+            throw std::logic_error("get_point_light_user_id error: invalid arguments");
+        }
+
+        return point_lights[pl].m_user_id;
     }
 
     unique_point_light make_point_light(scene_id s)
