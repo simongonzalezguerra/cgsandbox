@@ -91,6 +91,7 @@ namespace rte
     void set_material_translucency(mat_id mat, float translucency);
     void set_material_refractive_index(mat_id mat, float refractive_index);
     void set_material_texture_id(mat_id mat, gl_texture_id texture_id);
+    void set_material_user_id(mat_id mat, user_id id);
     glm::vec3 get_material_diffuse_color(mat_id mat);
     glm::vec3 get_material_specular_color(mat_id mat);
     float get_material_smoothness(mat_id mat);
@@ -99,6 +100,7 @@ namespace rte
     float get_material_translucency(mat_id mat);
     float get_material_refractive_index(mat_id mat);
     gl_texture_id get_material_texture_id(mat_id mat);
+    user_id get_material_user_id(mat_id mat);
 
     //-----------------------------------------------------------------------------------------------
     //! @brief Returns the id of the first material in the sequence of existing materials.
@@ -150,6 +152,7 @@ namespace rte
     void set_mesh_uv_buffer_id(mesh_id mesh, gl_buffer_id uv_buffer_id);
     void set_mesh_normal_buffer_id(mesh_id mesh, gl_buffer_id normal_buffer_id);
     void set_mesh_index_buffer_id(mesh_id mesh, gl_buffer_id index_buffer_id);
+    void set_mesh_user_id(mesh_id mesh, user_id id);
     std::vector<glm::vec3> get_mesh_vertices(mesh_id mesh);
     std::vector<glm::vec2> get_mesh_texture_coords(mesh_id mesh);
     std::vector<glm::vec3> get_mesh_normals(mesh_id mesh);
@@ -158,6 +161,7 @@ namespace rte
     gl_buffer_id get_mesh_uv_buffer_id(mesh_id mesh);
     gl_buffer_id get_mesh_normal_buffer_id(mesh_id mesh);
     gl_buffer_id get_mesh_index_buffer_id(mesh_id mesh);
+    user_id get_mesh_user_id(mesh_id mesh);
 
     //-----------------------------------------------------------------------------------------------
     //! @brief Returns the id of the first mesh in the sequence of all meshes.
@@ -216,7 +220,8 @@ namespace rte
     mesh_id get_resource_mesh(resource_id r);
     void set_resource_material(resource_id r, mat_id mat);
     mat_id get_resource_material(resource_id r);
-
+    void set_resource_user_id(resource_id r, user_id id);
+    user_id get_resource_user_id(resource_id r);
 
     //-----------------------------------------------------------------------------------------------
     //! @brief Returns the id of the first resource node in the children of a given resource node.
@@ -264,10 +269,12 @@ namespace rte
     void delete_cubemap(cubemap_id c);
     void set_cubemap_faces(cubemap_id cid, const std::vector<std::string>& faces);
     void set_cubemap_gl_cubemap_id(cubemap_id cid, gl_cubemap_id gl_id);
+    void set_cubemap_user_id(cubemap_id cid, user_id id);
     std::vector<std::string> get_cubemap_faces(cubemap_id id);
     gl_cubemap_id get_cubemap_gl_cubemap_id(cubemap_id cid);
     cubemap_id get_first_cubemap();
     cubemap_id get_next_cubemap(cubemap_id id);
+    user_id get_cubemap_user_id(cubemap_id cid);
 
     struct cubemap_handle
     {

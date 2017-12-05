@@ -24,6 +24,7 @@ namespace rte
                 m_translucency(0.0f),
                 m_refractive_index(1.0f),
                 m_texture_id(0U),
+                m_user_id(nuser_id),
                 m_used(true) {}
 
             glm::vec3     m_color_diffuse;
@@ -34,6 +35,7 @@ namespace rte
             float         m_translucency;
             float         m_refractive_index;
             gl_texture_id m_texture_id;
+            user_id       m_user_id;
             bool          m_used;
         };
 
@@ -50,6 +52,7 @@ namespace rte
                 m_uv_buffer_id(0U),
                 m_normal_buffer_id(0U),
                 m_index_buffer_id(0U),
+                m_user_id(nuser_id),
                 m_used(true) {}
 
             std::vector<glm::vec3> m_vertices;            //!< vertex coordinates
@@ -60,6 +63,7 @@ namespace rte
             gl_buffer_id           m_uv_buffer_id;        //!< id of the uv buffer in the graphics API
             gl_buffer_id           m_normal_buffer_id;    //!< id of the normal buffer in the graphics API
             gl_buffer_id           m_index_buffer_id;     //!< id of the index buffer in the graphics API
+            user_id                m_user_id;             //!< user id of this mesh
             bool                   m_used;                //!< is this entry in the vector used?
         };
 
@@ -73,6 +77,7 @@ namespace rte
                 m_local_transform(1.0f),
                 m_first_child(nresource),
                 m_next_sibling(nresource),
+                m_user_id(nuser_id),
                 m_used(true) {}
 
             mesh_id     m_mesh;               //!< mesh contained in this resource
@@ -80,6 +85,7 @@ namespace rte
             glm::mat4   m_local_transform;    //!< resource transform relative to the parent's reference frame
             resource_id m_first_child;        //!< first child resource of this resource
             resource_id m_next_sibling;       //!< next sibling resource of this resource
+            user_id     m_user_id;            //!< user id of this resource
             bool        m_used;               //!< is this entry in the vector used?
         };
 
@@ -90,10 +96,12 @@ namespace rte
             cubemap() :
                 m_faces(),
                 m_gl_cubemap_id(0U),
+                m_user_id(nuser_id),
                 m_used(true) {}
 
             std::vector<std::string> m_faces;          //!< paths to image files containing the six faces of the cubemap
             gl_cubemap_id            m_gl_cubemap_id;  //!< id of this cubemap in the graphics API
+            user_id                  m_user_id;        //!< user id of this cubemap
             bool                     m_used;
         };
 
@@ -181,30 +189,47 @@ namespace rte
 
     void set_material_reflectivity(mat_id m, float reflectivity)
     {
-        if (m < materials.size() && materials[m].m_used) {
-            materials[m].m_reflectivity = reflectivity;
+        if (!(m < materials.size() && materials[m].m_used)) {
+            throw std::logic_error("set_material_reflectivity error: invalid material id");
         }
+
+        materials[m].m_reflectivity = reflectivity;
     }
 
     void set_material_translucency(mat_id m, float translucency)
     {
-        if (m < materials.size() && materials[m].m_used) {
-            materials[m].m_translucency = translucency;
+        if (!(m < materials.size() && materials[m].m_used)) {
+            throw std::logic_error("set_material_translucency error: invalid material id");
         }
+
+        materials[m].m_translucency = translucency;
     }
 
     void set_material_refractive_index(mat_id m, float refractive_index)
     {
-        if (m < materials.size() && materials[m].m_used) {
-            materials[m].m_refractive_index = refractive_index;
+        if (!(m < materials.size() && materials[m].m_used)) {
+            throw std::logic_error("set_material_refractive_index error: invalid material id");
         }
+
+        materials[m].m_refractive_index = refractive_index;
     }
 
     void set_material_texture_id(mat_id m, gl_texture_id texture_id)
     {
-        if (m < materials.size() && materials[m].m_used) {
-            materials[m].m_texture_id = texture_id;
+        if (!(m < materials.size() && materials[m].m_used)) {
+            throw std::logic_error("set_material_texture_id error: invalid material id");
         }
+
+        materials[m].m_texture_id = texture_id;
+    }
+
+    void set_material_user_id(mat_id m, user_id uid)
+    {
+        if (!(m < materials.size() && materials[m].m_used)) {
+            throw std::logic_error("set_material_user_id error: invalid material id");
+        }
+
+        materials[m].m_user_id = uid;
     }
 
     glm::vec3 get_material_diffuse_color(mat_id m)
@@ -278,6 +303,15 @@ namespace rte
         }
 
         return materials[m].m_texture_id;
+    }
+
+    user_id get_material_user_id(mat_id m)
+    {
+        if (!(m < materials.size() && materials[m].m_used)) {
+            throw std::logic_error("get_material_user_id error: invalid material id");
+        }
+
+        return materials[m].m_user_id;
     }
 
     mat_id get_first_material()
@@ -388,6 +422,15 @@ namespace rte
         meshes[m].m_index_buffer_id = id;
     }
 
+    void set_mesh_user_id(mesh_id m, user_id uid)
+    {
+        if (!(m < meshes.size() && meshes[m].m_used)) {
+            throw std::logic_error("set_mesh_user_id error: invalid arguments");
+        }
+
+        meshes[m].m_user_id = uid;
+    }
+
     std::vector<glm::vec3> get_mesh_vertices(mesh_id m)
     {
         if (!(m < meshes.size() && meshes[m].m_used)) {
@@ -430,7 +473,7 @@ namespace rte
             throw std::logic_error("get_mesh_position_buffer_id error: invalid arguments");
         }
 
-        return ((m < meshes.size() && meshes[m].m_used) ? meshes[m].m_position_buffer_id : 0U);
+        return meshes[m].m_position_buffer_id;
     }
 
     gl_buffer_id get_mesh_uv_buffer_id(mesh_id m)
@@ -439,7 +482,7 @@ namespace rte
             throw std::logic_error("get_mesh_uv_buffer_id error: invalid arguments");
         }
 
-        return ((m < meshes.size() && meshes[m].m_used)? meshes[m].m_uv_buffer_id : 0U);
+        return meshes[m].m_uv_buffer_id;
     }
 
     gl_buffer_id get_mesh_normal_buffer_id(mesh_id m)
@@ -448,7 +491,7 @@ namespace rte
             throw std::logic_error("get_mesh_normal_buffer_id error: invalid arguments");
         }
 
-        return ((m < meshes.size() && meshes[m].m_used)? meshes[m].m_normal_buffer_id : 0U);
+        return meshes[m].m_normal_buffer_id;
     }
 
     gl_buffer_id get_mesh_index_buffer_id(mesh_id m)
@@ -457,7 +500,16 @@ namespace rte
             throw std::logic_error("get_mesh_index_buffer_id error: invalid arguments");
         }
 
-        return ((m < meshes.size() && meshes[m].m_used)? meshes[m].m_index_buffer_id : 0U);
+        return meshes[m].m_index_buffer_id;
+    }
+
+    user_id get_mesh_user_id(mesh_id m)
+    {
+        if (!(m < meshes.size() && meshes[m].m_used)) {
+            throw std::logic_error("get_mesh_user_id error: invalid arguments");
+        }
+
+        return meshes[m].m_user_id;
     }
 
     mesh_id get_first_mesh()
@@ -589,6 +641,24 @@ namespace rte
         return resources[r].m_material;
     }
 
+    void set_resource_user_id(resource_id r, user_id uid)
+    {
+        if (!(r < resources.size() && resources[r].m_used)) {
+            throw std::logic_error("set_resource_user_id error: invalid arguments");
+        }
+
+        resources[r].m_user_id = uid;
+    }
+
+    user_id get_resource_user_id(resource_id r)
+    {
+        if (!(r < resources.size() && resources[r].m_used)) {
+            throw std::logic_error("get_resource_user_id error: invalid arguments");
+        }
+
+        return resources[r].m_user_id;
+    }
+
     resource_id get_first_child_resource(resource_id r)
     {
         if (!(r < resources.size() && resources[r].m_used)) {
@@ -654,6 +724,15 @@ namespace rte
         cubemaps[cid].m_gl_cubemap_id = gl_id;
     }
 
+    void set_cubemap_user_id(cubemap_id cid, user_id uid)
+    {
+        if (!(cid < cubemaps.size() && cubemaps[cid].m_used)) {
+            throw std::logic_error("set_cubemap_user_id error: invalid arguments");
+        }
+
+        cubemaps[cid].m_user_id = uid;
+    }
+
     std::vector<std::string> get_cubemap_faces(cubemap_id cid)
     {
         if (!(cid < cubemaps.size() && cubemaps[cid].m_used)) {
@@ -686,6 +765,15 @@ namespace rte
 
         auto it = std::find_if(cubemaps.begin() + cid + 1, cubemaps.end(), [](const cubemap& c) { return c.m_used; });
         return (it != cubemaps.end() ? it - cubemaps.begin() : ncubemap);
+    }
+
+    user_id get_cubemap_user_id(cubemap_id cid)
+    {
+        if (!(cid < cubemaps.size() && cubemaps[cid].m_used)) {
+            throw std::logic_error("get_cubemap_user_id error: invalid arguments");
+        }
+
+        return cubemaps[cid].m_user_id;
     }
 
     unique_cubemap make_cubemap()
