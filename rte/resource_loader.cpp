@@ -1,10 +1,11 @@
-#include "resource_loader.hpp"
 #include "glm/gtc/type_ptr.hpp"
 #include "assimp/postprocess.h"
+#include "resource_loader.hpp"
 #include "assimp/cimport.h"
 #include "assimp/scene.h"
 #include "glm/glm.hpp"
 #include "system.hpp"
+#include "utils.hpp"
 #include "log.hpp"
 
 #include <stdexcept>
@@ -192,19 +193,6 @@ namespace rte
         }
 
         template<typename T>
-        void print_sequence(T* a, std::size_t num_elems, std::ostringstream& oss)
-        {
-            oss << "[";
-            if (num_elems) {
-                oss << " " << a[0];
-            }
-            for (std::size_t i = 1U; i < num_elems; i++) {
-                oss << ", " << a[i];
-            }
-            oss << " ]";
-        }
-
-        template<typename T>
         void preview_sequence(T* a, std::size_t num_elems, std::ostringstream& oss)
         {
             oss << "[";
@@ -229,24 +217,6 @@ namespace rte
             }
             oss << " ]";
         }
-
-        void print_material(mat_id m)
-        {
-            std::string texture_path = get_material_texture_path(m);
-            glm::vec3 diffuse_color = get_material_diffuse_color(m);
-            glm::vec3 specular_color = get_material_specular_color(m);
-            float smoothness = get_material_smoothness(m);
-            std::ostringstream oss;
-            oss << std::setprecision(2) << std::fixed;
-            oss << "    id: " << m << ", color diffuse: ";
-            print_sequence((float*) &diffuse_color, 3U, oss);
-            oss << ", color specular: ";
-            print_sequence((float*) &specular_color, 3U, oss);
-            oss << ", smoothness: " << smoothness;
-            oss << ", texture path: " << texture_path;
-            log(LOG_LEVEL_DEBUG, oss.str().c_str());
-        }
-
 
         void print_mesh(mesh_id m)
         {
@@ -343,18 +313,11 @@ namespace rte
             }
         }
 
-        void log_statistics(resource_id added_root, const material_vector& added_materials, const mesh_vector& added_meshes)
+        void log_statistics(resource_id added_root, const mesh_vector& added_meshes)
         {
             log(LOG_LEVEL_DEBUG, "---------------------------------------------------------------------------------------------------");
             log(LOG_LEVEL_DEBUG, "load_resources: finished loading file, summary:");
-            log(LOG_LEVEL_DEBUG, "materials:");
-            if (added_materials.size()) {
-                for (auto& m : added_materials) {
-                    print_material(m.get());
-                }
-            } else {
-                log(LOG_LEVEL_DEBUG, "    no materials found");
-            }
+            log_materials();
 
             log(LOG_LEVEL_DEBUG, "meshes:");
             if (added_meshes.size()) {
@@ -408,7 +371,8 @@ namespace rte
         resource_id added_root_out = nresource;
         create_resources(scene, &added_root_out, &added_resources);
 
-        log_statistics(added_root_out, materials, *meshes_out);
+        //TODO DELETE THIS once all logging is moved to database_loader
+        log_statistics(added_root_out, *meshes_out);
 
         aiReleaseImport(scene);
         aiDetachAllLogStreams();

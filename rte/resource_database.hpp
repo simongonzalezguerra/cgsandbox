@@ -143,6 +143,7 @@ namespace rte
     typedef std::unique_ptr<mat_id, material_deleter> unique_material;
     typedef std::vector<unique_material> material_vector;
     unique_material make_material();
+    void log_materials();
 
     mesh_id new_mesh();
     void delete_mesh(mesh_id mesh);

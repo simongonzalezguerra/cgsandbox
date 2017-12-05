@@ -1,7 +1,9 @@
 #include "resource_database.hpp"
-#include "real_time_engine.hpp"
-#include "resource_loader.hpp"
 #include "glm/gtx/transform.hpp"
+#include "real_time_engine.hpp"
+#include "database_loader.hpp"
+#include "resource_loader.hpp"
+#include "cmd_line_args.hpp"
 #include "opengl_driver.hpp"
 #include "scenegraph.hpp"
 #include "renderer.hpp"
@@ -50,8 +52,10 @@ namespace rte
             finalize();
         }
 
-        void initialize()
+        void initialize(unsigned int argc, char** argv)
         {
+            // TODO call database_loader_initialize
+            // TODO add a settings component to the database
             if (m_is_initialized) return;
 
             log(LOG_LEVEL_DEBUG, "real_time_engine: initializing application");
@@ -59,9 +63,16 @@ namespace rte
             attach_logstream(default_logstream_stdout_callback);
             attach_logstream(default_logstream_file_callback);
 
+            cmd_line_args_initialize();
+            cmd_line_args_set_args(argc, argv);
+
             resource_database_init();
 
             system_initialize();
+
+            database_loader_initialize();
+            load_database();
+            exit(1);
 
             material_vector added_materials;
             mesh_vector added_meshes;
@@ -124,7 +135,7 @@ namespace rte
             };
             set_cubemap_faces(skybox.get(), skybox_faces);
 
-            unique_window window = make_window(1920, 1080, false);
+            unique_window window = make_window(896, 504, false);
 
             set_gl_driver(get_opengl_driver());
 
@@ -237,11 +248,13 @@ namespace rte
                 finalize_renderer();
                 m_window.reset();
                 system_finalize();
-                m_cubemaps.clear();
+                m_cubemaps.clear(); // TODO DELETE THIS
                 m_resources.clear();
                 m_meshes.clear();
                 m_materials.clear();
                 m_is_initialized = false;
+                database_loader_finalize();
+                cmd_line_args_finalize();
             } catch(...) {
                 log(LOG_LEVEL_DEBUG, "real_time_engine: exception during finalization");
             }            
@@ -353,12 +366,12 @@ namespace rte
 
         std::vector<event>     m_events;
         unique_window          m_window;
-        material_vector        m_materials;
-        mesh_vector            m_meshes;
-        resource_vector        m_resources;
-        cubemap_vector         m_cubemaps;
-        node_vector            m_nodes;
-        point_light_vector     m_point_lights;
+        material_vector        m_materials; // TODO DELETE THIS
+        mesh_vector            m_meshes;  // TODO DELETE THIS
+        resource_vector        m_resources;  // TODO DELETE THIS
+        cubemap_vector         m_cubemaps;  // TODO DELETE THIS
+        node_vector            m_nodes;  // TODO DELETE THIS
+        point_light_vector     m_point_lights;  // TODO DELETE THIS
         node_id                m_plane_node;
         node_id                m_steel_dragon_node;
         node_id                m_steel_teapot_node;
@@ -380,9 +393,9 @@ namespace rte
 
     real_time_engine::~real_time_engine() {}
 
-    void real_time_engine::initialize()
+    void real_time_engine::initialize(unsigned int argc, char** argv)
     {
-        m_impl->initialize();
+        m_impl->initialize(argc, argv);
     }
 
     void real_time_engine::process()

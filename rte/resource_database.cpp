@@ -1,8 +1,11 @@
 #include "resource_database.hpp"
 #include "glm/gtc/type_ptr.hpp"
+#include "utils.hpp"
 #include "log.hpp"
 
 #include <algorithm>
+#include <iomanip>
+#include <sstream>
 #include <vector>
 #include <queue>
 
@@ -353,6 +356,37 @@ namespace rte
     unique_material make_material()
     {
         return unique_material(new_material());
+    }
+
+    void log_materials()
+    {
+        log(LOG_LEVEL_DEBUG, "---------------------------------------------------------------------------------------------------");
+        log(LOG_LEVEL_DEBUG, "resource_database: materials begin");
+        if (materials.size()) {
+            for (unsigned int m = 0; m < materials.size() && materials[m].m_used; m++) {
+                glm::vec3 diffuse_color = get_material_diffuse_color(m);
+                glm::vec3 specular_color = get_material_specular_color(m);
+                std::ostringstream oss;
+                oss << std::setprecision(2) << std::fixed;
+                oss << "    id: " << m;
+                oss << ", user id: " << get_material_user_id(m);
+                oss << ", name: " << get_material_name(m);
+                oss << ", diffuse color: ";
+                print_sequence((float*) &diffuse_color, 3U, oss);
+                oss << ", color specular: ";
+                print_sequence((float*) &specular_color, 3U, oss);
+                oss << ", smoothness: " << get_material_smoothness(m);
+                oss << ", texture path: " << get_material_texture_path(m);
+                oss << ", reflectivity: " << get_material_reflectivity(m);
+                oss << ", translucency: " << get_material_translucency(m);
+                oss << ", refractive_index: " << get_material_refractive_index(m);
+                log(LOG_LEVEL_DEBUG, oss.str().c_str());
+            }
+        } else {
+            log(LOG_LEVEL_DEBUG, "    no materials found");
+        }
+        log(LOG_LEVEL_DEBUG, "resource_database: materials end");
+        log(LOG_LEVEL_DEBUG, "---------------------------------------------------------------------------------------------------");
     }
 
     mesh_id new_mesh()
