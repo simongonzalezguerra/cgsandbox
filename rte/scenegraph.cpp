@@ -745,8 +745,10 @@ namespace rte
 
     float get_point_light_quadratic_attenuation(point_light_id pl)
     {
-        // TODO remove confitional
-        if (!(pl < point_lights.size() && point_lights[pl].m_used)) { return 0.0f; }
+        if (!(pl < point_lights.size() && point_lights[pl].m_used)) {
+            throw std::logic_error("get_point_light_quadratic_attenuation error: invalid arguments");
+        }
+
         return point_lights[pl].m_quadratic_attenuation;
     }
 
