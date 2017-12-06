@@ -192,71 +192,6 @@ namespace rte
             resources_out->insert(resources_out->end(), make_move_iterator(added_resources.begin()), make_move_iterator(added_resources.end()));
         }
 
-        template<typename T>
-        void preview_sequence(T* a, std::size_t num_elems, std::ostringstream& oss)
-        {
-            oss << "[";
-            if (num_elems > 0) {
-                oss << " " << a[0];
-            }
-            if (num_elems > 1) {
-                oss << ", " << a[1];
-            }
-            if (num_elems > 2) {
-                oss << ", " << a[2];
-            }
-            oss << ", ...//... , ";
-            if (num_elems - 3 >= 0) {
-                oss << ", " << a[num_elems - 3];
-            }
-            if (num_elems - 2 >= 0) {
-                oss << ", " << a[num_elems - 2];
-            }
-            if (num_elems - 1 >= 0) {
-                oss << ", " << a[num_elems - 1];
-            }
-            oss << " ]";
-        }
-
-        void print_mesh(mesh_id m)
-        {
-            std::vector<glm::vec3> vertices = get_mesh_vertices(m);
-            std::vector<glm::vec2> texture_coords = get_mesh_texture_coords(m);
-            std::vector<glm::vec3> normals = get_mesh_normals(m);
-            std::vector<vindex> indices = get_mesh_indices(m);
-
-            std::ostringstream oss;
-            oss << std::setprecision(2) << std::fixed;
-            oss << "    " << "id: " << m << ", vertices: " << vertices.size();
-            log(LOG_LEVEL_DEBUG, oss.str().c_str());
-
-            oss.str("");
-            oss << "        vertex base: ";
-            if (vertices.size()) {
-                preview_sequence(&vertices[0][0], 3 * vertices.size(), oss);
-            }
-            log(LOG_LEVEL_DEBUG, oss.str().c_str());
-
-            oss.str("");
-            oss << "        texture coords: ";
-            if (texture_coords.size()) {
-                preview_sequence(&texture_coords[0][0], 2 * texture_coords.size(), oss);
-            }
-            log(LOG_LEVEL_DEBUG, oss.str().c_str());
-
-            oss.str("");
-            oss << "        indices: ";
-            preview_sequence(&indices[0], indices.size(), oss);
-            log(LOG_LEVEL_DEBUG, oss.str().c_str());
-
-            oss.str("");
-            oss << "        normals: ";
-            if (normals.size()) {
-                preview_sequence(&normals[0][0], 3 * normals.size(), oss);
-            }
-            log(LOG_LEVEL_DEBUG, oss.str().c_str());
-        }
-
         std::string format_mesh_id(mesh_id m)
         {
             std::ostringstream oss;
@@ -313,20 +248,12 @@ namespace rte
             }
         }
 
-        void log_statistics(resource_id added_root, const mesh_vector& added_meshes)
+        void log_statistics(resource_id added_root)
         {
             log(LOG_LEVEL_DEBUG, "---------------------------------------------------------------------------------------------------");
             log(LOG_LEVEL_DEBUG, "load_resources: finished loading file, summary:");
             log_materials();
-
-            log(LOG_LEVEL_DEBUG, "meshes:");
-            if (added_meshes.size()) {
-                for (auto& m : added_meshes) {
-                    print_mesh(m.get());
-                }
-            } else {
-                log(LOG_LEVEL_DEBUG, "    no meshes found");
-            }
+            log_meshes();
 
             log(LOG_LEVEL_DEBUG, "resources:");
             if (added_root != nresource) {
@@ -372,7 +299,7 @@ namespace rte
         create_resources(scene, &added_root_out, &added_resources);
 
         //TODO DELETE THIS once all logging is moved to database_loader
-        log_statistics(added_root_out, *meshes_out);
+        log_statistics(added_root_out);
 
         aiReleaseImport(scene);
         aiDetachAllLogStreams();

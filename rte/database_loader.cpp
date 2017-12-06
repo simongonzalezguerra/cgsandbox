@@ -6,6 +6,7 @@
 #include "log.hpp"
 
 #include <fstream>
+#include <cassert>
 #include <string>
 
 using json = nlohmann::json;
@@ -52,12 +53,79 @@ namespace rte
             }
 
             materials.insert(materials.end(), make_move_iterator(added_materials.begin()), make_move_iterator(added_materials.end()));
-            // TODO add user_id field to everything
         }
+
+        void fill_index_vector(const json& mesh_document, std::vector<vindex>* out, const std::string& field_name)
+        {
+            for (auto& index : mesh_document[field_name]) {
+                out->push_back(index);
+            }
+        }
+
+        void fill_2d_vector(const json& mesh_document, std::vector<glm::vec2>* out, const std::string& field_name)
+        {
+            unsigned int n_elements = 0;
+            auto& texture_coords_document = mesh_document[field_name];
+            assert(texture_coords_document.size() % 2 == 0);
+            auto doc_it = texture_coords_document.begin();
+            float u, v;
+            u = v = 0.0f;
+            while (doc_it != texture_coords_document.end()) {
+                unsigned int mod = n_elements++ % 2;
+                if (mod == 0) {
+                    u = *doc_it++;
+                } else {
+                    v = *doc_it++;
+                    out->push_back(glm::vec2(u, v));
+                }
+            }
+        }
+
+        void fill_3d_vector(const json& mesh_document, std::vector<glm::vec3>* out, const std::string& field_name)
+        {
+            unsigned int n_elements = 0;
+            auto& vertices_document = mesh_document[field_name];
+            assert(vertices_document.size() % 3 == 0);
+            auto doc_it = vertices_document.begin();
+
+            float x, y, z;
+            x = y = z = 0.0f;
+            while (doc_it != vertices_document.end()) {
+                unsigned int mod = n_elements++ % 3;
+                if (mod == 0) {
+                    x = *doc_it++;
+                } else if (mod == 1) {
+                    y = *doc_it++;
+                } else {
+                    z = *doc_it++;
+                    out->push_back(glm::vec3(x, y, z));
+                }
+            }
+        }
+
 
         void load_meshes()
         {
-            // TODO
+            mesh_vector added_meshes;
+            for (auto& m : document["meshes"]) {
+                auto mesh = make_mesh();
+                set_mesh_user_id(mesh.get(), m.value("user_id", nuser_id));
+                std::vector<glm::vec3> vertices;
+                fill_3d_vector(m, &vertices, "vertices");
+                set_mesh_vertices(mesh.get(), vertices);
+                std::vector<glm::vec2> texture_coords;
+                fill_2d_vector(m, &texture_coords, "texture_coords");
+                set_mesh_texture_coords(mesh.get(), texture_coords);
+                std::vector<glm::vec3> normals;
+                fill_3d_vector(m, &vertices, "normals");
+                set_mesh_normals(mesh.get(), normals);
+                std::vector<vindex> indices;
+                fill_index_vector(m, &indices, "indices");
+                set_mesh_indices(mesh.get(), indices);
+                added_meshes.push_back(std::move(mesh));
+            }
+
+            meshes.insert(meshes.end(), make_move_iterator(added_meshes.begin()), make_move_iterator(added_meshes.end()));
         }
 
         void load_resources()
@@ -120,6 +188,7 @@ namespace rte
         load_materials();
         log_materials();
         load_meshes();
+        log_meshes();
         load_resources();
         load_cubemaps();
         load_nodes();

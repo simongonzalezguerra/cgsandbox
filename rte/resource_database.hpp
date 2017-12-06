@@ -167,6 +167,7 @@ namespace rte
     gl_buffer_id get_mesh_index_buffer_id(mesh_id mesh);
     user_id get_mesh_user_id(mesh_id mesh);
     std::string get_mesh_name(mesh_id mesh);
+    void log_meshes();
 
     //-----------------------------------------------------------------------------------------------
     //! @brief Returns the id of the first mesh in the sequence of all meshes.

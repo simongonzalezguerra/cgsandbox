@@ -386,7 +386,6 @@ namespace rte
             log(LOG_LEVEL_DEBUG, "    no materials found");
         }
         log(LOG_LEVEL_DEBUG, "resource_database: materials end");
-        log(LOG_LEVEL_DEBUG, "---------------------------------------------------------------------------------------------------");
     }
 
     mesh_id new_mesh()
@@ -586,6 +585,88 @@ namespace rte
         }
 
         return meshes[m].m_name;
+    }
+
+    template<typename T>
+    void preview_sequence(T* a, std::size_t num_elems, std::ostringstream& oss)
+    {
+        oss << "[";
+        if (num_elems > 0) {
+            oss << " " << a[0];
+        }
+        if (num_elems > 1) {
+            oss << ", " << a[1];
+        }
+        if (num_elems > 2) {
+            oss << ", " << a[2];
+        }
+        oss << ", ...//... , ";
+        if (num_elems - 3 >= 0) {
+            oss << ", " << a[num_elems - 3];
+        }
+        if (num_elems - 2 >= 0) {
+            oss << ", " << a[num_elems - 2];
+        }
+        if (num_elems - 1 >= 0) {
+            oss << ", " << a[num_elems - 1];
+        }
+        oss << " ]";
+    }
+
+    void log_mesh(mesh_id m)
+    {
+        std::vector<glm::vec3> vertices = get_mesh_vertices(m);
+        std::vector<glm::vec2> texture_coords = get_mesh_texture_coords(m);
+        std::vector<glm::vec3> normals = get_mesh_normals(m);
+        std::vector<vindex> indices = get_mesh_indices(m);
+
+        std::ostringstream oss;
+        oss << std::setprecision(2) << std::fixed;
+        oss << "    " << "id: " << m << ", vertices: " << vertices.size();
+        log(LOG_LEVEL_DEBUG, oss.str().c_str());
+
+        oss.str("");
+        oss << "        vertex base: ";
+        if (vertices.size()) {
+            preview_sequence(&vertices[0][0], 3 * vertices.size(), oss);
+        }
+        log(LOG_LEVEL_DEBUG, oss.str().c_str());
+
+        oss.str("");
+        oss << "        texture coords: ";
+        if (texture_coords.size()) {
+            preview_sequence(&texture_coords[0][0], 2 * texture_coords.size(), oss);
+        }
+        log(LOG_LEVEL_DEBUG, oss.str().c_str());
+
+        oss.str("");
+        oss << "        indices: ";
+        if (indices.size()) {
+            preview_sequence(&indices[0], indices.size(), oss);        
+        }
+        log(LOG_LEVEL_DEBUG, oss.str().c_str());
+
+        oss.str("");
+        oss << "        normals: ";
+        if (normals.size()) {
+            preview_sequence(&normals[0][0], 3 * normals.size(), oss);
+        }
+        log(LOG_LEVEL_DEBUG, oss.str().c_str());
+    }
+
+    void log_meshes()
+    {
+        log(LOG_LEVEL_DEBUG, "---------------------------------------------------------------------------------------------------");
+        log(LOG_LEVEL_DEBUG, "resource_database: meshes begin");
+        if (meshes.size()) {
+            for (unsigned int m = 0; m < meshes.size() && meshes[m].m_used; m++) {
+                log_mesh(m);
+            }
+        } else {
+            log(LOG_LEVEL_DEBUG, "    no meshes found");
+        }
+
+        log(LOG_LEVEL_DEBUG, "resource_database: meshes end");
     }
 
     mesh_id get_first_mesh()
