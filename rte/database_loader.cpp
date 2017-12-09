@@ -8,6 +8,9 @@
 #include <fstream>
 #include <cassert>
 #include <string>
+#include <vector>
+#include <stack>
+#include <map>
 
 using json = nlohmann::json;
 
@@ -15,6 +18,9 @@ namespace rte
 {
     namespace
     {
+        typedef std::map<user_id, mat_id>  material_map;
+        typedef std::map<user_id, mesh_id> mesh_map;
+
         //---------------------------------------------------------------------------------------------
         // Internal data structures
         //---------------------------------------------------------------------------------------------
@@ -27,6 +33,8 @@ namespace rte
         node_vector             nodes;
         point_light_vector      point_lights;
         scene_vector            scenes;
+        material_map            material_ids;
+        mesh_map                mesh_ids;
 
         //---------------------------------------------------------------------------------------------
         // Helper functions
@@ -40,6 +48,7 @@ namespace rte
             material_vector added_materials;
             for (auto& m : document["materials"]) {
                 auto mat = make_material();
+                user_id material_user_id = m.value("user_id", nuser_id);
                 set_material_diffuse_color(mat.get(), array_to_vec3(m["diffuse_color"]));
                 set_material_specular_color(mat.get(), array_to_vec3(m["specular_color"]));
                 set_material_smoothness(mat.get(), m.value("smoothness", 1.0f));
@@ -47,8 +56,11 @@ namespace rte
                 set_material_reflectivity(mat.get(), m.value("reflectivity", 0.0f));
                 set_material_translucency(mat.get(), m.value("translucency", 0.0f));
                 set_material_refractive_index(mat.get(), m.value("refractive_index", 1.0f));
-                set_material_user_id(mat.get(), m.value("user_id", nuser_id));
                 set_material_name(mat.get(), m.value("name", std::string("")));
+                if (material_user_id != nuser_id) {
+                    set_material_user_id(mat.get(), material_user_id);
+                    material_ids[material_user_id] = mat.get();
+                }
                 added_materials.push_back(std::move(mat));
             }
 
@@ -103,13 +115,16 @@ namespace rte
             }
         }
 
-
         void load_meshes()
         {
             mesh_vector added_meshes;
             for (auto& m : document["meshes"]) {
                 auto mesh = make_mesh();
-                set_mesh_user_id(mesh.get(), m.value("user_id", nuser_id));
+                user_id mesh_user_id = m.value("user_id", nuser_id);
+                if (mesh_user_id != nuser_id) {
+                    set_mesh_user_id(mesh.get(), mesh_user_id);
+                    mesh_ids[mesh_user_id] = mesh.get();
+                }
                 std::vector<glm::vec3> vertices;
                 fill_3d_vector(m, &vertices, "vertices");
                 set_mesh_vertices(mesh.get(), vertices);
@@ -128,9 +143,138 @@ namespace rte
             meshes.insert(meshes.end(), make_move_iterator(added_meshes.begin()), make_move_iterator(added_meshes.end()));
         }
 
+        bool has_child(resource_id r, unsigned int index, resource_id* child_out)
+        {
+            resource_id child = get_first_child_resource(r);
+            unsigned int n_child = 0U;
+            while (child != nresource && n_child++ < index) {
+                child = get_next_sibling_resource(child);
+            }
+
+            *child_out = child;
+            return (child != nresource);
+        }
+
+        void create_resource(const json& resource_document,
+                            resource_id parent,
+                            resource_vector* resources_out,
+                            material_vector* materials_out,
+                            mesh_vector* meshes_out,
+                            resource_id* root_out)
+        {
+            resource_vector added_resources;
+            material_vector added_materials;
+            mesh_vector added_meshes;
+            if (resource_document.count("from_file")) {
+                load_resources(resource_document.value("from_file", std::string()), root_out, &added_resources, &added_materials, &added_meshes);
+            } else {
+                unique_resource new_resource = make_resource(parent);
+                user_id mesh_user_id = resource_document.value("mesh", nuser_id);
+                mesh_map::iterator mit;
+                if ((mit = mesh_ids.find(mesh_user_id)) != mesh_ids.end()) {
+                    set_resource_mesh(new_resource.get(), mit->second);
+                }
+                *root_out = new_resource.get();
+                added_resources.push_back(std::move(new_resource));
+                // materials are set later in a second traversal
+            }
+            set_resource_user_id(*root_out, resource_document.value("user_id", nuser_id));
+
+            resources_out->insert(resources_out->end(), make_move_iterator(added_resources.begin()), make_move_iterator(added_resources.end()));
+            materials_out->insert(materials_out->end(), make_move_iterator(added_materials.begin()), make_move_iterator(added_materials.end()));
+            meshes_out->insert(meshes_out->end(), make_move_iterator(added_meshes.begin()), make_move_iterator(added_meshes.end()));
+        }
+
+        void create_resource_tree(const json& resource_document,
+                            resource_vector* resources_out,
+                            material_vector* materials_out,
+                            mesh_vector* meshes_out,
+                            resource_id* root)
+        {
+            resource_vector added_resources;
+            material_vector added_materials;
+            mesh_vector added_meshes;
+            *root = nresource;
+            struct json_context { const json& doc; resource_id parent; unsigned int index; };
+            std::stack<json_context, std::vector<json_context>> pending_nodes;
+            pending_nodes.push({resource_document, nresource, 0U});
+            while (!pending_nodes.empty()) {
+                auto current = pending_nodes.top();
+                pending_nodes.pop();
+                resource_id current_resource = nresource;
+                if (current.parent == nresource || !has_child(current.parent, current.index, &current_resource)) {
+                    create_resource(current.doc, current.parent, &added_resources, &added_materials, &added_meshes, &current_resource);
+                    *root = (*root == nresource ? current_resource : *root); // only the first resource created is saved into root
+                }
+
+                // We are using a stack to process depth-first, so in order for the children to be
+                // processed in the order in which they appear we must push them in reverse order,
+                // otherwise the last child will be processed first
+                std::vector<json_context> children_list;
+                unsigned int n_child = 0;
+                if (current.doc.count("children")) {
+                    for (auto& child : current.doc["children"]) {
+                        children_list.push_back({child, current_resource, n_child++});
+                    }                    
+                }
+
+                for (auto cit = children_list.rbegin(); cit != children_list.rend(); cit++) {
+                    pending_nodes.push(*cit);
+                }
+            }
+
+            resources_out->insert(resources_out->end(), make_move_iterator(added_resources.begin()), make_move_iterator(added_resources.end()));
+            materials_out->insert(materials_out->end(), make_move_iterator(added_materials.begin()), make_move_iterator(added_materials.end()));
+            meshes_out->insert(meshes_out->end(), make_move_iterator(added_meshes.begin()), make_move_iterator(added_meshes.end()));
+        }
+
+        void set_resource_tree_materials(const json& resource_document, resource_id root)
+        {
+            struct json_context { const json& doc; resource_id rid; };
+            std::stack<json_context, std::vector<json_context>> pending_nodes;
+            pending_nodes.push({resource_document, root });
+            while (!pending_nodes.empty()) {
+                auto current = pending_nodes.top();
+                pending_nodes.pop();
+
+                user_id material_user_id = current.doc.value("material", nuser_id);
+                material_map::iterator mit;
+                if ((mit = material_ids.find(material_user_id)) != material_ids.end()) {
+                    set_resource_material(current.rid, mit->second);
+                }
+
+                // We are using a stack to process depth-first, so in order for the children to be
+                // processed in the order in which they appear we must push them in reverse order,
+                // otherwise the last child will be processed first
+                std::vector<json_context> children_list;
+                resource_id child = get_first_child_resource(current.rid);
+                if (current.doc.count("children")) {
+                    for (auto& json_child : current.doc["children"]) {
+                        children_list.push_back({json_child, child});
+                        child = get_next_sibling_resource(child);
+                    }                    
+                }
+
+                for (auto cit = children_list.rbegin(); cit != children_list.rend(); cit++) {
+                    pending_nodes.push(*cit);
+                }
+            }
+        }
+
         void load_resources()
         {
-            // TODO
+            resource_vector added_resources;
+            material_vector added_materials;
+            mesh_vector added_meshes;
+            for (auto& r : document["resources"]) {
+                resource_id added_root;
+                create_resource_tree(r, &added_resources, &added_materials, &added_meshes, &added_root);
+                set_resource_tree_materials(r, added_root);
+            }
+
+            resources.insert(resources.end(), make_move_iterator(added_resources.begin()), make_move_iterator(added_resources.end()));
+            materials.insert(materials.end(), make_move_iterator(added_materials.begin()), make_move_iterator(added_materials.end()));
+            meshes.insert(meshes.end(), make_move_iterator(added_meshes.begin()), make_move_iterator(added_meshes.end()));
         }
 
         void load_cubemaps()
@@ -177,8 +321,7 @@ namespace rte
     void load_database()
     {
         if (!initialized) return;
-
-        std::string filename = cmd_line_args_get_option_value("-config", "config.json");
+        std::string filename = cmd_line_args_get_option_value("-config", "");
 
         log(LOG_LEVEL_DEBUG, std::string("database_loader: loading database from file ") + filename);
         std::ifstream ifs(filename);
@@ -186,9 +329,7 @@ namespace rte
         ifs >> document;
 
         load_materials();
-        log_materials();
         load_meshes();
-        log_meshes();
         load_resources();
         load_cubemaps();
         load_nodes();
@@ -202,6 +343,9 @@ namespace rte
     void log_database()
     {
         // TODO
+        log_materials();
+        log_meshes();
+        log_resources();
     }
 
     void database_loader_finalize()

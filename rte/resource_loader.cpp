@@ -35,7 +35,7 @@ namespace rte
             if (n != std::string::npos) {
               message_trimmed[n] = '\0';
             }
-            log(LOG_LEVEL_DEBUG, message_trimmed);
+            log(LOG_LEVEL_DEBUG, std::string("assimp: ") + message_trimmed);
         }
 
         void create_materials(const struct aiScene* scene, material_vector* materials_out, const std::string& file_name)
@@ -191,79 +191,6 @@ namespace rte
 
             resources_out->insert(resources_out->end(), make_move_iterator(added_resources.begin()), make_move_iterator(added_resources.end()));
         }
-
-        std::string format_mesh_id(mesh_id m)
-        {
-            std::ostringstream oss;
-            if (m != nmesh) {
-                oss << m;
-            } else {
-                oss << "nmesh";
-            }
-
-            return oss.str();
-        }
-
-        std::string format_material_id(mat_id m)
-        {
-            std::ostringstream oss;
-            if (m != nmat) {
-                oss << m;
-            } else {
-                oss << "nmat";
-            }
-
-            return oss.str();
-        }
-
-        void print_resource_tree(resource_id root)
-        {
-            // Iterate the resource tree with a breadth-first search printing resources
-            struct context{ resource_id rid; unsigned int indentation; };
-            std::queue<context> pending_nodes;
-            pending_nodes.push({root, 1U});
-            while (!pending_nodes.empty()) {
-                auto current = pending_nodes.front();
-                pending_nodes.pop();
-
-                glm::mat4 local_transform = get_resource_local_transform(current.rid);
-
-                std::ostringstream oss;
-                oss << std::setprecision(2) << std::fixed;
-                for (unsigned int i = 0; i < current.indentation; i++) {
-                    oss << "    ";
-                }
-                oss << "[ ";
-                oss << "resource id: " << current.rid;
-                oss << ", mesh: " << format_mesh_id(get_resource_mesh(current.rid));
-                oss << ", material: " << format_material_id(get_resource_material(current.rid));
-                oss << ", local transform: ";
-                print_sequence(glm::value_ptr(local_transform), 16, oss);
-                oss << " ]";
-                log(LOG_LEVEL_DEBUG, oss.str().c_str());
-
-                for (resource_id child = get_first_child_resource(current.rid); child != nresource; child = get_next_sibling_resource(child)) {
-                    pending_nodes.push({child, current.indentation + 1});
-                }
-            }
-        }
-
-        void log_statistics(resource_id added_root)
-        {
-            log(LOG_LEVEL_DEBUG, "---------------------------------------------------------------------------------------------------");
-            log(LOG_LEVEL_DEBUG, "load_resources: finished loading file, summary:");
-            log_materials();
-            log_meshes();
-
-            log(LOG_LEVEL_DEBUG, "resources:");
-            if (added_root != nresource) {
-                print_resource_tree(added_root);
-            } else {
-                log(LOG_LEVEL_DEBUG, "    no resources found");
-            }      
-
-            log(LOG_LEVEL_DEBUG, "---------------------------------------------------------------------------------------------------");
-        }
     } // anonymous namespace
 
     //-----------------------------------------------------------------------------------------------
@@ -299,7 +226,7 @@ namespace rte
         create_resources(scene, &added_root_out, &added_resources);
 
         //TODO DELETE THIS once all logging is moved to database_loader
-        log_statistics(added_root_out);
+        //log_statistics(added_root_out);
 
         aiReleaseImport(scene);
         aiDetachAllLogStreams();

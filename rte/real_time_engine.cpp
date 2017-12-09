@@ -54,7 +54,6 @@ namespace rte
 
         void initialize(unsigned int argc, char** argv)
         {
-            // TODO call database_loader_initialize
             // TODO add a settings component to the database
             if (m_is_initialized) return;
 
@@ -66,13 +65,18 @@ namespace rte
             cmd_line_args_initialize();
             cmd_line_args_set_args(argc, argv);
 
+            if (!cmd_line_args_has_option("-config")) {
+                throw std::logic_error("Usage: ./real_time_engine -config <config_file>");
+            }
+
             resource_database_init();
 
             system_initialize();
 
             database_loader_initialize();
             load_database();
-            exit(1);
+            log_database();
+            //exit(1);
 
             material_vector added_materials;
             mesh_vector added_meshes;
@@ -91,6 +95,7 @@ namespace rte
             set_material_diffuse_color(diffuse_teapot_material.get(), glm::vec3(1.0f, 0.0f, 0.0f));
             set_material_specular_color(diffuse_teapot_material.get(), glm::vec3(1.0f, 1.0f, 1.0f));
             set_material_smoothness(diffuse_teapot_material.get(), 1.0f);
+            set_resource_material(get_first_child_resource(teapot_resource), diffuse_teapot_material.get());
 
             unique_material steel_material = make_material();
             set_material_diffuse_color(steel_material.get(), glm::vec3(0.8f, 0.8f, 0.8f));
@@ -163,7 +168,6 @@ namespace rte
             node_id diffuse_teapot_node = nnode;
             make_node(root_node, teapot_resource, &diffuse_teapot_node, &added_nodes);
             set_node_transform(diffuse_teapot_node, glm::translate(glm::vec3(22.0f, -3.0f, -20.0f)) * glm::scale(glm::vec3(8.0f, 8.0f, 8.0f)));
-            set_node_material(get_first_child_node(diffuse_teapot_node), diffuse_teapot_material.get());
         
             // Create the bunny
             node_id bunny_node = nnode;

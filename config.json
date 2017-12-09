@@ -88,7 +88,18 @@
     {
       "user_id" : 1,
       "mesh" : 1,
-      "material" : 6
+      "material" : 6,
+      "children" :
+      [
+        {
+          "material" : 1,
+          "user_id" : 6
+        },
+        {
+          "material" : 3,
+          "user_id" : 7
+        }
+      ]
     },
     {
       "user_id" : 2,
@@ -96,15 +107,23 @@
     },
     {
       "user_id" : 3,
-      "from_file" : "../../../resources/Teapot/Teapot.obj"
+      "from_file" : "../../../resources/Teapot/Teapot.obj",
+      "children" :
+      [
+        {
+          "material" : 1
+        }
+      ]
     },
     {
       "user_id" : 4,
-      "from_file" : "../../../resources/stanford-bunny/bun_zipper.ply"
+      "from_file" : "../../../resources/stanford-bunny/bun_zipper.ply",
+      "material" : 4
     },
     {
       "user_id" : 5,
-      "from_file" : "../../../resources/stanford-dragon2/dragon.obj"
+      "from_file" : "../../../resources/stanford-dragon2/dragon.obj",
+      "material" : 5
     }
   ],
   "cubemaps" :

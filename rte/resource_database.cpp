@@ -7,7 +7,8 @@
 #include <iomanip>
 #include <sstream>
 #include <vector>
-#include <queue>
+#include <stack>
+#include <set>
 
 namespace rte
 {
@@ -16,6 +17,8 @@ namespace rte
         //---------------------------------------------------------------------------------------------
         // Internal declarations
         //---------------------------------------------------------------------------------------------
+        typedef std::set<resource_id> resource_set;
+
         struct material
         {
             material() :
@@ -116,6 +119,41 @@ namespace rte
 
         typedef std::vector<cubemap> cubemap_vector;
 
+        std::string format_mesh_id(mesh_id m)
+        {
+            std::ostringstream oss;
+            if (m != nmesh) {
+                oss << m;
+            } else {
+                oss << "nmesh";
+            }
+
+            return oss.str();
+        }
+
+        std::string format_material_id(mat_id m)
+        {
+            std::ostringstream oss;
+            if (m != nmat) {
+                oss << m;
+            } else {
+                oss << "nmat";
+            }
+
+            return oss.str();
+        }
+
+        std::string format_user_id(user_id uid)
+        {
+            std::ostringstream oss;
+            if (uid != nuser_id) {
+                oss << uid;
+            } else {
+                oss << "nuser_id";
+            }
+
+            return oss.str();
+        }
 
         //---------------------------------------------------------------------------------------------
         // Internal data structures
@@ -366,10 +404,16 @@ namespace rte
             for (unsigned int m = 0; m < materials.size() && materials[m].m_used; m++) {
                 glm::vec3 diffuse_color = get_material_diffuse_color(m);
                 glm::vec3 specular_color = get_material_specular_color(m);
+                user_id uid = get_material_user_id(m);
                 std::ostringstream oss;
                 oss << std::setprecision(2) << std::fixed;
                 oss << "    id: " << m;
-                oss << ", user id: " << get_material_user_id(m);
+                oss << ", user id: ";
+                if (uid != nuser_id) {
+                  oss << uid;
+                } else {
+                  oss << "none";
+                }
                 oss << ", name: " << get_material_name(m);
                 oss << ", diffuse color: ";
                 print_sequence((float*) &diffuse_color, 3U, oss);
@@ -622,7 +666,15 @@ namespace rte
 
         std::ostringstream oss;
         oss << std::setprecision(2) << std::fixed;
-        oss << "    " << "id: " << m << ", vertices: " << vertices.size();
+        oss << "    " << "id: " << m;
+        log(LOG_LEVEL_DEBUG, oss.str().c_str());
+
+        oss.str("");
+        oss << "        vertices: " << vertices.size();
+        log(LOG_LEVEL_DEBUG, oss.str().c_str());
+
+        oss.str("");
+        oss << "        user id: " << format_user_id(get_mesh_user_id(m));
         log(LOG_LEVEL_DEBUG, oss.str().c_str());
 
         oss.str("");
@@ -701,20 +753,20 @@ namespace rte
 
     resource_id new_resource(resource_id p)
     {
-        if (!(p < resources.size() && resources[p].m_used)) {
-            log(LOG_LEVEL_ERROR, "new_resource error: invalid resource id for parent"); return nresource;
-        }
+        // p may be nresource, this is allowed and is equivalent to new_resource()
 
         // Allocate a vector entry for the new resource
         resource_id new_res = new_resource();
 
-        // Link the new resource as last child of p
-        resource_id r = resources[p].m_first_child;
-        resource_id next = nresource;
-        while (r != nresource && ((next = resources[r].m_next_sibling) != nresource)) {
-            r = next;
+        if (p != nresource) {
+          // Link the new resource as last child of p
+          resource_id r = resources[p].m_first_child;
+          resource_id next = nresource;
+          while (r != nresource && ((next = resources[r].m_next_sibling) != nresource)) {
+              r = next;
+          }
+          (r == nresource? resources[p].m_first_child : resources[r].m_next_sibling) = new_res;
         }
-        (r == nresource? resources[p].m_first_child : resources[r].m_next_sibling) = new_res;
 
         return new_res;
     }
@@ -851,6 +903,68 @@ namespace rte
 
         return resources[r].m_next_sibling;
     }
+
+    void log_resource(resource_id root, resource_set* visited_resources)
+    {
+        // Iterate the resource tree with a depth-first search printing resources
+        struct context{ resource_id rid; unsigned int indentation; };
+        std::stack<context, std::vector<context>> pending_nodes;
+        pending_nodes.push({root, 1U});
+        while (!pending_nodes.empty()) {
+            auto current = pending_nodes.top();
+            pending_nodes.pop();
+            visited_resources->insert(current.rid);
+
+            glm::mat4 local_transform = get_resource_local_transform(current.rid);
+
+            std::ostringstream oss;
+            oss << std::setprecision(2) << std::fixed;
+            for (unsigned int i = 0; i < current.indentation; i++) {
+                oss << "    ";
+            }
+
+            oss << "[ ";
+            oss << "resource id: " << current.rid;
+            oss << ", user id: " << format_user_id(get_resource_user_id(current.rid));
+            oss << ", mesh: " << format_mesh_id(get_resource_mesh(current.rid));
+            oss << ", material: " << format_material_id(get_resource_material(current.rid));
+            oss << ", local transform: ";
+            print_sequence(glm::value_ptr(local_transform), 16, oss);
+            oss << " ]";
+            log(LOG_LEVEL_DEBUG, oss.str().c_str());
+
+            // We are using a stack to process depth-first, so in order for the children to be
+            // processed in the order in which they appear we must push them in reverse order,
+            // otherwise the last child will be processed first
+            std::vector<resource_id> children_list;
+            for (resource_id child = get_first_child_resource(current.rid); child != nresource; child = get_next_sibling_resource(child)) {
+                children_list.push_back(child);
+            }
+
+            for (auto cit = children_list.rbegin(); cit != children_list.rend(); cit++) {
+                pending_nodes.push({*cit, current.indentation + 1});
+            }
+        }
+    }
+
+    void log_resources()
+    {
+        log(LOG_LEVEL_DEBUG, "---------------------------------------------------------------------------------------------------");
+        log(LOG_LEVEL_DEBUG, "resource_database: resources begin");
+        resource_set visited_resources;
+        if (resources.size()) {
+            for (unsigned int r = 0; r < resources.size() && resources[r].m_used; r++) {
+                if (visited_resources.count(r) == 0) {
+                    log_resource(r, &visited_resources);
+                }
+            }
+        } else {
+            log(LOG_LEVEL_DEBUG, "    no resources found");
+        }
+
+        log(LOG_LEVEL_DEBUG, "resource_database: resources end");
+    }
+
 
     unique_resource make_resource()
     {

@@ -245,6 +245,8 @@ namespace rte
     //-----------------------------------------------------------------------------------------------
     resource_id get_next_sibling_resource(resource_id resource);
 
+    void log_resources();
+
     struct resource_handle
     {
         resource_handle() : m_resource_id(nresource) {}
