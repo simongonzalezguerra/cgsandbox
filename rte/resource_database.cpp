@@ -1083,6 +1083,34 @@ namespace rte
         return cubemaps[cid].m_name;
     }
 
+    void log_cubemaps()
+    {
+        log(LOG_LEVEL_DEBUG, "---------------------------------------------------------------------------------------------------");
+        log(LOG_LEVEL_DEBUG, "resource_database: cubemaps begin");
+        if (cubemaps.size()) {
+            for (unsigned int cid = 0; cid < cubemaps.size() && cubemaps[cid].m_used; cid++) {
+                std::ostringstream oss;
+
+                oss.str("");
+                oss << "    id: " << cid;
+                log(LOG_LEVEL_DEBUG, oss.str().c_str());
+
+                oss.str("");
+                oss << "    faces:";
+                log(LOG_LEVEL_DEBUG, oss.str().c_str());
+
+                for (auto& f : get_cubemap_faces(cid)) {
+                    oss.str("");
+                    oss << "        " << f;
+                    log(LOG_LEVEL_DEBUG, oss.str().c_str());
+                }
+            }
+        } else {
+            log(LOG_LEVEL_DEBUG, "    no cubemaps found");
+        }
+        log(LOG_LEVEL_DEBUG, "resource_database: cubemaps end");
+    }
+
     unique_cubemap make_cubemap()
     {
         return unique_cubemap(new_cubemap());

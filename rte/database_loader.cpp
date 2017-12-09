@@ -279,7 +279,19 @@ namespace rte
 
         void load_cubemaps()
         {
-            // TODO
+            cubemap_vector added_cubemaps;
+            for (auto& cubemap_doc : document["cubemaps"]) {
+                unique_cubemap cubemap = make_cubemap();
+                std::vector<std::string> cubemap_faces;
+                for (auto& face_doc : cubemap_doc["faces"]) {
+                    cubemap_faces.push_back(face_doc.get<std::string>());
+                }
+
+                set_cubemap_faces(cubemap.get(), cubemap_faces);
+                added_cubemaps.push_back(std::move(cubemap));
+            }
+
+            cubemaps.insert(cubemaps.end(), make_move_iterator(added_cubemaps.begin()), make_move_iterator(added_cubemaps.end()));
         }
 
         void load_nodes()
@@ -293,6 +305,11 @@ namespace rte
         }
 
         void load_scenes()
+        {
+            // TODO
+        }
+
+        void load_settings()
         {
             // TODO
         }
@@ -335,6 +352,7 @@ namespace rte
         load_nodes();
         load_point_lights();
         load_scenes();
+        load_settings();
 
         document = json();
         log(LOG_LEVEL_DEBUG, "database_loader: database loaded successfully");
@@ -346,6 +364,7 @@ namespace rte
         log_materials();
         log_meshes();
         log_resources();
+        log_cubemaps();
     }
 
     void database_loader_finalize()

@@ -287,6 +287,7 @@ namespace rte
     cubemap_id get_next_cubemap(cubemap_id id);
     user_id get_cubemap_user_id(cubemap_id cid);
     std::string get_cubemap_name(cubemap_id cid);
+    void log_cubemaps();
 
     struct cubemap_handle
     {
