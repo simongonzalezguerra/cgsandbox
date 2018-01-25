@@ -142,7 +142,7 @@ namespace rte
         scenes[s].m_next_scene = nscene;
         scenes[s].m_view_transform = glm::mat4{1.0f};
         scenes[s].m_projection_transform = glm::mat4{1.0f};
-        scenes[s].m_root_node = make_node();
+        scenes[s].m_root_node = unique_node(new_node());
 
         return s;
     }
@@ -507,23 +507,28 @@ namespace rte
         return nodes[n].m_user_id;
     }
 
-    unique_node make_node()
+    void make_node(node_id* root_out, node_vector* nodes_out)
     {
-        return unique_node(new_node());
-    }
-
-    unique_node make_node(node_id parent)
-    {
-        return unique_node(new_node(parent));
+        unique_node new_node_handle(new_node());
+        *root_out = new_node_handle.get();
+        nodes_out->push_back(std::move(new_node_handle));
     }
 
     void make_node(node_id p, resource_id r, node_id* root_out, node_vector* nodes_out)
     {
-        node_vector added_nodes;
         if (!(p < nodes.size() && nodes[p].m_used)) {
             throw std::logic_error("make_node error: invalid parameters");
         }
 
+        if (r == nresource) {
+            unique_node new_node_handle(new_node(p));
+            *root_out = new_node_handle.get();
+            nodes_out->push_back(std::move(new_node_handle));
+
+            return;
+        }
+
+        node_vector added_nodes;
         node_id added_root_out = nnode;
         struct context{ resource_id rid; node_id parent; };
         std::queue<context> pending_nodes;
@@ -532,7 +537,7 @@ namespace rte
             auto current = pending_nodes.front();
             pending_nodes.pop();
 
-            added_nodes.push_back(make_node(current.parent));
+            added_nodes.push_back(unique_node(new_node(current.parent)));
             node_id n = added_nodes[added_nodes.size() - 1].get();
             added_root_out = (added_root_out == nnode ? n : added_root_out);
             set_node_transform(n, get_resource_local_transform(current.rid));

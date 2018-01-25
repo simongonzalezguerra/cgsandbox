@@ -281,8 +281,7 @@ namespace rte
 
     typedef std::unique_ptr<node_id, node_deleter> unique_node;
     typedef std::vector<unique_node> node_vector;
-    unique_node make_node();
-    unique_node make_node(node_id parent);
+    void make_node(node_id* root_out, node_vector* nodes_out);
     void make_node(node_id parent, resource_id resource, node_id* root_out, node_vector* nodes_out);
 
     void set_directional_light_ambient_color(scene_id scene, glm::vec3 ambient_color);
