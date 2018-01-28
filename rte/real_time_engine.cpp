@@ -76,7 +76,7 @@ namespace rte
             database_loader_initialize();
             load_database();
             log_database();
-            //exit(1);
+            exit(1);
 
             material_vector added_materials;
             mesh_vector added_meshes;

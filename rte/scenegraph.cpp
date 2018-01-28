@@ -857,4 +857,9 @@ namespace rte
 
         return ret;
     }
+
+    void log_scenes()
+    {
+        // TODO
+    }
 } // namespace rte

@@ -344,6 +344,8 @@ namespace rte
     unique_point_light make_point_light(scene_id scene);
 
     std::vector<node_id> get_descendant_nodes(node_id node);
+
+    void log_scenes();
 } // namespace rte
 
 #endif // SCENE_GRAPH_HPP

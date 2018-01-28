@@ -45,17 +45,17 @@ namespace rte
         // Helper functions
         //---------------------------------------------------------------------------------------------
         glm::vec3 array_to_vec3(const json& array) {
-            return glm::vec3(array[0].get<float>(), array[1].get<float>(), array[2].get<float>());
+            return glm::vec3(array.at(0).get<float>(), array.at(1).get<float>(), array.at(2).get<float>());
         }
 
         void load_materials()
         {
             material_vector added_materials;
-            for (auto& m : document["materials"]) {
+            for (auto& m : document.at("materials")) {
                 auto mat = make_material();
                 user_id material_user_id = m.value("user_id", nuser_id);
-                set_material_diffuse_color(mat.get(), array_to_vec3(m["diffuse_color"]));
-                set_material_specular_color(mat.get(), array_to_vec3(m["specular_color"]));
+                set_material_diffuse_color(mat.get(), array_to_vec3(m.at("diffuse_color")));
+                set_material_specular_color(mat.get(), array_to_vec3(m.at("specular_color")));
                 set_material_smoothness(mat.get(), m.value("smoothness", 1.0f));
                 set_material_texture_path(mat.get(), m.value("texture_path", std::string("")));
                 set_material_reflectivity(mat.get(), m.value("reflectivity", 0.0f));
@@ -74,7 +74,7 @@ namespace rte
 
         void fill_index_vector(const json& mesh_document, std::vector<vindex>* out, const std::string& field_name)
         {
-            for (auto& index : mesh_document[field_name]) {
+            for (auto& index : mesh_document.at(field_name)) {
                 out->push_back(index);
             }
         }
@@ -82,7 +82,7 @@ namespace rte
         void fill_2d_vector(const json& mesh_document, std::vector<glm::vec2>* out, const std::string& field_name)
         {
             unsigned int n_elements = 0;
-            auto& texture_coords_document = mesh_document[field_name];
+            auto& texture_coords_document = mesh_document.at(field_name);
             assert(texture_coords_document.size() % 2 == 0);
             auto doc_it = texture_coords_document.begin();
             float u, v;
@@ -101,7 +101,7 @@ namespace rte
         void fill_3d_vector(const json& mesh_document, std::vector<glm::vec3>* out, const std::string& field_name)
         {
             unsigned int n_elements = 0;
-            auto& vertices_document = mesh_document[field_name];
+            auto& vertices_document = mesh_document.at(field_name);
             assert(vertices_document.size() % 3 == 0);
             auto doc_it = vertices_document.begin();
 
@@ -123,7 +123,7 @@ namespace rte
         void load_meshes()
         {
             mesh_vector added_meshes;
-            for (auto& m : document["meshes"]) {
+            for (auto& m : document.at("meshes")) {
                 auto mesh = make_mesh();
                 user_id mesh_user_id = m.value("user_id", nuser_id);
                 if (mesh_user_id != nuser_id) {
@@ -218,7 +218,7 @@ namespace rte
                 std::vector<json_context> children_list;
                 unsigned int n_child = 0;
                 if (current.doc.count("children")) {
-                    for (auto& child : current.doc["children"]) {
+                    for (auto& child : current.doc.at("children")) {
                         children_list.push_back({child, current_resource, n_child++});
                     }                    
                 }
@@ -254,7 +254,7 @@ namespace rte
                 std::vector<json_context> children_list;
                 resource_id child = get_first_child_resource(current.rid);
                 if (current.doc.count("children")) {
-                    for (auto& json_child : current.doc["children"]) {
+                    for (auto& json_child : current.doc.at("children")) {
                         children_list.push_back({json_child, child});
                         child = get_next_sibling_resource(child);
                     }                    
@@ -271,7 +271,7 @@ namespace rte
             resource_vector added_resources;
             material_vector added_materials;
             mesh_vector added_meshes;
-            for (auto& r : document["resources"]) {
+            for (auto& r : document.at("resources")) {
                 resource_id added_root;
                 create_resource_tree(r, &added_resources, &added_materials, &added_meshes, &added_root);
                 set_resource_tree_materials(r, added_root);
@@ -285,10 +285,10 @@ namespace rte
         void load_cubemaps()
         {
             cubemap_vector added_cubemaps;
-            for (auto& cubemap_doc : document["cubemaps"]) {
+            for (auto& cubemap_doc : document.at("cubemaps")) {
                 unique_cubemap cubemap = make_cubemap();
                 std::vector<std::string> cubemap_faces;
-                for (auto& face_doc : cubemap_doc["faces"]) {
+                for (auto& face_doc : cubemap_doc.at("faces")) {
                     cubemap_faces.push_back(face_doc.get<std::string>());
                 }
 
@@ -316,7 +316,9 @@ namespace rte
             node_id new_node = nnode;
             node_vector added_nodes;
             user_id resource_user_id = node_document.value("resource", nuser_id);
-            make_node(parent, resource_ids.at(resource_user_id), &new_node, &added_nodes);
+            resource_id resource = (resource_user_id == nuser_id ? nresource : resource_ids.at(resource_user_id));
+            // resource can be nresource, in that case make_node() creates an empty node
+            make_node(parent, resource, &new_node, &added_nodes);
 
             set_node_user_id(*root_out, node_document.value("user_id", nuser_id));
 
@@ -357,7 +359,7 @@ namespace rte
                 std::vector<json_context> children_list;
                 unsigned int n_child = 0;
                 if (current.doc.count("children")) {
-                    for (auto& child : current.doc["children"]) {
+                    for (auto& child : current.doc.at("children")) {
                         children_list.push_back({child, current_node, n_child++});
                     }                    
                 }
@@ -391,7 +393,7 @@ namespace rte
                 std::vector<json_context> children_list;
                 node_id child = get_first_child_node(current.rid);
                 if (current.doc.count("children")) {
-                    for (auto& json_child : current.doc["children"]) {
+                    for (auto& json_child : current.doc.at("children")) {
                         children_list.push_back({json_child, child});
                         child = get_next_sibling_node(child);
                     }                    
@@ -423,15 +425,33 @@ namespace rte
             set_directional_light_direction(current_scene, array_to_vec3(current_scene_doc->at("directional_light").at("direction")));
         }
 
+        void create_point_light(const json& point_light_document, point_light_vector* point_lights)
+        {
+            unique_point_light pl = make_point_light(current_scene);
+            set_point_light_user_id(pl.get(), point_light_document.value("user_id", nuser_id));
+            set_point_light_position(pl.get(), array_to_vec3(point_light_document.at("position")));
+            set_point_light_ambient_color(pl.get(), array_to_vec3(point_light_document.at("ambient_color")));
+            set_point_light_diffuse_color(pl.get(), array_to_vec3(point_light_document.at("diffuse_color")));
+            set_point_light_specular_color(pl.get(), array_to_vec3(point_light_document.at("specular_color")));
+            set_point_light_constant_attenuation(pl.get(), point_light_document.at("constant_attenuation").get<float>());
+            set_point_light_linear_attenuation(pl.get(), point_light_document.at("linear_attenuation").get<float>());
+            set_point_light_quadratic_attenuation(pl.get(), point_light_document.at("quadratic_attenuation").get<float>());
+            point_lights->push_back(std::move(pl));
+        }
+
         void load_point_lights()
         {
-            // TODO
+            point_light_vector added_point_lights;
+            for (auto& point_light_document : current_scene_doc->at("point_lights")) {
+                create_point_light(point_light_document, &added_point_lights);
+            }
+            point_lights.insert(point_lights.end(), make_move_iterator(added_point_lights.begin()), make_move_iterator(added_point_lights.end()));
         }
 
         void load_scenes()
         {
             scene_vector added_scenes;
-            for (auto& scene_doc : document["scenes"]) {
+            for (auto& scene_doc : document.at("scenes")) {
                 unique_scene scene = make_scene();
                 set_scene_user_id(scene.get(), scene_doc.value("user_id", nuser_id));
                 current_scene = scene.get();
@@ -449,10 +469,6 @@ namespace rte
             scenes.insert(scenes.end(), make_move_iterator(added_scenes.begin()), make_move_iterator(added_scenes.end()));
         }
 
-        void load_settings()
-        {
-            // TODO
-        }
     } // anonymous namespace
 
     //-----------------------------------------------------------------------------------------------
@@ -471,7 +487,6 @@ namespace rte
             point_lights.clear();
             scenes.clear();
             resource_ids.clear();
-            resource_ids[nuser_id] = nresource; // Note this is necessary because the resource property in nodes is optional
             initialized = true;
             log(LOG_LEVEL_DEBUG, "database_loader: database loader initialized");
         }
@@ -492,7 +507,6 @@ namespace rte
         load_resources();
         load_cubemaps();
         load_scenes();
-        load_settings();
 
         document = json();
         log(LOG_LEVEL_DEBUG, "database_loader: database loaded successfully");
@@ -500,11 +514,11 @@ namespace rte
 
     void log_database()
     {
-        // TODO
         log_materials();
         log_meshes();
         log_resources();
         log_cubemaps();
+        log_scenes();
     }
 
     void database_loader_finalize()
