@@ -417,7 +417,10 @@ namespace rte
 
         void load_directional_light()
         {
-
+            set_directional_light_ambient_color(current_scene, array_to_vec3(current_scene_doc->at("directional_light").at("ambient_color")));
+            set_directional_light_diffuse_color(current_scene, array_to_vec3(current_scene_doc->at("directional_light").at("diffuse_color")));
+            set_directional_light_specular_color(current_scene, array_to_vec3(current_scene_doc->at("directional_light").at("specular_color")));
+            set_directional_light_direction(current_scene, array_to_vec3(current_scene_doc->at("directional_light").at("direction")));
         }
 
         void load_point_lights()
