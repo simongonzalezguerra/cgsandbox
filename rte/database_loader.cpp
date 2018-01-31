@@ -39,7 +39,6 @@ namespace rte
         mesh_map                mesh_ids;
         resource_map            resource_ids;
         scene_id                current_scene = nscene;
-        json*                   current_scene_doc = nullptr;
 
         //---------------------------------------------------------------------------------------------
         // Helper functions
@@ -405,10 +404,10 @@ namespace rte
             }
         }
 
-        void load_nodes()
+        void load_nodes(const json& scene_doc)
         {
             node_vector added_nodes;
-            for (auto& n : current_scene_doc->at("nodes")) {
+            for (auto& n : scene_doc.at("nodes")) {
                 node_id added_root;
                 create_node_tree(n, &added_nodes, &added_root);
                 set_node_tree_materials(n, added_root);
@@ -417,12 +416,12 @@ namespace rte
             nodes.insert(nodes.end(), make_move_iterator(added_nodes.begin()), make_move_iterator(added_nodes.end()));
         }
 
-        void load_directional_light()
+        void load_directional_light(const json& scene_doc)
         {
-            set_directional_light_ambient_color(current_scene, array_to_vec3(current_scene_doc->at("directional_light").at("ambient_color")));
-            set_directional_light_diffuse_color(current_scene, array_to_vec3(current_scene_doc->at("directional_light").at("diffuse_color")));
-            set_directional_light_specular_color(current_scene, array_to_vec3(current_scene_doc->at("directional_light").at("specular_color")));
-            set_directional_light_direction(current_scene, array_to_vec3(current_scene_doc->at("directional_light").at("direction")));
+            set_directional_light_ambient_color(current_scene, array_to_vec3(scene_doc.at("directional_light").at("ambient_color")));
+            set_directional_light_diffuse_color(current_scene, array_to_vec3(scene_doc.at("directional_light").at("diffuse_color")));
+            set_directional_light_specular_color(current_scene, array_to_vec3(scene_doc.at("directional_light").at("specular_color")));
+            set_directional_light_direction(current_scene, array_to_vec3(scene_doc.at("directional_light").at("direction")));
         }
 
         void create_point_light(const json& point_light_document, point_light_vector* point_lights)
@@ -439,10 +438,10 @@ namespace rte
             point_lights->push_back(std::move(pl));
         }
 
-        void load_point_lights()
+        void load_point_lights(const json& scene_doc)
         {
             point_light_vector added_point_lights;
-            for (auto& point_light_document : current_scene_doc->at("point_lights")) {
+            for (auto& point_light_document : scene_doc.at("point_lights")) {
                 create_point_light(point_light_document, &added_point_lights);
             }
             point_lights.insert(point_lights.end(), make_move_iterator(added_point_lights.begin()), make_move_iterator(added_point_lights.end()));
@@ -455,15 +454,13 @@ namespace rte
                 unique_scene scene = make_scene();
                 set_scene_user_id(scene.get(), scene_doc.value("user_id", nuser_id));
                 current_scene = scene.get();
-                current_scene_doc = &scene_doc;
 
-                load_nodes();
-                load_directional_light();
-                load_point_lights();
+                load_nodes(scene_doc);
+                load_directional_light(scene_doc);
+                load_point_lights(scene_doc);
 
                 added_scenes.push_back(std::move(scene));
                 current_scene = nscene;
-                current_scene_doc = nullptr;
             }
 
             scenes.insert(scenes.end(), make_move_iterator(added_scenes.begin()), make_move_iterator(added_scenes.end()));
