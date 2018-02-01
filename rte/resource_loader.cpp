@@ -225,9 +225,6 @@ namespace rte
         resource_id added_root_out = nresource;
         create_resources(scene, &added_root_out, &added_resources);
 
-        //TODO DELETE THIS once all logging is moved to database_loader
-        //log_statistics(added_root_out);
-
         aiReleaseImport(scene);
         aiDetachAllLogStreams();
 

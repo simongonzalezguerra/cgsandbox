@@ -153,7 +153,8 @@
           "scale" : [120.0, 120.0, 120.0],
           "rotation_angle" : 0.0,
           "rotation_axis" : [0.0, 1.0, 0.0],
-          "translation" : [50.0, -3.0, -5.0]
+          "translation" : [50.0, -3.0, -5.0],
+          "name" : "Floor"
         },
         {
           "user_id" : 2,
@@ -161,7 +162,8 @@
           "scale" : [1.0, 1.0, 1.0],
           "rotation_angle" : 3.14,
           "rotation_axis" : [0.0, 1.0, 0.0]
-          "translation" : [0.0, 0.0, 0.0]
+          "translation" : [0.0, 0.0, 0.0],
+          "name" : "Plane"
         },
         {
           "user_id" : 3,
@@ -170,6 +172,7 @@
           "rotation_angle" : 0.0,
           "rotation_axis" : [0.0, 1.0, 0.0],
           "translation" : [22.0, -3.0, -20.0],
+          "name" : "Diffuse teapot",
           "children" :
           [
             {
@@ -183,7 +186,8 @@
           "scale" : [60.0, 60.0, 60.0],
           "rotation_angle" : 0.0,
           "rotation_axis" : [0.0, 1.0, 0.0],
-          "translation" : [47.0, -5.0, 0.0]
+          "translation" : [47.0, -5.0, 0.0],
+          "name" : "Diffuse bunny"
         },
         {
           "user_id" : 5,
@@ -191,7 +195,8 @@
           "scale" : [1.0, 1.0, 1.0],
           "rotation_angle" : 0.0,
           "rotation_axis" : [0.0, 1.0, 0.0],
-          "translation" : [65.0, -3.0, 0.0]
+          "translation" : [65.0, -3.0, 0.0],
+          "name" : "Diffuse dragon"
         },
         {
           "user_id" : 6,
@@ -200,6 +205,7 @@
           "rotation_angle" : 3.14,
           "rotation_axis" : [0.0, 1.0, 0.0],
           "translation" : [65.0, -3.0, -20.0],
+          "name" : "Steel dragon",
           "children" :
           [
             {
@@ -214,6 +220,7 @@
           "rotation_angle" : 3.14,
           "rotation_axis" : [0.0, 1.0, 0.0],
           "translation" : [22.0, -3.0, 0.0],
+          "name" : "Steel teapot",
           "children" :
           [
             {
@@ -228,6 +235,7 @@
           "rotation_angle" : 3.14,
           "rotation_axis" : [0.0, 1.0, 0.0],
           "translation" : [47.0, -5.0, -20.0],
+          "name" : "Glass bunny",
           "children" :
           [
             {

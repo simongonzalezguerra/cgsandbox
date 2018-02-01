@@ -182,6 +182,7 @@ namespace rte
                 added_resources.push_back(std::move(new_resource));
                 // materials are set later in a second traversal
             }
+            set_resource_name(*root_out, resource_document.value("name", std::string()));
             set_resource_user_id(*root_out, resource_document.value("user_id", nuser_id));
 
             resources_out->insert(resources_out->end(), make_move_iterator(added_resources.begin()), make_move_iterator(added_resources.end()));
@@ -319,6 +320,7 @@ namespace rte
             // resource can be nresource, in that case make_node() creates an empty node
             make_node(parent, resource, &new_node, &added_nodes);
 
+            set_resource_name(*root_out, node_document.value("name", std::string()));
             set_node_user_id(*root_out, node_document.value("user_id", nuser_id));
 
             // The transform inherited from the resource is only overwritten if the document includes all required properties
