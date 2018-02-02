@@ -22,6 +22,7 @@ namespace rte
         typedef std::map<user_id, mat_id>      material_map;
         typedef std::map<user_id, mesh_id>     mesh_map;
         typedef std::map<user_id, resource_id> resource_map;
+        typedef std::map<user_id, cubemap_id>  cubemap_map;
 
         //---------------------------------------------------------------------------------------------
         // Internal data structures
@@ -38,6 +39,7 @@ namespace rte
         material_map            material_ids;
         mesh_map                mesh_ids;
         resource_map            resource_ids;
+        cubemap_map             cubemap_ids;
         scene_id                current_scene = nscene;
 
         //---------------------------------------------------------------------------------------------
@@ -184,6 +186,9 @@ namespace rte
             }
             set_resource_name(*root_out, resource_document.value("name", std::string()));
             set_resource_user_id(*root_out, resource_document.value("user_id", nuser_id));
+            if (resource_document.count("user_id")) {
+                resource_ids[resource_document.at("user_id").get<user_id>()] = *root_out;
+            }
 
             resources_out->insert(resources_out->end(), make_move_iterator(added_resources.begin()), make_move_iterator(added_resources.end()));
             materials_out->insert(materials_out->end(), make_move_iterator(added_materials.begin()), make_move_iterator(added_materials.end()));
@@ -199,6 +204,7 @@ namespace rte
             resource_vector added_resources;
             material_vector added_materials;
             mesh_vector added_meshes;
+            bool root_set = false;
             *root = nresource;
             struct json_context { const json& doc; resource_id parent; unsigned int index; };
             std::stack<json_context, std::vector<json_context>> pending_nodes;
@@ -209,7 +215,10 @@ namespace rte
                 resource_id current_resource = nresource;
                 if (current.parent == nresource || !resource_has_child(current.parent, current.index, &current_resource)) {
                     create_resource(current.doc, current.parent, &added_resources, &added_materials, &added_meshes, &current_resource);
-                    *root = (*root == nresource ? current_resource : *root); // only the first resource created is saved into root
+                    if (!root_set) {
+                        *root = current_resource; // only the first resource created is saved into root
+                        root_set = true;
+                    }
                 }
 
                 // We are using a stack to process depth-first, so in order for the children to be
@@ -233,7 +242,7 @@ namespace rte
             meshes_out->insert(meshes_out->end(), make_move_iterator(added_meshes.begin()), make_move_iterator(added_meshes.end()));
         }
 
-        void set_resource_tree_materials(const json& resource_document, resource_id root)
+        void set_resource_tree_materials_and_names(const json& resource_document, resource_id root)
         {
             struct json_context { const json& doc; resource_id rid; };
             std::stack<json_context, std::vector<json_context>> pending_nodes;
@@ -246,6 +255,10 @@ namespace rte
                 material_map::iterator mit;
                 if ((mit = material_ids.find(material_user_id)) != material_ids.end()) {
                     set_resource_material(current.rid, mit->second);
+                }
+
+                if (current.doc.count("name")) {
+                    set_resource_name(current.rid, current.doc.at("name").get<std::string>());
                 }
 
                 // We are using a stack to process depth-first, so in order for the children to be
@@ -274,7 +287,7 @@ namespace rte
             for (auto& r : document.at("resources")) {
                 resource_id added_root;
                 create_resource_tree(r, &added_resources, &added_materials, &added_meshes, &added_root);
-                set_resource_tree_materials(r, added_root);
+                set_resource_tree_materials_and_names(r, added_root);
             }
 
             resources.insert(resources.end(), make_move_iterator(added_resources.begin()), make_move_iterator(added_resources.end()));
@@ -293,6 +306,9 @@ namespace rte
                 }
 
                 set_cubemap_faces(cubemap.get(), cubemap_faces);
+                if (cubemap_doc.count("user_id")) {
+                    cubemap_ids[cubemap_doc.at("user_id").get<user_id>()] = cubemap.get();
+                }
                 added_cubemaps.push_back(std::move(cubemap));
             }
 
@@ -320,15 +336,15 @@ namespace rte
             // resource can be nresource, in that case make_node() creates an empty node
             make_node(parent, resource, &new_node, &added_nodes);
 
-            set_resource_name(*root_out, node_document.value("name", std::string()));
-            set_node_user_id(*root_out, node_document.value("user_id", nuser_id));
+            set_node_name(new_node, node_document.value("name", std::string()));
+            set_node_user_id(new_node, node_document.value("user_id", nuser_id));
 
             // The transform inherited from the resource is only overwritten if the document includes all required properties
             if (node_document.count("scale") && node_document.count("rotation_angle") && node_document.count("rotation_axis") && node_document.count("translation")) {
                 glm::mat4 scale = glm::scale(array_to_vec3(node_document.at("scale")));
                 glm::mat4 rotation = glm::rotate(node_document.at("rotation_angle").get<float>(), array_to_vec3(node_document.at("rotation_axis")));;
                 glm::mat4 translation = glm::translate(array_to_vec3(node_document.at("translation")));
-                set_node_transform(*root_out, translation * rotation * scale);
+                set_node_transform(new_node, translation * rotation * scale);
             }
             // materials are set later in a second traversal
 
@@ -336,22 +352,26 @@ namespace rte
             nodes_out->insert(nodes_out->end(), make_move_iterator(added_nodes.begin()), make_move_iterator(added_nodes.end()));
         }
 
-        void create_node_tree(const json& node_document, node_vector* nodes_out, node_id* root)
+        void create_node_tree(const json& node_document, node_id scene_root, node_vector* nodes_out, node_id* root)
         {
             node_vector added_nodes;
             material_vector added_materials;
             mesh_vector added_meshes;
+            bool root_set = false;
             *root = nnode;
             struct json_context { const json& doc; node_id parent; unsigned int index; };
             std::stack<json_context, std::vector<json_context>> pending_nodes;
-            pending_nodes.push({node_document, nnode, 0U});
+            pending_nodes.push({node_document, scene_root, 0U});
             while (!pending_nodes.empty()) {
                 auto current = pending_nodes.top();
                 pending_nodes.pop();
                 node_id current_node = nnode;
-                if (current.parent == nnode || !node_has_child(current.parent, current.index, &current_node)) {
+                if (current.parent == scene_root || !node_has_child(current.parent, current.index, &current_node)) {
                     create_node(current.doc, current.parent, &added_nodes, &current_node);
-                    *root = (*root == nnode ? current_node : *root); // only the first node created is saved into root
+                    if (!root_set) {
+                        *root  = current_node; // only the first node created is saved into root
+                        root_set = true;
+                    }
                 }
 
                 // We are using a stack to process depth-first, so in order for the children to be
@@ -373,9 +393,9 @@ namespace rte
             nodes_out->insert(nodes_out->end(), make_move_iterator(added_nodes.begin()), make_move_iterator(added_nodes.end()));
         }
 
-        void set_node_tree_materials(const json& node_document, node_id root)
+        void set_node_tree_materials_and_names(const json& node_document, node_id root)
         {
-            struct json_context { const json& doc; node_id rid; };
+            struct json_context { const json& doc; node_id nid; };
             std::stack<json_context, std::vector<json_context>> pending_nodes;
             pending_nodes.push({node_document, root });
             while (!pending_nodes.empty()) {
@@ -385,19 +405,23 @@ namespace rte
                 user_id material_user_id = current.doc.value("material", nuser_id);
                 material_map::iterator mit;
                 if ((mit = material_ids.find(material_user_id)) != material_ids.end()) {
-                    set_node_material(current.rid, mit->second);
+                    set_node_material(current.nid, mit->second);
+                }
+
+                if (current.doc.count("name")) {
+                    set_node_name(current.nid, current.doc.at("name").get<std::string>());
                 }
 
                 // We are using a stack to process depth-first, so in order for the children to be
                 // processed in the order in which they appear we must push them in reverse order,
                 // otherwise the last child will be processed first
                 std::vector<json_context> children_list;
-                node_id child = get_first_child_node(current.rid);
+                node_id child = get_first_child_node(current.nid);
                 if (current.doc.count("children")) {
                     for (auto& json_child : current.doc.at("children")) {
                         children_list.push_back({json_child, child});
                         child = get_next_sibling_node(child);
-                    }                    
+                    }
                 }
 
                 for (auto cit = children_list.rbegin(); cit != children_list.rend(); cit++) {
@@ -410,9 +434,9 @@ namespace rte
         {
             node_vector added_nodes;
             for (auto& n : scene_doc.at("nodes")) {
-                node_id added_root;
-                create_node_tree(n, &added_nodes, &added_root);
-                set_node_tree_materials(n, added_root);
+                node_id added_root = nnode;
+                create_node_tree(n, get_scene_root_node(current_scene), &added_nodes, &added_root);
+                set_node_tree_materials_and_names(n, added_root);
             }
 
             nodes.insert(nodes.end(), make_move_iterator(added_nodes.begin()), make_move_iterator(added_nodes.end()));
@@ -456,6 +480,12 @@ namespace rte
                 unique_scene scene = make_scene();
                 set_scene_user_id(scene.get(), scene_doc.value("user_id", nuser_id));
                 current_scene = scene.get();
+
+                user_id skybox_user_id = scene_doc.value("skybox", nuser_id);
+                cubemap_map::iterator mit;
+                if ((mit = cubemap_ids.find(skybox_user_id)) != cubemap_ids.end()) {
+                    set_scene_skybox(scene.get(), mit->second);
+                }
 
                 load_nodes(scene_doc);
                 load_directional_light(scene_doc);

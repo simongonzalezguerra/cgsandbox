@@ -27,19 +27,6 @@ namespace rte
     glm::vec4 position_to_homogenous_coords(const glm::vec3&);
 
     glm::vec3 from_homogenous_coords(const glm::vec4&);
-
-    template<typename T>
-    void print_sequence(T* a, std::size_t num_elems, std::ostringstream& oss)
-    {
-        oss << "[";
-        if (num_elems) {
-            oss << " " << a[0];
-        }
-        for (std::size_t i = 1U; i < num_elems; i++) {
-            oss << ", " << a[i];
-        }
-        oss << " ]";
-    }
 }
 
 #endif

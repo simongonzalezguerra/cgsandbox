@@ -315,6 +315,9 @@ namespace rte
     typedef std::unique_ptr<cubemap_id, cubemap_deleter> unique_cubemap;
     typedef std::vector<unique_cubemap> cubemap_vector;
     unique_cubemap make_cubemap();
+
+    std::string format_mesh_id(mesh_id m);
+    std::string format_material_id(mat_id m);
 } // namespace rte
 
 #endif // RESOURCE_DATABASE_HPP

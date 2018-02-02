@@ -1,3 +1,4 @@
+#include "serialization_utils.hpp"
 #include "glm/gtc/type_ptr.hpp"
 #include "scenegraph.hpp"
 #include "log.hpp"
@@ -5,7 +6,10 @@
 
 #include <stdexcept>
 #include <algorithm>
+#include <sstream>
+#include <iomanip>
 #include <vector>
+#include <stack>
 #include <queue>
 #include <set>
 
@@ -858,8 +862,125 @@ namespace rte
         return ret;
     }
 
+    void log_node(node_id root)
+    {
+        // Iterate the node tree with a depth-first search printing nodes
+        struct context{ node_id nid; unsigned int indentation; };
+        std::stack<context, std::vector<context>> pending_nodes;
+        pending_nodes.push({root, 3U});
+        while (!pending_nodes.empty()) {
+            auto current = pending_nodes.top();
+            pending_nodes.pop();
+
+            std::ostringstream oss;
+            oss << std::setprecision(2) << std::fixed;
+            for (unsigned int i = 0; i < current.indentation; i++) {
+                oss << "    ";
+            }
+
+            glm::mat4 local_transform;
+            glm::mat4 accum_transform;
+            get_node_transform(current.nid, &local_transform, &accum_transform);
+            oss << "[ ";
+            oss << "node id: " << current.nid;
+            oss << ", user id: " << format_user_id(get_node_user_id(current.nid));
+            oss << ", name: " << get_node_name(current.nid);
+            oss << ", mesh: " << format_mesh_id(get_node_mesh(current.nid));
+            oss << ", material: " << format_material_id(get_node_material(current.nid));
+            oss << ", local transform: " << local_transform;
+            oss << " ]";
+            log(LOG_LEVEL_DEBUG, oss.str().c_str());
+
+            // We are using a stack to process depth-first, so in order for the children to be
+            // processed in the order in which they appear we must push them in reverse order,
+            // otherwise the last child will be processed first
+            std::vector<node_id> children_list;
+            for (node_id child = get_first_child_node(current.nid); child != nnode; child = get_next_sibling_node(child)) {
+                children_list.push_back(child);
+            }
+
+            for (auto cit = children_list.rbegin(); cit != children_list.rend(); cit++) {
+                pending_nodes.push({*cit, current.indentation + 1});
+            }
+        }
+    }
+
+    void log_directional_light(scene_id s)
+    {
+        std::ostringstream oss;
+        oss << std::setprecision(2) << std::fixed;
+        oss << "        directional light: ";
+        oss << "[ ambient color : " << get_directional_light_ambient_color(s);
+        oss << ", diffuse color : " << get_directional_light_diffuse_color(s);
+        oss << ", specular color : " << get_directional_light_specular_color(s);
+        oss << ", direction : " << get_directional_light_direction(s);
+        oss << " ]";
+        log(LOG_LEVEL_DEBUG, oss.str().c_str());
+    }
+
+    void log_point_light(point_light_id pl)
+    {
+        std::ostringstream oss;
+        oss << std::setprecision(2) << std::fixed;
+        oss << "            [ point light id: " << pl;
+        oss << ", user_id : " << get_point_light_user_id(pl);
+        oss << ", position : " << get_point_light_position(pl);
+        oss << ", ambient color : " << get_point_light_ambient_color(pl);
+        oss << ", diffuse color : " << get_point_light_diffuse_color(pl);
+        oss << ", specular color : " << get_point_light_specular_color(pl);
+        oss << ", constant_attenuation : " << get_point_light_constant_attenuation(pl);
+        oss << ", linear_attenuation : " << get_point_light_linear_attenuation(pl);
+        oss << ", quadratic_attenuation : " << get_point_light_quadratic_attenuation(pl);
+        oss << " ]";
+        log(LOG_LEVEL_DEBUG, oss.str().c_str());
+    }
+
+    void log_scene(scene_id s)
+    {
+        std::ostringstream oss;
+        oss << std::setprecision(2) << std::fixed;
+        oss << "    scene id: " << s;
+        log(LOG_LEVEL_DEBUG, oss.str().c_str());
+
+        oss.str("");
+        oss << "        user_id : " << get_scene_user_id(s);
+        log(LOG_LEVEL_DEBUG, oss.str().c_str());
+
+        log_directional_light(s);
+
+        oss.str("");
+        oss << "        point lights :";
+        log(LOG_LEVEL_DEBUG, oss.str().c_str());
+
+        // FIXME this model forces us to iterate over ALL point_lights, even the ones that don't belong to the scene at hand
+        for (point_light_id pl = get_first_point_light(); pl != npoint_light; pl = get_next_point_light(pl)) {
+            log_point_light(pl);
+        }
+
+        oss.str("");
+        node_id root = get_scene_root_node(s);
+        oss << "        root node :";
+        log(LOG_LEVEL_DEBUG, oss.str().c_str());
+
+        if (root != nnode) {
+            log_node(root);
+        } else {
+            log(LOG_LEVEL_DEBUG, "    no root node found");
+        }
+    }
+
     void log_scenes()
     {
-        // TODO
+        log(LOG_LEVEL_DEBUG, "---------------------------------------------------------------------------------------------------");
+        log(LOG_LEVEL_DEBUG, "scenegraph: scenes begin");
+        if (scenes.size()) {
+            for (unsigned int s = 0; s < scenes.size() && scenes[s].m_used; s++) {
+                log_scene(s);
+            }
+        } else {
+            log(LOG_LEVEL_DEBUG, "    no scenes found");
+        }
+
+        log(LOG_LEVEL_DEBUG, "scenegraph: scenes end");
     }
 } // namespace rte

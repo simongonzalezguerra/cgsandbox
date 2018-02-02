@@ -1,3 +1,4 @@
+#include "serialization_utils.hpp"
 #include "resource_database.hpp"
 #include "glm/gtc/type_ptr.hpp"
 #include "utils.hpp"
@@ -118,42 +119,6 @@ namespace rte
         };
 
         typedef std::vector<cubemap> cubemap_vector;
-
-        std::string format_mesh_id(mesh_id m)
-        {
-            std::ostringstream oss;
-            if (m != nmesh) {
-                oss << m;
-            } else {
-                oss << "nmesh";
-            }
-
-            return oss.str();
-        }
-
-        std::string format_material_id(mat_id m)
-        {
-            std::ostringstream oss;
-            if (m != nmat) {
-                oss << m;
-            } else {
-                oss << "nmat";
-            }
-
-            return oss.str();
-        }
-
-        std::string format_user_id(user_id uid)
-        {
-            std::ostringstream oss;
-            if (uid != nuser_id) {
-                oss << uid;
-            } else {
-                oss << "nuser_id";
-            }
-
-            return oss.str();
-        }
 
         //---------------------------------------------------------------------------------------------
         // Internal data structures
@@ -402,8 +367,6 @@ namespace rte
         log(LOG_LEVEL_DEBUG, "resource_database: materials begin");
         if (materials.size()) {
             for (unsigned int m = 0; m < materials.size() && materials[m].m_used; m++) {
-                glm::vec3 diffuse_color = get_material_diffuse_color(m);
-                glm::vec3 specular_color = get_material_specular_color(m);
                 user_id uid = get_material_user_id(m);
                 std::ostringstream oss;
                 oss << std::setprecision(2) << std::fixed;
@@ -415,10 +378,8 @@ namespace rte
                   oss << "none";
                 }
                 oss << ", name: " << get_material_name(m);
-                oss << ", diffuse color: ";
-                print_sequence((float*) &diffuse_color, 3U, oss);
-                oss << ", color specular: ";
-                print_sequence((float*) &specular_color, 3U, oss);
+                oss << ", diffuse color: " << get_material_diffuse_color(m);
+                oss << ", color specular: " << get_material_specular_color(m);
                 oss << ", smoothness: " << get_material_smoothness(m);
                 oss << ", texture path: " << get_material_texture_path(m);
                 oss << ", reflectivity: " << get_material_reflectivity(m);
@@ -926,10 +887,10 @@ namespace rte
             oss << "[ ";
             oss << "resource id: " << current.rid;
             oss << ", user id: " << format_user_id(get_resource_user_id(current.rid));
+            oss << ", name: " << get_resource_name(current.rid);
             oss << ", mesh: " << format_mesh_id(get_resource_mesh(current.rid));
             oss << ", material: " << format_material_id(get_resource_material(current.rid));
-            oss << ", local transform: ";
-            print_sequence(glm::value_ptr(local_transform), 16, oss);
+            oss << ", local transform: " << local_transform;
             oss << " ]";
             log(LOG_LEVEL_DEBUG, oss.str().c_str());
 
@@ -1114,5 +1075,29 @@ namespace rte
     unique_cubemap make_cubemap()
     {
         return unique_cubemap(new_cubemap());
+    }
+
+    std::string format_mesh_id(mesh_id m)
+    {
+        std::ostringstream oss;
+        if (m != nmesh) {
+            oss << m;
+        } else {
+            oss << "nmesh";
+        }
+
+        return oss.str();
+    }
+
+    std::string format_material_id(mat_id m)
+    {
+        std::ostringstream oss;
+        if (m != nmat) {
+            oss << m;
+        } else {
+            oss << "nmat";
+        }
+
+        return oss.str();
     }
 } // namespace rte

@@ -93,11 +93,13 @@
       [
         {
           "material" : 1,
-          "user_id" : 6
+          "user_id" : 6,
+          "name" : "Floor empty child resource 1"
         },
         {
           "material" : 3,
-          "user_id" : 7
+          "user_id" : 7,
+          "name" : "Floor empty child resource 2"
         }
       ]
     },
@@ -145,6 +147,7 @@
   [
     {
       "user_id" : 1,
+      "skybox" : 1,
       "nodes" :
       [
         {
@@ -154,14 +157,23 @@
           "rotation_angle" : 0.0,
           "rotation_axis" : [0.0, 1.0, 0.0],
           "translation" : [50.0, -3.0, -5.0],
-          "name" : "Floor"
+          "name" : "Floor",
+          "children" :
+          [
+            {
+              "name" : "Floor empty child node 1"
+            },
+            {
+              "name" : "Floor empty child node 2"
+            }
+          ]
         },
         {
           "user_id" : 2,
           "resource" : 2,
           "scale" : [1.0, 1.0, 1.0],
           "rotation_angle" : 3.14,
-          "rotation_axis" : [0.0, 1.0, 0.0]
+          "rotation_axis" : [0.0, 1.0, 0.0],
           "translation" : [0.0, 0.0, 0.0],
           "name" : "Plane"
         },
@@ -236,12 +248,7 @@
           "rotation_axis" : [0.0, 1.0, 0.0],
           "translation" : [47.0, -5.0, -20.0],
           "name" : "Glass bunny",
-          "children" :
-          [
-            {
-              "material" : 3
-            }
-          ]
+          "material" : 3
         }
       ],
       "directional_light" :
@@ -253,16 +260,6 @@
       },
       "point_lights" :
       [
-        {
-          "user_id" : 1,
-          "position" : [34.5, 15.0, 10.0],
-          "ambient_color" : [0.1, 0.1, 0.1],
-          "diffuse_color" : [1.0, 1.0, 1.0],
-          "specular_color" : [0.3, 0.3, 0.3],
-          "constant_attenuation" : 1.0,
-          "linear_attenuation" : 0.0,
-          "quadratic_attenuation" : 0.0
-        }
       ]
     }
   ]
