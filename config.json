@@ -260,6 +260,16 @@
       },
       "point_lights" :
       [
+        {
+          "user_id" : 1,
+          "position" : [34.5, 15.0, 10.0],
+          "ambient_color" : [0.1, 0.1, 0.1],
+          "diffuse_color" : [1.0, 1.0, 1.0],
+          "specular_color" : [0.3, 0.3, 0.3],
+          "constant_attenuation" : 1.0,
+          "linear_attenuation" : 0.0,
+          "quadratic_attenuation" : 0.0
+        }
       ]
     }
   ]
