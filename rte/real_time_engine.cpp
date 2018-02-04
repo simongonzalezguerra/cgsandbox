@@ -73,8 +73,6 @@ namespace rte
 
             initialize_renderer();
 
-            node_vector added_nodes;
-
             m_last_time = get_time();
 
             m_fps_camera_controller.set_scene(get_first_scene()); // FIXME cameras should be created from the config
