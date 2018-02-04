@@ -187,29 +187,6 @@ namespace rte
     //-----------------------------------------------------------------------------------------------
     void get_node_transform(node_id node, glm::mat4* local_transform, glm::mat4* accum_transform);
 
-    //-----------------------------------------------------------------------------------------------
-    //! @brief Updates the list of meshes contained in a node.
-    //! @param scene Id of the scene the node belongs to.
-    //! @param node Id of the node within that scene.
-    //! @param meshes An array of num_meshes elements containing the list of meshes that should
-    //!  be contained in the node. Can't be nullptr.
-    //! @param num_meshes The number of elements of the meshes array. Can be zero to indicate an
-    //!  empty set of meshes.
-    //! @remarks If some of the meshes in the provided array do not exist, they will not be added.
-    //-----------------------------------------------------------------------------------------------
-    void set_node_meshes(node_id node, const std::vector<mesh_id>& meshes);
-
-    //-----------------------------------------------------------------------------------------------
-    //! @brief Reads the list of meshes contained in a node.
-    //! @param scene Id of the scene the node belongs to.
-    //! @param node Id of the node within that scene.
-    //! @param meshes Address of a pointer to store the address of an internal array containing the
-    //!  list of meshes in the node. Can't be nullptr.
-    //! @param num_meshes Address of an object to store the number of meshes contained in the
-    //!  resource node. Can't be nullptr.
-    //-----------------------------------------------------------------------------------------------
-    std::vector<mesh_id> get_node_meshes(node_id node);
-
     void set_node_mesh(node_id node, mesh_id mesh);
     mesh_id get_node_mesh(node_id node);
     void set_node_material(node_id node, mat_id mat);
