@@ -831,6 +831,15 @@ namespace rte
         return point_lights[pl].m_name;
     }
 
+    scene_id get_point_light_scene(point_light_id pl)
+    {
+        if (!(pl < point_lights.size() && point_lights[pl].m_used)) {
+            throw std::logic_error("get_point_light_scene error: invalid arguments");
+        }
+
+        return point_lights[pl].m_scene;
+    }
+
     unique_point_light make_point_light(scene_id s)
     {
         return unique_point_light(new_point_light(s));

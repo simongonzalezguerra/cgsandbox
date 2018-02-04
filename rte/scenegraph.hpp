@@ -315,6 +315,7 @@ namespace rte
     float get_point_light_quadratic_attenuation(point_light_id light);
     user_id get_point_light_user_id(point_light_id light);
     std::string get_point_light_name(point_light_id light);
+    scene_id get_point_light_scene(point_light_id light);
 
     struct point_light_handle
     {   
