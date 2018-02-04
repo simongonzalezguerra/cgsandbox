@@ -1,9 +1,9 @@
 #include "glm/gtc/matrix_transform.hpp"
 #include "glm/gtx/transform.hpp"
+#include "math_utils.hpp"
 #include "control.hpp"
-#include "utils.hpp"
-#include "log.hpp"
 #include "glm/glm.hpp"
+#include "log.hpp"
 
 #include <iomanip>
 #include <sstream>

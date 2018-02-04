@@ -1,7 +1,7 @@
 #include "serialization_utils.hpp"
 #include "resource_database.hpp"
 #include "glm/gtc/type_ptr.hpp"
-#include "utils.hpp"
+#include "math_utils.hpp"
 #include "log.hpp"
 
 #include <algorithm>

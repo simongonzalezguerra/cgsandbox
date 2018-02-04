@@ -1,5 +1,5 @@
-#ifndef GLSANDBOX_UTILS_HPP
-#define GLSANDBOX_UTILS_HPP
+#ifndef MATH_UTILS_HPP 
+#define MATH_UTILS_HPP 
 
 #include "glm/glm.hpp"
 #include "log.hpp"
@@ -29,4 +29,4 @@ namespace rte
     glm::vec3 from_homogenous_coords(const glm::vec4&);
 }
 
-#endif
+#endif /* MATH_UTILS_HPP */

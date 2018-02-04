@@ -1,5 +1,5 @@
+#include "math_utils.hpp"
 #include "glm/glm.hpp"
-#include "utils.hpp"
 
 namespace rte
 {

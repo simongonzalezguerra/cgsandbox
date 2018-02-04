@@ -3,9 +3,9 @@
 #include "resource_loader.hpp"
 #include "assimp/cimport.h"
 #include "assimp/scene.h"
+#include "math_utils.hpp"
 #include "glm/glm.hpp"
 #include "system.hpp"
-#include "utils.hpp"
 #include "log.hpp"
 
 #include <stdexcept>

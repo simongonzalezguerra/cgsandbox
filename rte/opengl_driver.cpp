@@ -1,10 +1,10 @@
 #include "environment_mapping.hpp"
 #include "opengl_driver.hpp"
+#include "math_utils.hpp"
 #include "skybox.hpp"
-#include "phong.hpp"
-#include "utils.hpp"
-#include "log.hpp"
 #include "GL/glew.h"
+#include "phong.hpp"
+#include "log.hpp"
 
 #include <stdexcept>
 #include <sstream>

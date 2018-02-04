@@ -1,7 +1,7 @@
 #include "resource_database.hpp"
+#include "math_utils.hpp"
 #include "renderer.hpp"
 #include "system.hpp"
-#include "utils.hpp"
 #include "log.hpp"
 
 #include <algorithm>
