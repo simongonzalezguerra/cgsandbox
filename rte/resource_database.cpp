@@ -241,6 +241,13 @@ namespace rte
             throw std::logic_error("set_material_user_id error: invalid material id");
         }
 
+        if (uid != nuser_id) {
+            auto it = std::find_if(materials.begin(), materials.end(), [uid](const material& m) { return m.m_used && m.m_user_id == uid; });
+            if (it != materials.end()) {
+                throw std::logic_error("set_material_user_id error: user id already in use");
+            }
+        }
+
         materials[m].m_user_id = uid;
     }
 
@@ -488,6 +495,13 @@ namespace rte
     {
         if (!(m < meshes.size() && meshes[m].m_used)) {
             throw std::logic_error("set_mesh_user_id error: invalid arguments");
+        }
+
+        if (uid != nuser_id) {
+            auto it = std::find_if(meshes.begin(), meshes.end(), [uid](const mesh& m) { return m.m_used && m.m_user_id == uid; });
+            if (it != meshes.end()) {
+                throw std::logic_error("set_mesh_user_id error: user id already in use");
+            }
         }
 
         meshes[m].m_user_id = uid;
@@ -817,6 +831,13 @@ namespace rte
             throw std::logic_error("set_resource_user_id error: invalid arguments");
         }
 
+        if (uid != nuser_id) {
+            auto it = std::find_if(resources.begin(), resources.end(), [uid](const resource& m) { return m.m_used && m.m_user_id == uid; });
+            if (it != resources.end()) {
+                throw std::logic_error("set_resource_user_id error: user id already in use");
+            }
+        }
+
         resources[r].m_user_id = uid;
     }
 
@@ -978,6 +999,13 @@ namespace rte
     {
         if (!(cid < cubemaps.size() && cubemaps[cid].m_used)) {
             throw std::logic_error("set_cubemap_user_id error: invalid arguments");
+        }
+
+        if (uid != nuser_id) {
+            auto it = std::find_if(cubemaps.begin(), cubemaps.end(), [uid](const cubemap& m) { return m.m_used && m.m_user_id == uid; });
+            if (it != cubemaps.end()) {
+                throw std::logic_error("set_cubemap_user_id error: user id already in use");
+            }
         }
 
         cubemaps[cid].m_user_id = uid;

@@ -1,8 +1,8 @@
 #include "serialization_utils.hpp"
 #include "glm/gtc/type_ptr.hpp"
 #include "scenegraph.hpp"
-#include "log.hpp"
 #include "glm/glm.hpp"
+#include "log.hpp"
 
 #include <stdexcept>
 #include <algorithm>
@@ -190,6 +190,13 @@ namespace rte
     {
         if (!(s < scenes.size() && scenes[s].m_used)) {
             throw std::logic_error("set_scene_user_id error: invalid arguments");
+        }
+
+        if (uid != nuser_id) {
+            auto it = std::find_if(scenes.begin(), scenes.end(), [uid](const scene& m) { return m.m_used && m.m_user_id == uid; });
+            if (it != scenes.end()) {
+                throw std::logic_error("set_scene_user_id error: user id already in use");
+            }
         }
 
         scenes[s].m_user_id = uid;
@@ -499,6 +506,13 @@ namespace rte
             throw std::logic_error("set_node_user_id error: invalid arguments");
         }
 
+        if (uid != nuser_id) {
+            auto it = std::find_if(nodes.begin(), nodes.end(), [uid](const node& m) { return m.m_used && m.m_user_id == uid; });
+            if (it != nodes.end()) {
+                throw std::logic_error("set_node_user_id error: user id already in use");
+            }
+        }
+
         nodes[n].m_user_id = uid;
     }
 
@@ -736,6 +750,13 @@ namespace rte
     {
         if (!(pl < point_lights.size() && point_lights[pl].m_used)) {
             throw std::logic_error("set_point_light_user_id error: invalid arguments");
+        }
+
+        if (uid != nuser_id) {
+            auto it = std::find_if(point_lights.begin(), point_lights.end(), [uid](const point_light& m) { return m.m_used && m.m_user_id == uid; });
+            if (it != point_lights.end()) {
+                throw std::logic_error("set_point_light_user_id error: user id already in use");
+            }
         }
 
         point_lights[pl].m_user_id = uid;
