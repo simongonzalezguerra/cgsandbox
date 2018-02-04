@@ -1,5 +1,5 @@
-#ifndef CGS_TYPES_HPP
-#define CGS_TYPES_HPP
+#ifndef RTE_COMMON_HPP
+#define RTE_COMMON_HPP
 
 namespace rte
 {
@@ -47,4 +47,4 @@ namespace rte
     constexpr user_id nuser_id = -1;
 } // namespace rte
 
-#endif // CGS_TYPES_HPP
+#endif // RTE_COMMON_HPP
