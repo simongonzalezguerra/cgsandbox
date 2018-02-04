@@ -138,7 +138,7 @@ namespace rte
                 fill_2d_vector(m, &texture_coords, "texture_coords");
                 set_mesh_texture_coords(mesh.get(), texture_coords);
                 std::vector<glm::vec3> normals;
-                fill_3d_vector(m, &vertices, "normals");
+                fill_3d_vector(m, &normals, "normals");
                 set_mesh_normals(mesh.get(), normals);
                 std::vector<vindex> indices;
                 fill_index_vector(m, &indices, "indices");
