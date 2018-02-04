@@ -10,7 +10,7 @@ namespace rte
     public:
         real_time_engine(unsigned int max_errors = 200U);
         ~real_time_engine();
-        void initialize();
+        void initialize(unsigned int argc, char** argv);
         void process();
         void finalize();
 

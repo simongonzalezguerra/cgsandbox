@@ -143,6 +143,7 @@ namespace rte
     typedef std::unique_ptr<mat_id, material_deleter> unique_material;
     typedef std::vector<unique_material> material_vector;
     unique_material make_material();
+    void log_materials();
 
     mesh_id new_mesh();
     void delete_mesh(mesh_id mesh);
@@ -166,6 +167,7 @@ namespace rte
     gl_buffer_id get_mesh_index_buffer_id(mesh_id mesh);
     user_id get_mesh_user_id(mesh_id mesh);
     std::string get_mesh_name(mesh_id mesh);
+    void log_meshes();
 
     //-----------------------------------------------------------------------------------------------
     //! @brief Returns the id of the first mesh in the sequence of all meshes.
@@ -243,6 +245,8 @@ namespace rte
     //-----------------------------------------------------------------------------------------------
     resource_id get_next_sibling_resource(resource_id resource);
 
+    void log_resources();
+
     struct resource_handle
     {
         resource_handle() : m_resource_id(nresource) {}
@@ -283,6 +287,7 @@ namespace rte
     cubemap_id get_next_cubemap(cubemap_id id);
     user_id get_cubemap_user_id(cubemap_id cid);
     std::string get_cubemap_name(cubemap_id cid);
+    void log_cubemaps();
 
     struct cubemap_handle
     {
@@ -310,6 +315,9 @@ namespace rte
     typedef std::unique_ptr<cubemap_id, cubemap_deleter> unique_cubemap;
     typedef std::vector<unique_cubemap> cubemap_vector;
     unique_cubemap make_cubemap();
+
+    std::string format_mesh_id(mesh_id m);
+    std::string format_material_id(mat_id m);
 } // namespace rte
 
 #endif // RESOURCE_DATABASE_HPP

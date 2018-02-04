@@ -1,10 +1,11 @@
-#include "resource_loader.hpp"
 #include "glm/gtc/type_ptr.hpp"
 #include "assimp/postprocess.h"
+#include "resource_loader.hpp"
 #include "assimp/cimport.h"
 #include "assimp/scene.h"
 #include "glm/glm.hpp"
 #include "system.hpp"
+#include "utils.hpp"
 #include "log.hpp"
 
 #include <stdexcept>
@@ -34,7 +35,7 @@ namespace rte
             if (n != std::string::npos) {
               message_trimmed[n] = '\0';
             }
-            log(LOG_LEVEL_DEBUG, message_trimmed);
+            log(LOG_LEVEL_DEBUG, std::string("assimp: ") + message_trimmed);
         }
 
         void create_materials(const struct aiScene* scene, material_vector* materials_out, const std::string& file_name)
@@ -190,190 +191,6 @@ namespace rte
 
             resources_out->insert(resources_out->end(), make_move_iterator(added_resources.begin()), make_move_iterator(added_resources.end()));
         }
-
-        template<typename T>
-        void print_sequence(T* a, std::size_t num_elems, std::ostringstream& oss)
-        {
-            oss << "[";
-            if (num_elems) {
-                oss << " " << a[0];
-            }
-            for (std::size_t i = 1U; i < num_elems; i++) {
-                oss << ", " << a[i];
-            }
-            oss << " ]";
-        }
-
-        template<typename T>
-        void preview_sequence(T* a, std::size_t num_elems, std::ostringstream& oss)
-        {
-            oss << "[";
-            if (num_elems > 0) {
-                oss << " " << a[0];
-            }
-            if (num_elems > 1) {
-                oss << ", " << a[1];
-            }
-            if (num_elems > 2) {
-                oss << ", " << a[2];
-            }
-            oss << ", ...//... , ";
-            if (num_elems - 3 >= 0) {
-                oss << ", " << a[num_elems - 3];
-            }
-            if (num_elems - 2 >= 0) {
-                oss << ", " << a[num_elems - 2];
-            }
-            if (num_elems - 1 >= 0) {
-                oss << ", " << a[num_elems - 1];
-            }
-            oss << " ]";
-        }
-
-        void print_material(mat_id m)
-        {
-            std::string texture_path = get_material_texture_path(m);
-            glm::vec3 diffuse_color = get_material_diffuse_color(m);
-            glm::vec3 specular_color = get_material_specular_color(m);
-            float smoothness = get_material_smoothness(m);
-            std::ostringstream oss;
-            oss << std::setprecision(2) << std::fixed;
-            oss << "    id: " << m << ", color diffuse: ";
-            print_sequence((float*) &diffuse_color, 3U, oss);
-            oss << ", color specular: ";
-            print_sequence((float*) &specular_color, 3U, oss);
-            oss << ", smoothness: " << smoothness;
-            oss << ", texture path: " << texture_path;
-            log(LOG_LEVEL_DEBUG, oss.str().c_str());
-        }
-
-
-        void print_mesh(mesh_id m)
-        {
-            std::vector<glm::vec3> vertices = get_mesh_vertices(m);
-            std::vector<glm::vec2> texture_coords = get_mesh_texture_coords(m);
-            std::vector<glm::vec3> normals = get_mesh_normals(m);
-            std::vector<vindex> indices = get_mesh_indices(m);
-
-            std::ostringstream oss;
-            oss << std::setprecision(2) << std::fixed;
-            oss << "    " << "id: " << m << ", vertices: " << vertices.size();
-            log(LOG_LEVEL_DEBUG, oss.str().c_str());
-
-            oss.str("");
-            oss << "        vertex base: ";
-            if (vertices.size()) {
-                preview_sequence(&vertices[0][0], 3 * vertices.size(), oss);
-            }
-            log(LOG_LEVEL_DEBUG, oss.str().c_str());
-
-            oss.str("");
-            oss << "        texture coords: ";
-            if (texture_coords.size()) {
-                preview_sequence(&texture_coords[0][0], 2 * texture_coords.size(), oss);
-            }
-            log(LOG_LEVEL_DEBUG, oss.str().c_str());
-
-            oss.str("");
-            oss << "        indices: ";
-            preview_sequence(&indices[0], indices.size(), oss);
-            log(LOG_LEVEL_DEBUG, oss.str().c_str());
-
-            oss.str("");
-            oss << "        normals: ";
-            if (normals.size()) {
-                preview_sequence(&normals[0][0], 3 * normals.size(), oss);
-            }
-            log(LOG_LEVEL_DEBUG, oss.str().c_str());
-        }
-
-        std::string format_mesh_id(mesh_id m)
-        {
-            std::ostringstream oss;
-            if (m != nmesh) {
-                oss << m;
-            } else {
-                oss << "nmesh";
-            }
-
-            return oss.str();
-        }
-
-        std::string format_material_id(mat_id m)
-        {
-            std::ostringstream oss;
-            if (m != nmat) {
-                oss << m;
-            } else {
-                oss << "nmat";
-            }
-
-            return oss.str();
-        }
-
-        void print_resource_tree(resource_id root)
-        {
-            // Iterate the resource tree with a breadth-first search printing resources
-            struct context{ resource_id rid; unsigned int indentation; };
-            std::queue<context> pending_nodes;
-            pending_nodes.push({root, 1U});
-            while (!pending_nodes.empty()) {
-                auto current = pending_nodes.front();
-                pending_nodes.pop();
-
-                glm::mat4 local_transform = get_resource_local_transform(current.rid);
-
-                std::ostringstream oss;
-                oss << std::setprecision(2) << std::fixed;
-                for (unsigned int i = 0; i < current.indentation; i++) {
-                    oss << "    ";
-                }
-                oss << "[ ";
-                oss << "resource id: " << current.rid;
-                oss << ", mesh: " << format_mesh_id(get_resource_mesh(current.rid));
-                oss << ", material: " << format_material_id(get_resource_material(current.rid));
-                oss << ", local transform: ";
-                print_sequence(glm::value_ptr(local_transform), 16, oss);
-                oss << " ]";
-                log(LOG_LEVEL_DEBUG, oss.str().c_str());
-
-                for (resource_id child = get_first_child_resource(current.rid); child != nresource; child = get_next_sibling_resource(child)) {
-                    pending_nodes.push({child, current.indentation + 1});
-                }
-            }
-        }
-
-        void log_statistics(resource_id added_root, const material_vector& added_materials, const mesh_vector& added_meshes)
-        {
-            log(LOG_LEVEL_DEBUG, "---------------------------------------------------------------------------------------------------");
-            log(LOG_LEVEL_DEBUG, "load_resources: finished loading file, summary:");
-            log(LOG_LEVEL_DEBUG, "materials:");
-            if (added_materials.size()) {
-                for (auto& m : added_materials) {
-                    print_material(m.get());
-                }
-            } else {
-                log(LOG_LEVEL_DEBUG, "    no materials found");
-            }
-
-            log(LOG_LEVEL_DEBUG, "meshes:");
-            if (added_meshes.size()) {
-                for (auto& m : added_meshes) {
-                    print_mesh(m.get());
-                }
-            } else {
-                log(LOG_LEVEL_DEBUG, "    no meshes found");
-            }
-
-            log(LOG_LEVEL_DEBUG, "resources:");
-            if (added_root != nresource) {
-                print_resource_tree(added_root);
-            } else {
-                log(LOG_LEVEL_DEBUG, "    no resources found");
-            }      
-
-            log(LOG_LEVEL_DEBUG, "---------------------------------------------------------------------------------------------------");
-        }
     } // anonymous namespace
 
     //-----------------------------------------------------------------------------------------------
@@ -407,8 +224,6 @@ namespace rte
         resource_vector added_resources;
         resource_id added_root_out = nresource;
         create_resources(scene, &added_root_out, &added_resources);
-
-        log_statistics(added_root_out, materials, *meshes_out);
 
         aiReleaseImport(scene);
         aiDetachAllLogStreams();

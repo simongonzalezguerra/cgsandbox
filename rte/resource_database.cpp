@@ -1,10 +1,15 @@
+#include "serialization_utils.hpp"
 #include "resource_database.hpp"
 #include "glm/gtc/type_ptr.hpp"
+#include "utils.hpp"
 #include "log.hpp"
 
 #include <algorithm>
+#include <iomanip>
+#include <sstream>
 #include <vector>
-#include <queue>
+#include <stack>
+#include <set>
 
 namespace rte
 {
@@ -13,6 +18,8 @@ namespace rte
         //---------------------------------------------------------------------------------------------
         // Internal declarations
         //---------------------------------------------------------------------------------------------
+        typedef std::set<resource_id> resource_set;
+
         struct material
         {
             material() :
@@ -112,7 +119,6 @@ namespace rte
         };
 
         typedef std::vector<cubemap> cubemap_vector;
-
 
         //---------------------------------------------------------------------------------------------
         // Internal data structures
@@ -235,6 +241,13 @@ namespace rte
             throw std::logic_error("set_material_user_id error: invalid material id");
         }
 
+        if (uid != nuser_id) {
+            auto it = std::find_if(materials.begin(), materials.end(), [uid](const material& m) { return m.m_used && m.m_user_id == uid; });
+            if (it != materials.end()) {
+                throw std::logic_error("set_material_user_id error: user id already in use");
+            }
+        }
+
         materials[m].m_user_id = uid;
     }
 
@@ -355,6 +368,38 @@ namespace rte
         return unique_material(new_material());
     }
 
+    void log_materials()
+    {
+        log(LOG_LEVEL_DEBUG, "---------------------------------------------------------------------------------------------------");
+        log(LOG_LEVEL_DEBUG, "resource_database: materials begin");
+        if (materials.size()) {
+            for (unsigned int m = 0; m < materials.size() && materials[m].m_used; m++) {
+                user_id uid = get_material_user_id(m);
+                std::ostringstream oss;
+                oss << std::setprecision(2) << std::fixed;
+                oss << "    id: " << m;
+                oss << ", user id: ";
+                if (uid != nuser_id) {
+                  oss << uid;
+                } else {
+                  oss << "none";
+                }
+                oss << ", name: " << get_material_name(m);
+                oss << ", diffuse color: " << get_material_diffuse_color(m);
+                oss << ", color specular: " << get_material_specular_color(m);
+                oss << ", smoothness: " << get_material_smoothness(m);
+                oss << ", texture path: " << get_material_texture_path(m);
+                oss << ", reflectivity: " << get_material_reflectivity(m);
+                oss << ", translucency: " << get_material_translucency(m);
+                oss << ", refractive_index: " << get_material_refractive_index(m);
+                log(LOG_LEVEL_DEBUG, oss.str().c_str());
+            }
+        } else {
+            log(LOG_LEVEL_DEBUG, "    no materials found");
+        }
+        log(LOG_LEVEL_DEBUG, "resource_database: materials end");
+    }
+
     mesh_id new_mesh()
     {
         mesh_id m = std::find_if(meshes.begin(), meshes.end(), [](const mesh& m) { return !m.m_used; }) - meshes.begin();
@@ -450,6 +495,13 @@ namespace rte
     {
         if (!(m < meshes.size() && meshes[m].m_used)) {
             throw std::logic_error("set_mesh_user_id error: invalid arguments");
+        }
+
+        if (uid != nuser_id) {
+            auto it = std::find_if(meshes.begin(), meshes.end(), [uid](const mesh& m) { return m.m_used && m.m_user_id == uid; });
+            if (it != meshes.end()) {
+                throw std::logic_error("set_mesh_user_id error: user id already in use");
+            }
         }
 
         meshes[m].m_user_id = uid;
@@ -554,6 +606,96 @@ namespace rte
         return meshes[m].m_name;
     }
 
+    template<typename T>
+    void preview_sequence(T* a, std::size_t num_elems, std::ostringstream& oss)
+    {
+        oss << "[";
+        if (num_elems > 0) {
+            oss << " " << a[0];
+        }
+        if (num_elems > 1) {
+            oss << ", " << a[1];
+        }
+        if (num_elems > 2) {
+            oss << ", " << a[2];
+        }
+        oss << ", ...//... , ";
+        if (num_elems - 3 >= 0) {
+            oss << ", " << a[num_elems - 3];
+        }
+        if (num_elems - 2 >= 0) {
+            oss << ", " << a[num_elems - 2];
+        }
+        if (num_elems - 1 >= 0) {
+            oss << ", " << a[num_elems - 1];
+        }
+        oss << " ]";
+    }
+
+    void log_mesh(mesh_id m)
+    {
+        std::vector<glm::vec3> vertices = get_mesh_vertices(m);
+        std::vector<glm::vec2> texture_coords = get_mesh_texture_coords(m);
+        std::vector<glm::vec3> normals = get_mesh_normals(m);
+        std::vector<vindex> indices = get_mesh_indices(m);
+
+        std::ostringstream oss;
+        oss << std::setprecision(2) << std::fixed;
+        oss << "    " << "id: " << m;
+        log(LOG_LEVEL_DEBUG, oss.str().c_str());
+
+        oss.str("");
+        oss << "        vertices: " << vertices.size();
+        log(LOG_LEVEL_DEBUG, oss.str().c_str());
+
+        oss.str("");
+        oss << "        user id: " << format_user_id(get_mesh_user_id(m));
+        log(LOG_LEVEL_DEBUG, oss.str().c_str());
+
+        oss.str("");
+        oss << "        vertex base: ";
+        if (vertices.size()) {
+            preview_sequence(&vertices[0][0], 3 * vertices.size(), oss);
+        }
+        log(LOG_LEVEL_DEBUG, oss.str().c_str());
+
+        oss.str("");
+        oss << "        texture coords: ";
+        if (texture_coords.size()) {
+            preview_sequence(&texture_coords[0][0], 2 * texture_coords.size(), oss);
+        }
+        log(LOG_LEVEL_DEBUG, oss.str().c_str());
+
+        oss.str("");
+        oss << "        indices: ";
+        if (indices.size()) {
+            preview_sequence(&indices[0], indices.size(), oss);        
+        }
+        log(LOG_LEVEL_DEBUG, oss.str().c_str());
+
+        oss.str("");
+        oss << "        normals: ";
+        if (normals.size()) {
+            preview_sequence(&normals[0][0], 3 * normals.size(), oss);
+        }
+        log(LOG_LEVEL_DEBUG, oss.str().c_str());
+    }
+
+    void log_meshes()
+    {
+        log(LOG_LEVEL_DEBUG, "---------------------------------------------------------------------------------------------------");
+        log(LOG_LEVEL_DEBUG, "resource_database: meshes begin");
+        if (meshes.size()) {
+            for (unsigned int m = 0; m < meshes.size() && meshes[m].m_used; m++) {
+                log_mesh(m);
+            }
+        } else {
+            log(LOG_LEVEL_DEBUG, "    no meshes found");
+        }
+
+        log(LOG_LEVEL_DEBUG, "resource_database: meshes end");
+    }
+
     mesh_id get_first_mesh()
     {
         auto it = std::find_if(meshes.begin(), meshes.end(), [](const mesh& m) { return m.m_used; });
@@ -586,20 +728,20 @@ namespace rte
 
     resource_id new_resource(resource_id p)
     {
-        if (!(p < resources.size() && resources[p].m_used)) {
-            log(LOG_LEVEL_ERROR, "new_resource error: invalid resource id for parent"); return nresource;
-        }
+        // p may be nresource, this is allowed and is equivalent to new_resource()
 
         // Allocate a vector entry for the new resource
         resource_id new_res = new_resource();
 
-        // Link the new resource as last child of p
-        resource_id r = resources[p].m_first_child;
-        resource_id next = nresource;
-        while (r != nresource && ((next = resources[r].m_next_sibling) != nresource)) {
-            r = next;
+        if (p != nresource) {
+          // Link the new resource as last child of p
+          resource_id r = resources[p].m_first_child;
+          resource_id next = nresource;
+          while (r != nresource && ((next = resources[r].m_next_sibling) != nresource)) {
+              r = next;
+          }
+          (r == nresource? resources[p].m_first_child : resources[r].m_next_sibling) = new_res;
         }
-        (r == nresource? resources[p].m_first_child : resources[r].m_next_sibling) = new_res;
 
         return new_res;
     }
@@ -689,6 +831,13 @@ namespace rte
             throw std::logic_error("set_resource_user_id error: invalid arguments");
         }
 
+        if (uid != nuser_id) {
+            auto it = std::find_if(resources.begin(), resources.end(), [uid](const resource& m) { return m.m_used && m.m_user_id == uid; });
+            if (it != resources.end()) {
+                throw std::logic_error("set_resource_user_id error: user id already in use");
+            }
+        }
+
         resources[r].m_user_id = uid;
     }
 
@@ -736,6 +885,68 @@ namespace rte
 
         return resources[r].m_next_sibling;
     }
+
+    void log_resource(resource_id root, resource_set* visited_resources)
+    {
+        // Iterate the resource tree with a depth-first search printing resources
+        struct context{ resource_id rid; unsigned int indentation; };
+        std::stack<context, std::vector<context>> pending_nodes;
+        pending_nodes.push({root, 1U});
+        while (!pending_nodes.empty()) {
+            auto current = pending_nodes.top();
+            pending_nodes.pop();
+            visited_resources->insert(current.rid);
+
+            glm::mat4 local_transform = get_resource_local_transform(current.rid);
+
+            std::ostringstream oss;
+            oss << std::setprecision(2) << std::fixed;
+            for (unsigned int i = 0; i < current.indentation; i++) {
+                oss << "    ";
+            }
+
+            oss << "[ ";
+            oss << "resource id: " << current.rid;
+            oss << ", user id: " << format_user_id(get_resource_user_id(current.rid));
+            oss << ", name: " << get_resource_name(current.rid);
+            oss << ", mesh: " << format_mesh_id(get_resource_mesh(current.rid));
+            oss << ", material: " << format_material_id(get_resource_material(current.rid));
+            oss << ", local transform: " << local_transform;
+            oss << " ]";
+            log(LOG_LEVEL_DEBUG, oss.str().c_str());
+
+            // We are using a stack to process depth-first, so in order for the children to be
+            // processed in the order in which they appear we must push them in reverse order,
+            // otherwise the last child will be processed first
+            std::vector<resource_id> children_list;
+            for (resource_id child = get_first_child_resource(current.rid); child != nresource; child = get_next_sibling_resource(child)) {
+                children_list.push_back(child);
+            }
+
+            for (auto cit = children_list.rbegin(); cit != children_list.rend(); cit++) {
+                pending_nodes.push({*cit, current.indentation + 1});
+            }
+        }
+    }
+
+    void log_resources()
+    {
+        log(LOG_LEVEL_DEBUG, "---------------------------------------------------------------------------------------------------");
+        log(LOG_LEVEL_DEBUG, "resource_database: resources begin");
+        resource_set visited_resources;
+        if (resources.size()) {
+            for (unsigned int r = 0; r < resources.size() && resources[r].m_used; r++) {
+                if (visited_resources.count(r) == 0) {
+                    log_resource(r, &visited_resources);
+                }
+            }
+        } else {
+            log(LOG_LEVEL_DEBUG, "    no resources found");
+        }
+
+        log(LOG_LEVEL_DEBUG, "resource_database: resources end");
+    }
+
 
     unique_resource make_resource()
     {
@@ -788,6 +999,13 @@ namespace rte
     {
         if (!(cid < cubemaps.size() && cubemaps[cid].m_used)) {
             throw std::logic_error("set_cubemap_user_id error: invalid arguments");
+        }
+
+        if (uid != nuser_id) {
+            auto it = std::find_if(cubemaps.begin(), cubemaps.end(), [uid](const cubemap& m) { return m.m_used && m.m_user_id == uid; });
+            if (it != cubemaps.end()) {
+                throw std::logic_error("set_cubemap_user_id error: user id already in use");
+            }
         }
 
         cubemaps[cid].m_user_id = uid;
@@ -854,8 +1072,60 @@ namespace rte
         return cubemaps[cid].m_name;
     }
 
+    void log_cubemaps()
+    {
+        log(LOG_LEVEL_DEBUG, "---------------------------------------------------------------------------------------------------");
+        log(LOG_LEVEL_DEBUG, "resource_database: cubemaps begin");
+        if (cubemaps.size()) {
+            for (unsigned int cid = 0; cid < cubemaps.size() && cubemaps[cid].m_used; cid++) {
+                std::ostringstream oss;
+
+                oss.str("");
+                oss << "    id: " << cid;
+                log(LOG_LEVEL_DEBUG, oss.str().c_str());
+
+                oss.str("");
+                oss << "    faces:";
+                log(LOG_LEVEL_DEBUG, oss.str().c_str());
+
+                for (auto& f : get_cubemap_faces(cid)) {
+                    oss.str("");
+                    oss << "        " << f;
+                    log(LOG_LEVEL_DEBUG, oss.str().c_str());
+                }
+            }
+        } else {
+            log(LOG_LEVEL_DEBUG, "    no cubemaps found");
+        }
+        log(LOG_LEVEL_DEBUG, "resource_database: cubemaps end");
+    }
+
     unique_cubemap make_cubemap()
     {
         return unique_cubemap(new_cubemap());
+    }
+
+    std::string format_mesh_id(mesh_id m)
+    {
+        std::ostringstream oss;
+        if (m != nmesh) {
+            oss << m;
+        } else {
+            oss << "nmesh";
+        }
+
+        return oss.str();
+    }
+
+    std::string format_material_id(mat_id m)
+    {
+        std::ostringstream oss;
+        if (m != nmat) {
+            oss << m;
+        } else {
+            oss << "nmat";
+        }
+
+        return oss.str();
     }
 } // namespace rte

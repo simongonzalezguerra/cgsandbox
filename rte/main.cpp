@@ -3,12 +3,12 @@
 
 #include <stdexcept>
 
-int main()
+int main(int argc, char** argv)
 {
     try {
         rte::log_init();
         rte::real_time_engine engine;
-        engine.initialize();
+        engine.initialize(argc, argv);
         engine.process();
         engine.finalize();
     } catch(std::exception& ex) {

@@ -281,8 +281,7 @@ namespace rte
 
     typedef std::unique_ptr<node_id, node_deleter> unique_node;
     typedef std::vector<unique_node> node_vector;
-    unique_node make_node();
-    unique_node make_node(node_id parent);
+    void make_node(node_id* root_out, node_vector* nodes_out);
     void make_node(node_id parent, resource_id resource, node_id* root_out, node_vector* nodes_out);
 
     void set_directional_light_ambient_color(scene_id scene, glm::vec3 ambient_color);
@@ -316,6 +315,7 @@ namespace rte
     float get_point_light_quadratic_attenuation(point_light_id light);
     user_id get_point_light_user_id(point_light_id light);
     std::string get_point_light_name(point_light_id light);
+    scene_id get_point_light_scene(point_light_id light);
 
     struct point_light_handle
     {   
@@ -345,6 +345,8 @@ namespace rte
     unique_point_light make_point_light(scene_id scene);
 
     std::vector<node_id> get_descendant_nodes(node_id node);
+
+    void log_scenes();
 } // namespace rte
 
 #endif // SCENE_GRAPH_HPP

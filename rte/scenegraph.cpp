@@ -1,11 +1,15 @@
+#include "serialization_utils.hpp"
 #include "glm/gtc/type_ptr.hpp"
 #include "scenegraph.hpp"
-#include "log.hpp"
 #include "glm/glm.hpp"
+#include "log.hpp"
 
 #include <stdexcept>
 #include <algorithm>
+#include <sstream>
+#include <iomanip>
 #include <vector>
+#include <stack>
 #include <queue>
 #include <set>
 
@@ -142,7 +146,7 @@ namespace rte
         scenes[s].m_next_scene = nscene;
         scenes[s].m_view_transform = glm::mat4{1.0f};
         scenes[s].m_projection_transform = glm::mat4{1.0f};
-        scenes[s].m_root_node = make_node();
+        scenes[s].m_root_node = unique_node(new_node());
 
         return s;
     }
@@ -186,6 +190,13 @@ namespace rte
     {
         if (!(s < scenes.size() && scenes[s].m_used)) {
             throw std::logic_error("set_scene_user_id error: invalid arguments");
+        }
+
+        if (uid != nuser_id) {
+            auto it = std::find_if(scenes.begin(), scenes.end(), [uid](const scene& m) { return m.m_used && m.m_user_id == uid; });
+            if (it != scenes.end()) {
+                throw std::logic_error("set_scene_user_id error: user id already in use");
+            }
         }
 
         scenes[s].m_user_id = uid;
@@ -495,6 +506,13 @@ namespace rte
             throw std::logic_error("set_node_user_id error: invalid arguments");
         }
 
+        if (uid != nuser_id) {
+            auto it = std::find_if(nodes.begin(), nodes.end(), [uid](const node& m) { return m.m_used && m.m_user_id == uid; });
+            if (it != nodes.end()) {
+                throw std::logic_error("set_node_user_id error: user id already in use");
+            }
+        }
+
         nodes[n].m_user_id = uid;
     }
 
@@ -507,23 +525,28 @@ namespace rte
         return nodes[n].m_user_id;
     }
 
-    unique_node make_node()
+    void make_node(node_id* root_out, node_vector* nodes_out)
     {
-        return unique_node(new_node());
-    }
-
-    unique_node make_node(node_id parent)
-    {
-        return unique_node(new_node(parent));
+        unique_node new_node_handle(new_node());
+        *root_out = new_node_handle.get();
+        nodes_out->push_back(std::move(new_node_handle));
     }
 
     void make_node(node_id p, resource_id r, node_id* root_out, node_vector* nodes_out)
     {
-        node_vector added_nodes;
         if (!(p < nodes.size() && nodes[p].m_used)) {
             throw std::logic_error("make_node error: invalid parameters");
         }
 
+        if (r == nresource) {
+            unique_node new_node_handle(new_node(p));
+            *root_out = new_node_handle.get();
+            nodes_out->push_back(std::move(new_node_handle));
+
+            return;
+        }
+
+        node_vector added_nodes;
         node_id added_root_out = nnode;
         struct context{ resource_id rid; node_id parent; };
         std::queue<context> pending_nodes;
@@ -532,7 +555,7 @@ namespace rte
             auto current = pending_nodes.front();
             pending_nodes.pop();
 
-            added_nodes.push_back(make_node(current.parent));
+            added_nodes.push_back(unique_node(new_node(current.parent)));
             node_id n = added_nodes[added_nodes.size() - 1].get();
             added_root_out = (added_root_out == nnode ? n : added_root_out);
             set_node_transform(n, get_resource_local_transform(current.rid));
@@ -729,6 +752,13 @@ namespace rte
             throw std::logic_error("set_point_light_user_id error: invalid arguments");
         }
 
+        if (uid != nuser_id) {
+            auto it = std::find_if(point_lights.begin(), point_lights.end(), [uid](const point_light& m) { return m.m_used && m.m_user_id == uid; });
+            if (it != point_lights.end()) {
+                throw std::logic_error("set_point_light_user_id error: user id already in use");
+            }
+        }
+
         point_lights[pl].m_user_id = uid;
     }
 
@@ -822,6 +852,15 @@ namespace rte
         return point_lights[pl].m_name;
     }
 
+    scene_id get_point_light_scene(point_light_id pl)
+    {
+        if (!(pl < point_lights.size() && point_lights[pl].m_used)) {
+            throw std::logic_error("get_point_light_scene error: invalid arguments");
+        }
+
+        return point_lights[pl].m_scene;
+    }
+
     unique_point_light make_point_light(scene_id s)
     {
         return unique_point_light(new_point_light(s));
@@ -851,5 +890,127 @@ namespace rte
         }
 
         return ret;
+    }
+
+    void log_node(node_id root)
+    {
+        // Iterate the node tree with a depth-first search printing nodes
+        struct context{ node_id nid; unsigned int indentation; };
+        std::stack<context, std::vector<context>> pending_nodes;
+        pending_nodes.push({root, 3U});
+        while (!pending_nodes.empty()) {
+            auto current = pending_nodes.top();
+            pending_nodes.pop();
+
+            std::ostringstream oss;
+            oss << std::setprecision(2) << std::fixed;
+            for (unsigned int i = 0; i < current.indentation; i++) {
+                oss << "    ";
+            }
+
+            glm::mat4 local_transform;
+            glm::mat4 accum_transform;
+            get_node_transform(current.nid, &local_transform, &accum_transform);
+            oss << "[ ";
+            oss << "node id: " << current.nid;
+            oss << ", user id: " << format_user_id(get_node_user_id(current.nid));
+            oss << ", name: " << get_node_name(current.nid);
+            oss << ", mesh: " << format_mesh_id(get_node_mesh(current.nid));
+            oss << ", material: " << format_material_id(get_node_material(current.nid));
+            oss << ", local transform: " << local_transform;
+            oss << " ]";
+            log(LOG_LEVEL_DEBUG, oss.str().c_str());
+
+            // We are using a stack to process depth-first, so in order for the children to be
+            // processed in the order in which they appear we must push them in reverse order,
+            // otherwise the last child will be processed first
+            std::vector<node_id> children_list;
+            for (node_id child = get_first_child_node(current.nid); child != nnode; child = get_next_sibling_node(child)) {
+                children_list.push_back(child);
+            }
+
+            for (auto cit = children_list.rbegin(); cit != children_list.rend(); cit++) {
+                pending_nodes.push({*cit, current.indentation + 1});
+            }
+        }
+    }
+
+    void log_directional_light(scene_id s)
+    {
+        std::ostringstream oss;
+        oss << std::setprecision(2) << std::fixed;
+        oss << "        directional light: ";
+        oss << "[ ambient color : " << get_directional_light_ambient_color(s);
+        oss << ", diffuse color : " << get_directional_light_diffuse_color(s);
+        oss << ", specular color : " << get_directional_light_specular_color(s);
+        oss << ", direction : " << get_directional_light_direction(s);
+        oss << " ]";
+        log(LOG_LEVEL_DEBUG, oss.str().c_str());
+    }
+
+    void log_point_light(point_light_id pl)
+    {
+        std::ostringstream oss;
+        oss << std::setprecision(2) << std::fixed;
+        oss << "            [ point light id: " << pl;
+        oss << ", user_id : " << get_point_light_user_id(pl);
+        oss << ", position : " << get_point_light_position(pl);
+        oss << ", ambient color : " << get_point_light_ambient_color(pl);
+        oss << ", diffuse color : " << get_point_light_diffuse_color(pl);
+        oss << ", specular color : " << get_point_light_specular_color(pl);
+        oss << ", constant_attenuation : " << get_point_light_constant_attenuation(pl);
+        oss << ", linear_attenuation : " << get_point_light_linear_attenuation(pl);
+        oss << ", quadratic_attenuation : " << get_point_light_quadratic_attenuation(pl);
+        oss << " ]";
+        log(LOG_LEVEL_DEBUG, oss.str().c_str());
+    }
+
+    void log_scene(scene_id s)
+    {
+        std::ostringstream oss;
+        oss << std::setprecision(2) << std::fixed;
+        oss << "    scene id: " << s;
+        log(LOG_LEVEL_DEBUG, oss.str().c_str());
+
+        oss.str("");
+        oss << "        user_id : " << get_scene_user_id(s);
+        log(LOG_LEVEL_DEBUG, oss.str().c_str());
+
+        log_directional_light(s);
+
+        oss.str("");
+        oss << "        point lights :";
+        log(LOG_LEVEL_DEBUG, oss.str().c_str());
+
+        // FIXME this model forces us to iterate over ALL point_lights, even the ones that don't belong to the scene at hand
+        for (point_light_id pl = get_first_point_light(); pl != npoint_light; pl = get_next_point_light(pl)) {
+            log_point_light(pl);
+        }
+
+        oss.str("");
+        node_id root = get_scene_root_node(s);
+        oss << "        root node :";
+        log(LOG_LEVEL_DEBUG, oss.str().c_str());
+
+        if (root != nnode) {
+            log_node(root);
+        } else {
+            log(LOG_LEVEL_DEBUG, "    no root node found");
+        }
+    }
+
+    void log_scenes()
+    {
+        log(LOG_LEVEL_DEBUG, "---------------------------------------------------------------------------------------------------");
+        log(LOG_LEVEL_DEBUG, "scenegraph: scenes begin");
+        if (scenes.size()) {
+            for (unsigned int s = 0; s < scenes.size() && scenes[s].m_used; s++) {
+                log_scene(s);
+            }
+        } else {
+            log(LOG_LEVEL_DEBUG, "    no scenes found");
+        }
+
+        log(LOG_LEVEL_DEBUG, "scenegraph: scenes end");
     }
 } // namespace rte

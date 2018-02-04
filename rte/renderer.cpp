@@ -242,15 +242,17 @@ namespace rte
 
         // Set point light data
         for (point_light_id pl = get_first_point_light(); pl != npoint_light; pl = get_next_point_light(pl)) {
-            point_light_data pl_data;
-            pl_data.m_position_cameraspace = from_homogenous_coords(driver_context.m_view * position_to_homogenous_coords(get_point_light_position(pl)));
-            pl_data.m_ambient_color = get_point_light_ambient_color(pl);
-            pl_data.m_diffuse_color = get_point_light_diffuse_color(pl);
-            pl_data.m_specular_color = get_point_light_specular_color(pl);
-            pl_data.m_constant_attenuation = get_point_light_constant_attenuation(pl);
-            pl_data.m_linear_attenuation = get_point_light_linear_attenuation(pl);
-            pl_data.m_quadratic_attenuation = get_point_light_quadratic_attenuation(pl);
-            driver_context.m_point_lights.push_back(pl_data);
+            if (get_point_light_scene(pl) == current_scene) {
+                point_light_data pl_data;
+                pl_data.m_position_cameraspace = from_homogenous_coords(driver_context.m_view * position_to_homogenous_coords(get_point_light_position(pl)));
+                pl_data.m_ambient_color = get_point_light_ambient_color(pl);
+                pl_data.m_diffuse_color = get_point_light_diffuse_color(pl);
+                pl_data.m_specular_color = get_point_light_specular_color(pl);
+                pl_data.m_constant_attenuation = get_point_light_constant_attenuation(pl);
+                pl_data.m_linear_attenuation = get_point_light_linear_attenuation(pl);
+                pl_data.m_quadratic_attenuation = get_point_light_quadratic_attenuation(pl);
+                driver_context.m_point_lights.push_back(pl_data);
+            }
         }
 
         // Set the depth func to use
