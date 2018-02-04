@@ -334,7 +334,8 @@ namespace rte
         driver.initialize_frame();
         // Convert tree into list and filter out non-enabled nodes
         current_scene = s;
-        nodes_to_render = get_descendant_nodes(get_scene_root_node(s));
+        nodes_to_render.clear();
+        get_descendant_nodes(get_scene_root_node(s), nodes_to_render);
         driver_context = gl_driver_context();
         get_scene_properties();
         render_phong_nodes();

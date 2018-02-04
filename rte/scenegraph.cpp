@@ -100,12 +100,16 @@ namespace rte
             bool               m_used;                             //!< is this entry in the vector used?
         };
 
+        struct node_context{ node_id nid; };
+        typedef std::vector<node_context> node_context_vector;
+
         //---------------------------------------------------------------------------------------------
         // Internal data structures
         //---------------------------------------------------------------------------------------------
-        std::vector<scene> scenes;                                //!< collection of all the scenes
-        std::vector<node> nodes;                                  //!< collection of all the nodes
-        std::vector<point_light> point_lights;                    //!< collection of all the point lights
+        std::vector<scene>        scenes;          //!< collection of all the scenes
+        std::vector<node>         nodes;           //!< collection of all the nodes
+        std::vector<point_light>  point_lights;    //!< collection of all the point lights
+        node_context_vector       pending_nodes;   //!< helper structure used in get_descendant_nodes
 
         //---------------------------------------------------------------------------------------------
         // Helper functions
@@ -866,30 +870,26 @@ namespace rte
         return unique_point_light(new_point_light(s));
     }
 
-    std::vector<node_id> get_descendant_nodes(node_id n)
+    void get_descendant_nodes(node_id n, std::vector<node_id>& nodes_out)
     {
-        std::vector<node_id> ret;
-        struct node_context{ node_id nid; };
-        std::queue<node_context> pending_nodes;
-        pending_nodes.push({n});
+        pending_nodes.clear();
+        pending_nodes.push_back({n});
 
         while (!pending_nodes.empty()) {
-            auto current = pending_nodes.front();
-            pending_nodes.pop();
+            auto current = pending_nodes.back();
+            pending_nodes.pop_back();
             // If a node is not enabled, all its subtree is pruned
             if (!is_node_enabled(current.nid)) continue;
 
             // If a node doesn't have any meshes or materials it is ignored, but its children are processed
             if (get_node_mesh(current.nid) != nmesh && get_node_material(current.nid) != nmat) {
-              ret.push_back(current.nid);
+              nodes_out.push_back(current.nid);
             }
 
             for (node_id c = get_first_child_node(current.nid); c != nnode; c = get_next_sibling_node(c)) {
-                pending_nodes.push({c});
+                pending_nodes.push_back({c});
             }
         }
-
-        return ret;
     }
 
     void log_node(node_id root)

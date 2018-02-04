@@ -344,7 +344,7 @@ namespace rte
     typedef std::vector<unique_point_light> point_light_vector;
     unique_point_light make_point_light(scene_id scene);
 
-    std::vector<node_id> get_descendant_nodes(node_id node);
+    void get_descendant_nodes(node_id node, std::vector<node_id>& nodes_out);
 
     void log_scenes();
 } // namespace rte
