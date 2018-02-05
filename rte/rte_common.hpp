@@ -171,8 +171,8 @@ namespace rte
         typedef typename C::reference reference;
         typedef typename C::const_reference const_reference;
         typedef typename C::difference_type difference_type;
-        typedef typename sparse_vector_iterator<C, false> iterator;
-        typedef typename sparse_vector_iterator<C, true> const_iterator;
+        typedef sparse_vector_iterator<C, false> iterator;
+        typedef sparse_vector_iterator<C, true> const_iterator;
         typedef std::reverse_iterator<iterator> reverse_iterator;
         typedef std::reverse_iterator<const_iterator> const_reverse_iterator;
         typedef std::size_t size_type;
@@ -185,7 +185,7 @@ namespace rte
         bool operator==(const sparse_vector& sv) const { return m_elems == sv.m_elems; }
         bool operator!=(const sparse_vector& sv) const { return !(m_elems == sv.m_elems); }
 
-        iterator begin(); { return iterator(m_elems.begin(), m_elems.begin(), m_elems.end()); }
+        iterator begin() { return iterator(m_elems.begin(), m_elems.begin(), m_elems.end()); }
         const_iterator begin() const { return const_iterator(m_elems.begin(), m_elems.begin(), m_elems.end()); }
         const_iterator cbegin() const { return const_iterator(m_elems.begin(), m_elems.begin(), m_elems.end()); }
         iterator end() { return iterator(m_elems.begin(), m_elems.end(), m_elems.end()); }
@@ -195,7 +195,7 @@ namespace rte
         reverse_iterator rbegin() { return reverse_iterator(end()); }
         const_reverse_iterator rbegin() const { return const_reverse_iterator(end()); }
         const_reverse_iterator crbegin() const { return const_reverse_iterator(end()); }
-        reverse_iterator rend(); { return reverse_iterator(begin()); }
+        reverse_iterator rend() { return reverse_iterator(begin()); }
         const_reverse_iterator rend() const { return const_reverse_iterator(begin()); }
         const_reverse_iterator crend() const { return const_reverse_iterator(begin()); }
 
@@ -235,7 +235,7 @@ namespace rte
             return ret;
         }
 
-        const_reference at(size_type) const
+        const_reference at(size_type index) const
         {
             assert(index < m_elems.size());
             assert(m_elems[index].m_used);
@@ -279,11 +279,6 @@ namespace rte
         }
 
         bool empty() const {return (m_num_elems == 0); }
-
-        A get_allocator() const
-        {
-            return m_elems.get_allocator();
-        }
 
     private:
         C          m_elems;
