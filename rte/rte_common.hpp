@@ -69,18 +69,18 @@ namespace rte
     class sparse_vector_iterator {
     public:
         typedef std::bidirectional_iterator_tag iterator_category;
-        typedef typename choose<isconst, typename const C::const_pointer, typename C::pointer>::type pointer;
-        typedef typename choose<isconst, const C::const_reference, C::reference>::type reference;
+        typedef typename choose<isconst, const typename C::const_pointer, typename C::pointer>::type pointer;
+        typedef typename choose<isconst, const typename C::const_reference, typename C::reference>::type reference;
         typedef typename C::difference_type difference_type;
         typedef typename C::value_type value_type;
         typedef typename C::size_type size_type;
     
-        sparse_vector_iterator() : {}
+        sparse_vector_iterator() {}
 
-        sparse_vector_iterator(C::iterator begin, C::iterator current, C::iterator end)
+        sparse_vector_iterator(typename C::iterator begin, typename C::iterator current, typename C::iterator end)
             : m_begin(begin), m_current(current), m_end(end) {}
 
-        sparse_vector_iterator(const sparse_vector_iterator<value_type, C, false>& spi) :
+        sparse_vector_iterator(const sparse_vector_iterator<C, false>& spi) :
             m_begin(spi.m_begin), m_current(spi.m_current), m_end(spi.m_end) {} // TODO can we default this?
 
         ~sparse_vector_iterator() {}
@@ -91,12 +91,12 @@ namespace rte
         {
             if (m_begin != spi.m_begin) return false;
             if (m_end != spi.m_end) return false;
-            C::iterator tmp_current = m_current;
-            while (tmp_current < end && !tmp_current->m_used) {
+            typename C::iterator tmp_current = m_current;
+            while (tmp_current < m_end && !tmp_current->m_used) {
                 tmp_current++;
             }
-            C::iterator tmp_spi_current = spi.m_current;
-            while (tmp_spi_current < end && !tmp_spi_current->m_used) {
+            typename C::iterator tmp_spi_current = spi.m_current;
+            while (tmp_spi_current < spi.end && !tmp_spi_current->m_used) {
                 tmp_spi_current++;
             }
             return (tmp_current == tmp_spi_current);
@@ -158,9 +158,9 @@ namespace rte
         }
     
     private:
-        C::iterator  m_begin;
-        C::iterator  m_current;
-        C::iterator  m_end;
+        typename C::iterator  m_begin;
+        typename C::iterator  m_current;
+        typename C::iterator  m_end;
     };
 
     template <typename C>
