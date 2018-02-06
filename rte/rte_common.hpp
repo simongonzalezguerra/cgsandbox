@@ -66,22 +66,30 @@ namespace rte
     };
 
     template <typename C, bool isconst = false> 
-    class sparse_vector_iterator {
+    class sparse_vector_iterator
+    {
     public:
         typedef std::bidirectional_iterator_tag iterator_category;
         typedef typename choose<isconst, const typename C::const_pointer, typename C::pointer>::type pointer;
         typedef typename choose<isconst, const typename C::const_reference, typename C::reference>::type reference;
+        typedef typename choose<isconst, typename C::const_iterator, typename C::iterator>::type underlying_iterator;
         typedef typename C::difference_type difference_type;
         typedef typename C::value_type value_type;
         typedef typename C::size_type size_type;
     
         sparse_vector_iterator() {}
 
-        sparse_vector_iterator(typename C::iterator begin, typename C::iterator current, typename C::iterator end)
-            : m_begin(begin), m_current(current), m_end(end) {}
+        sparse_vector_iterator(underlying_iterator begin, underlying_iterator current, underlying_iterator end)
+            : m_begin(begin), m_current(current), m_end(end)
+        {
+            // Advance m_current to the first used entry
+            while (m_current < m_end && !m_current->m_used) {
+                m_current++;
+            }
+        }
 
         sparse_vector_iterator(const sparse_vector_iterator<C, false>& spi) :
-            m_begin(spi.m_begin), m_current(spi.m_current), m_end(spi.m_end) {} // TODO can we default this?
+            m_begin(spi.get_begin()), m_current(spi.get_current()), m_end(spi.get_end()) {}
 
         ~sparse_vector_iterator() {}
 
@@ -91,12 +99,12 @@ namespace rte
         {
             if (m_begin != spi.m_begin) return false;
             if (m_end != spi.m_end) return false;
-            typename C::iterator tmp_current = m_current;
+            underlying_iterator tmp_current = m_current;
             while (tmp_current < m_end && !tmp_current->m_used) {
                 tmp_current++;
             }
-            typename C::iterator tmp_spi_current = spi.m_current;
-            while (tmp_spi_current < spi.end && !tmp_spi_current->m_used) {
+            underlying_iterator tmp_spi_current = spi.m_current;
+            while (tmp_spi_current < spi.m_end && !tmp_spi_current->m_used) {
                 tmp_spi_current++;
             }
             return (tmp_current == tmp_spi_current);
@@ -121,11 +129,11 @@ namespace rte
             return tmp;
         }
 
-        sparse_vector_iterator& operator--() 
+        sparse_vector_iterator& operator--()
         {
             do {
                 m_current--;
-            } while (m_current >= m_begin && !m_current.m_used);
+            } while (m_current >= m_begin && !m_current->m_used);
 
             return (*this);
         }
@@ -144,6 +152,11 @@ namespace rte
                 throw std::domain_error("sparse_vector_iterator::operator*: invalid index");
             }
 
+            assert(m_current->m_used);
+            if (!m_current->m_used) {
+                throw std::domain_error("sparse_vector_iterator::operator*: entry has been erased");
+            }
+
             return *m_current;
         }
 
@@ -154,17 +167,38 @@ namespace rte
                 throw std::domain_error("sparse_vector_iterator::operator*: invalid index");
             }
 
+            assert(m_current->m_used);
+            if (!m_current->m_used) {
+                throw std::domain_error("sparse_vector_iterator::operator*: entry has been erased");
+            }
+
             return m_current.operator->();
         }
     
+        underlying_iterator get_begin() const
+        {
+            return m_begin;
+        }
+
+        underlying_iterator get_current() const
+        {
+            return m_current;
+        }
+
+        underlying_iterator get_end() const
+        {
+            return m_end;
+        }
+
     private:
-        typename C::iterator  m_begin;
-        typename C::iterator  m_current;
-        typename C::iterator  m_end;
+        underlying_iterator  m_begin;
+        underlying_iterator  m_current;
+        underlying_iterator  m_end;
     };
 
     template <typename C>
-    class sparse_vector {
+    class sparse_vector
+    {
     public:
         typedef typename C::allocator_type allocator_type;
         typedef typename C::value_type value_type; 
@@ -214,11 +248,20 @@ namespace rte
         }
 
         template<typename InputIterator >
-        void insert(InputIterator first, InputIterator last)
+        size_type insert(InputIterator first, InputIterator last)
         {
-            for (InputIterator it = first; it != last; it++) {
-                insert(*it);
+            size_type ret = -1;
+            InputIterator it = first;
+            if (it != last) {
+                ret = insert(*it);
+                it++;
             }
+            while (it != last) {
+                insert(*it);
+                it++;
+            }
+
+            return ret;
         }
 
         reference at(size_type index)
@@ -249,7 +292,7 @@ namespace rte
             return ret;
         }
 
-        iterator erase(const_iterator it)
+        iterator erase(iterator it)
         {
             reference elem = *it;
             assert(elem.m_used);
@@ -270,7 +313,7 @@ namespace rte
 
         void swap(sparse_vector& sv)
         {
-            swap(m_elems, sv.m_elems);
+            m_elems.swap(sv.m_elems);
         }
 
         size_type size() const
