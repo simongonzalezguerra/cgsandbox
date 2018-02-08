@@ -41,11 +41,16 @@ namespace rte
             m_next(0U),
             m_size(0U) {}
 
-        tree_node_iterator(pointer begin, size_type previous, size_type current, size_type next, size_type size) :
+        tree_node_iterator(pointer begin,
+                size_type previous,
+                size_type current,
+                size_type next,
+                size_type size) :
             m_begin(begin),
             m_previous(previous),
             m_current(current),
-            m_next(next), m_size(size) {}
+            m_next(next),
+            m_size(size) {}
 
         tree_node_iterator(const tree_node_iterator<N, false>& spi) :
             m_begin(spi.get_begin()),
@@ -60,11 +65,7 @@ namespace rte
 
         bool operator==(const tree_node_iterator& spi) const
         {
-            return (m_begin == spi.m_begin
-                    && m_previous == spi.m_previous
-                    && m_current == spi.m_current
-                    && m_next == spi.m_next
-                    && m_size == spi.m_size);
+            return (m_begin == spi.m_begin && m_current == spi.m_current);
         }
 
         bool operator!=(const tree_node_iterator& spi) const { return !(*this == spi); }
@@ -106,8 +107,8 @@ namespace rte
                 throw std::out_of_range("tree_node_iterator::operator*: invalid index");
             }
 
-            assert(m_current->m_used);
-            if (!m_current->m_used) {
+            assert(m_begin[m_current].m_used);
+            if (!m_begin[m_current].m_used) {
                 throw std::domain_error("tree_node_iterator::operator*: entry has been erased");
             }
 
@@ -121,38 +122,19 @@ namespace rte
                 throw std::out_of_range("tree_node_iterator::operator->: invalid index");
             }
 
-            assert(m_current->m_used);
-            if (!m_current->m_used) {
+            assert(m_begin[m_current].m_used);
+            if (!m_begin[m_current].m_used) {
                 throw std::domain_error("tree_node_iterator::operator->: entry has been erased");
             }
 
             return m_begin + m_current;
         }
     
-        pointer get_begin() const
-        {
-            return m_begin;
-        }
-
-        size_type get_previous() const
-        {
-            return m_previous;
-        }
-
-        size_type get_current() const
-        {
-            return m_current;
-        }
-
-        size_type get_next() const
-        {
-            return m_next;
-        }
-
-        size_type get_size() const
-        {
-            return m_size;
-        }
+        pointer get_begin() const { return m_begin; }
+        size_type get_previous() const { return m_previous; }
+        size_type get_current() const { return m_current; }
+        size_type get_next() const { return m_next; }
+        size_type get_size() const { return m_size; }
 
     private:
         // Note that in order for reverse iteration with std::reverse_iterator to work, the end()
@@ -297,7 +279,10 @@ namespace rte
                 throw std::domain_error("sparse_tree::insert: parent has been erased");
             }
 
-            size_type new_index = std::find_if(m_elems.begin(), m_elems.end(), [](const value_type& tn) {return !tn.m_used; }) - m_elems.begin();
+            auto nit = std::find_if(m_elems.begin(), m_elems.end(), [](const value_type& tn) {
+                return !tn.m_used;
+            });
+            size_type new_index = nit - m_elems.begin();
             if (new_index == m_elems.size()) {
                 m_elems.push_back(value_type(m_elems));
             }
@@ -335,7 +320,9 @@ namespace rte
                 pending_nodes.pop_back();
 
                 // Allocate new index for the node and insert it
-                auto nit = std::find_if(m_elems.begin(), m_elems.end(), [](const value_type& tn) {return !tn.m_used; });
+                auto nit = std::find_if(m_elems.begin(), m_elems.end(), [](const value_type& tn) {
+                    return !tn.m_used;
+                });
                 size_type new_index = nit - m_elems.begin();
                 if (new_index == m_elems.size()) {
                     m_elems.push_back(value_type(m_elems));
@@ -420,17 +407,6 @@ namespace rte
             }
 
             remove_child(m_elems.at(remove_index).m_parent, remove_index);
-        }
-
-
-        void erase(iterator it)
-        {
-            erase(index(it));
-        }
-
-        void erase(reverse_iterator it)
-        {
-            erase(index(it));
         }
 
         void clear()
