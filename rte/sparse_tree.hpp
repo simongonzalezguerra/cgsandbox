@@ -207,7 +207,20 @@ namespace rte
 
         ~tree_node() { m_used = false; }
     
-        tree_node& operator=(const tree_node&) = default;
+        tree_node& operator=(const tree_node& node)
+        {
+            if (&node != this) {
+                m_elem = node.m_elem;
+                m_parent = node.m_parent;
+                m_first_child = node.m_first_child;
+                m_last_child = node.m_last_child;
+                m_next_sibling = node.m_next_sibling;
+                m_previous_sibling = node.m_previous_sibling;
+            }
+
+            return *this;
+        }
+
         iterator begin() { return iterator(&m_elems[0], npos, m_first_child, m_first_child != npos? m_elems.at(m_first_child).m_next_sibling : npos, m_elems.size()); }
         const_iterator begin() const { return const_iterator(&m_elems[0], npos, m_first_child, m_first_child != npos? m_elems.at(m_first_child).m_next_sibling : npos, m_elems.size()); }
         const_iterator cbegin() const { return const_iterator(&m_elems[0], npos, m_first_child, m_first_child != npos? m_elems.at(m_first_child).m_next_sibling : npos, m_elems.size()); }
@@ -295,13 +308,11 @@ namespace rte
             return new_index;
         }
 
-        // Inserts a whole tree as last child of an existing node.
-        // InputIterator is an iterator over value_type (tree_node_iterator). The references in the
-        // input nodes are interpreted as local to the input container. They are converted to the
-        // physical positions in which the nodes are inserted in this sparse_tree.
-        // parent_index is a reference to an existing node in the sparse_tree.
-        template<typename InputIterator >
-        size_type insert(InputIterator first, InputIterator last, size_type parent_index)
+        // Inserts nodes by copying a subtree of another sparse_tree.
+        // input_tree is the tree to read nodes from.
+        // input_index is the index of the root of the subtree to read nodes from.
+        // parent_index the index of the node in this sparse_tree to insert the subtree under.
+        size_type insert(const sparse_tree<T>& input_tree, size_type input_index, size_type parent_index)
         {
             assert(parent_index < m_elems.size());
             if (!(parent_index < m_elems.size())) {
@@ -313,16 +324,15 @@ namespace rte
             }
 
             // Insert all nodes
-            size_type input_root_index = value_type::npos;
             std::map<size_type, size_type> new_indices;
             // The value_type::npos references should stay that way
             new_indices[value_type::npos] = value_type::npos;
-            for (auto& it = first; it != last; it++) {
+            std::vector<size_type> pending_nodes;
+            pending_nodes.push_back(input_index);
+            while (!pending_nodes.empty()) {
                 // If this node is the root of the input tree save its index for later
-                value_type& input_node = *it;
-                if (input_node.m_parent == value_type::npos && input_root_index == value_type::npos) {
-                    input_root_index = index(it);
-                }
+                size_type input_node_index = pending_nodes.back();
+                pending_nodes.pop_back();
 
                 // Allocate new index for the node and insert it
                 auto nit = std::find_if(m_elems.begin(), m_elems.end(), [](const value_type& tn) {return !tn.m_used; });
@@ -330,25 +340,35 @@ namespace rte
                 if (new_index == m_elems.size()) {
                     m_elems.push_back(value_type(m_elems));
                 }
-                new_indices[index(it)] = new_index;
+                new_indices[input_node_index] = new_index;
 
                 // Insert the value in its new position
-                m_elems[new_index] = input_node;
+                const value_type& input_node = input_tree.at(input_node_index); 
+                m_elems.at(new_index) = input_node;
+                m_elems.at(new_index).m_used = true;
+
+                for (auto it = input_node.rbegin(); it != input_node.rend(); ++it) {
+                    pending_nodes.push_back(index(it));
+                }
             }
 
             // Update the references in all inserted nodes
+            // Remove the external index that may be present in the parent reference of the output root node
+            // (we will set this later in method add_child())
+            m_elems.at(new_indices.at(input_index)).m_parent = value_type::npos;
             for (auto& it : new_indices) {
-                size_type new_index = it->second;
-                value_type& new_node = m_elems.at(new_index);
-                new_node.m_parent = new_indices.at(new_node.m_parent);
-                new_node.m_first_child = new_indices.at(new_node.m_first_child);
-                new_node.m_last_child = new_indices.at(new_node.m_last_child);
-                new_node.m_next_sibling = new_indices.at(new_node.m_next_sibling);
-                new_node.m_previous_sibling = new_indices.at(new_node.m_previous_sibling);
+                if (it.second != value_type::npos) {
+                    value_type& new_node = m_elems.at(it.second);
+                    new_node.m_parent = new_indices.at(new_node.m_parent);
+                    new_node.m_first_child = new_indices.at(new_node.m_first_child);
+                    new_node.m_last_child = new_indices.at(new_node.m_last_child);
+                    new_node.m_next_sibling = new_indices.at(new_node.m_next_sibling);
+                    new_node.m_previous_sibling = new_indices.at(new_node.m_previous_sibling);
+                }
             }
 
             // Insert the root in the list of children of the parent
-            size_type new_root_index = new_indices.at(input_root_index);
+            size_type new_root_index = new_indices.at(input_index);
             add_child(parent_index, new_root_index);
 
             return new_root_index;
