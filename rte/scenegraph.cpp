@@ -20,6 +20,7 @@ namespace rte
         //---------------------------------------------------------------------------------------------
         // Internal declarations
         //---------------------------------------------------------------------------------------------
+        // TODO Remove this module once all its functionality has been moved out
         struct node
         {
             node() :

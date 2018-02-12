@@ -45,6 +45,11 @@ namespace rte
     //!  objects that the user hasn't assigned an id to.
     //-----------------------------------------------------------------------------------------------
     constexpr user_id nuser_id = -1;
+
+    //-----------------------------------------------------------------------------------------------
+    //! @brief Integral type used to represent indexes in an array.
+    //-----------------------------------------------------------------------------------------------
+    typedef unsigned short vindex;
 } // namespace rte
 
 #endif // RTE_COMMON_HPP

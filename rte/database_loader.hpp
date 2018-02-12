@@ -3,12 +3,13 @@
 
 #include "resource_database.hpp"
 #include "scenegraph.hpp"
+#include "rte_domain.hpp"
 
 namespace rte
 {
     void database_loader_initialize();
-    void load_database();
-    void log_database();
+    void load_database(view_database& db);
+    void log_database(const view_database& db);
     void database_loader_finalize();
 } // namespace rte
 

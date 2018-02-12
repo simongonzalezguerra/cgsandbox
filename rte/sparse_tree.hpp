@@ -280,7 +280,7 @@ namespace rte
         // which is the parent of all trees.
 
         // Inserts a single node as the last child of an existing one
-        size_type insert(const contained_type& t, size_type parent_index)
+        size_type insert(const contained_type& t, size_type parent_index = 0U)
         {
             assert(parent_index < m_elems.size());
             if (!(parent_index < m_elems.size())) {

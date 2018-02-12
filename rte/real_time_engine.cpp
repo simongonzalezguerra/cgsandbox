@@ -6,6 +6,7 @@
 #include "cmd_line_args.hpp"
 #include "opengl_driver.hpp"
 #include "scenegraph.hpp"
+#include "rte_domain.hpp"
 #include "renderer.hpp"
 #include "control.hpp"
 #include "system.hpp"
@@ -33,7 +34,8 @@ namespace rte
             m_should_continue(true),
             m_sim_rotation_speed(0.0f),
             m_sim_rotation_yaw(0.0f),
-            m_is_initialized(false)
+            m_is_initialized(false),
+            m_view_db()
         {
         }
 
@@ -64,7 +66,7 @@ namespace rte
             system_initialize();
 
             database_loader_initialize();
-            load_database();
+            load_database(m_view_db);
             log_database();
 
             unique_window window = make_window(896, 504, false);
@@ -145,6 +147,9 @@ namespace rte
             // Control projection (update fov)
             m_perspective_controller.process(dt, m_events);
 
+            // TODO Update accumulated transforms
+            update_accum_transforms();
+
             // Render the scene
             render(get_first_scene()); // FIXME the renderer should be fed all the layers, not the first scene
             swap_buffers(m_window.get());
@@ -166,6 +171,7 @@ namespace rte
         float                  m_sim_rotation_speed;
         float                  m_sim_rotation_yaw;
         bool                   m_is_initialized;
+        view_database          m_view_db;
     };
 
     real_time_engine::real_time_engine(unsigned int max_errors) :
