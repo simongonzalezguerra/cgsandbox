@@ -67,7 +67,7 @@ namespace rte
 
             database_loader_initialize();
             load_database(m_view_db);
-            log_database();
+            log_database(m_view_db);
 
             unique_window window = make_window(896, 504, false);
 
@@ -125,6 +125,10 @@ namespace rte
             }
         }
 
+        void compute_accum_transforms()
+        {
+            // TODO Update accumulated transforms
+        }
 
         bool frame()
         {
@@ -147,11 +151,10 @@ namespace rte
             // Control projection (update fov)
             m_perspective_controller.process(dt, m_events);
 
-            // TODO Update accumulated transforms
-            update_accum_transforms();
+            compute_accum_transforms();
 
             // Render the scene
-            render(get_first_scene()); // FIXME the renderer should be fed all the layers, not the first scene
+            render(get_first_scene()); // TODO the renderer should be fed all the layers, not the first scene
             swap_buffers(m_window.get());
 
             // Control framerate

@@ -84,7 +84,6 @@ namespace rte
                 if (material_indices.find(mesh->mMaterialIndex) == material_indices.end()) continue;
                 auto m = make_mesh();
 
-                std::vector<glm::vec3> new_mesh.m_vertices;
                 if (mesh->HasPositions()) {
                     for (std::size_t i_vertices = 0; i_vertices < mesh->mNumVertices; i_vertices++) {
                         aiVector3D vertex = mesh->mVertices[i_vertices];
@@ -92,7 +91,6 @@ namespace rte
                     }
                 }
 
-                std::vector<glm::vec2> new_mesh.m_texture_coords;
                 if (mesh->HasTextureCoords(0)) {
                     for (std::size_t i_vertices = 0; i_vertices < mesh->mNumVertices; i_vertices++) {
                         aiVector3D tex_coords = mesh->mTextureCoords[0][i_vertices];
@@ -100,7 +98,6 @@ namespace rte
                     }
                 }
 
-                std::vector<glm::vec3> new_mesh.m_normals;
                 if (mesh->HasNormals()) {
                     for (std::size_t i_normals = 0; i_normals < mesh->mNumVertices; i_normals++) {
                         aiVector3D normal = mesh->mNormals[i_normals];
@@ -108,7 +105,6 @@ namespace rte
                     }
                 }
 
-                std::vector<vindex> new_mesh.m_indices;
                 if (mesh->HasFaces()) {
                     for (std::size_t i_faces = 0; i_faces < mesh->mNumFaces; i_faces++) {
                         aiFace face = mesh->mFaces[i_faces];
@@ -140,7 +136,7 @@ namespace rte
                     set_resource_mesh(current.added_resource, mesh_indices[current.ai_node->mMeshes[0]]);                
                     unsigned int material_index = scene->mMeshes[current.ai_node->mMeshes[0]]->mMaterialIndex;
                     if (material_indices.find(material_index) != material_indices.end()) {
-                        new_resource_db.at(current.added_resource).m_material = material_indices.at(material_index);
+                        new_resource_db.at(current.added_resource).m_elem.m_material = material_indices.at(material_index);
                     }
                 }
 
@@ -150,7 +146,7 @@ namespace rte
                 // and we need column-major.
                 aiMatrix4x4 local_transform = current.ai_node->mTransformation;
                 aiTransposeMatrix4(&local_transform);
-                new_resource_db.at(current.added_resource).m_local_transform = glm::make_mat4((float *) &local_transform);
+                new_resource_db.at(current.added_resource).m_elem.m_local_transform = glm::make_mat4((float *) &local_transform);
 
                 // Assimp creates a structure with several meshes by node, and each mesh has a
                 // material. In practice though most models have one mesh by node. Our model has one
@@ -165,10 +161,10 @@ namespace rte
                 while (ai_mesh < current.ai_node->mNumMeshes) {
                     resource res;
                     last_parent_index = new_resource_db.insert(res, last_parent_index);
-                    resource& last_parent = new_resource_db.at(last_parent_index);
-                    last_parent.m_mesh = mesh_indices.at(current.ai_node->mMeshes[ai_mesh]);
-                    last_parent.m_material = material_indices.at(scene->mMeshes[current.ai_node->mMeshes[ai_mesh]]->mMaterialIndex);
-                    last_parent.m_local_transform = glm::mat4(1.0f);
+                    auto& last_parent = new_resource_db.at(last_parent_index);
+                    last_parent.m_elem.m_mesh = mesh_indices.at(current.ai_node->mMeshes[ai_mesh]);
+                    last_parent.m_elem.m_material = material_indices.at(scene->mMeshes[current.ai_node->mMeshes[ai_mesh]]->mMaterialIndex);
+                    last_parent.m_elem.m_local_transform = glm::mat4(1.0f);
                     ai_mesh++;
                 }
 
@@ -189,8 +185,8 @@ namespace rte
     //-----------------------------------------------------------------------------------------------
     void load_resources(const std::string& file_name, resource_database::size_type& root_out, view_database& db)
     {
-        if (!(file_name.size() > 0 && materials_out && meshes_out)) {
-            throw std::runtime_error("load_resources error: invalid arguments");
+        if (!(file_name.size() > 0)) {
+            throw std::domain_error("load_resources error: empty file name");
         }
 
         struct aiLogStream log_stream;

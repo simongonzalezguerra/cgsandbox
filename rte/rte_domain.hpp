@@ -79,7 +79,7 @@ namespace rte
         std::string                       m_name;               //!< name of this resource
     };
 
-    sparse_tree<resource> resource_database;
+    typedef sparse_tree<resource> resource_database;
 
     struct cubemap
     {
@@ -203,15 +203,15 @@ namespace rte
             m_camera(camera_database::value_type::npos),
             m_viewport_x(0U),
             m_viewport_y(0U),
-            m_viewport_width(0U),
-            m_viewport_height(0U)
+            m_viewport_width_percentage(0.0f),
+            m_viewport_height_percentage(0.0f) {}
 
         scene_database::size_type       m_scene;
         camera_database::size_type      m_camera;
-        unsigned int                    m_viewport_x;
-        unsigned int                    m_viewport_y;
-        unsigned int                    m_viewport_width;
-        unsigned int                    m_viewport_height;
+        unsigned int                    m_viewport_x;                  //!< position of the viewport upper left corner, relative to the upper left corner of the window, in pixels. X increases to the right.
+        unsigned int                    m_viewport_y;                  //!< position of the viewport upper left corner, relative to the upper left corner of the window, in pixels. Y increases downwards.
+        float                           m_viewport_width_percentage;   //!< viewport width, as a percentage of the total window width
+        float                           m_viewport_height_percentage;  //!< viewport hieght, as a percentage of the total window height
     };
 
     typedef sparse_tree<layer> layer_database;

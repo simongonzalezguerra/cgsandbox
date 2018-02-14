@@ -4,6 +4,7 @@
 #include "glm/glm.hpp"
 #include "log.hpp"
 
+#include <iomanip>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -107,16 +108,15 @@ namespace rte
             log(LOG_LEVEL_DEBUG, oss.str().c_str());
         }
 
-        void log_resource(resource_database::value_type::npos root_index, const resource_database& db)
+        void log_resource(resource_database::size_type root_index, const resource_database& db)
         {
             // Iterate the resource tree with a depth-first search printing resources
-            struct context{ resource_database::value_type::npos resource_index; unsigned int indentation; };
-            std::vector<context, std::vector<context>> pending_nodes;
+            struct context{ resource_database::size_type resource_index; unsigned int indentation; };
+            std::vector<context> pending_nodes;
             pending_nodes.push_back({root_index, 1U});
             while (!pending_nodes.empty()) {
                 auto current = pending_nodes.back();
                 pending_nodes.pop_back();
-                visited_resources.insert(current.resource_index);
     
                 auto& res = db.at(current.resource_index);
     
@@ -139,7 +139,7 @@ namespace rte
                 // We are using a stack to process depth-first, so in order for the children to be
                 // processed in the order in which they appear we must push them in reverse order,
                 // otherwise the last child will be processed first    
-                for (auto& it = res.rbegin(); it != res.rend(); ++it) {
+                for (auto it = res.rbegin(); it != res.rend(); ++it) {
                     pending_nodes.push_back({index(it), current.indentation + 1});
                 }
             }
@@ -154,11 +154,11 @@ namespace rte
         log(LOG_LEVEL_DEBUG, "---------------------------------------------------------------------------------------------------");
         log(LOG_LEVEL_DEBUG, "resource_database: materials begin");
         auto& material_list = db.m_materials.at(0);
-        for (auto& it = material_list.begin(); it != material_list.end(); ++it) {
+        for (auto it = material_list.begin(); it != material_list.end(); ++it) {
             auto& mat = it->m_elem;
             std::ostringstream oss; 
             oss << std::setprecision(2) << std::fixed;
-            oss << "    material index: " << m;
+            oss << "    material index: " << index(it);
             oss << ", user id: " << format_user_id(mat.m_user_id);
             oss << ", name: " << mat.m_name;
             oss << ", diffuse color: " << mat.m_diffuse_color;
@@ -178,7 +178,7 @@ namespace rte
         log(LOG_LEVEL_DEBUG, "---------------------------------------------------------------------------------------------------");
         log(LOG_LEVEL_DEBUG, "resource_database: meshes begin");
         auto& mesh_list = db.m_meshes.at(0);
-        for (auto& it : mesh_list.begin(); it != mesh_list.end(); ++it) {
+        for (auto it = mesh_list.begin(); it != mesh_list.end(); ++it) {
             log_mesh(index(it), db);
         }
 
@@ -191,7 +191,7 @@ namespace rte
         log(LOG_LEVEL_DEBUG, "---------------------------------------------------------------------------------------------------");
         log(LOG_LEVEL_DEBUG, "resource_database: resources begin");
         auto& resource_list = db.m_resources.at(0);
-        for (auto& it = resource_list.begin(); it != resource_list.end(); ++it) {
+        for (auto it = resource_list.begin(); it != resource_list.end(); ++it) {
             log_resource(index(it), db.m_resources);
         }
 
@@ -203,7 +203,7 @@ namespace rte
         log(LOG_LEVEL_DEBUG, "---------------------------------------------------------------------------------------------------");
         log(LOG_LEVEL_DEBUG, "resource_database: cubemaps begin");
         auto& cubemap_list = db.m_cubemaps.at(0);
-        for (auto& it = cubemap_list.begin(); it != cubemap_list.end(); ++it) {
+        for (auto it = cubemap_list.begin(); it != cubemap_list.end(); ++it) {
             auto& cube = *it;
             std::ostringstream oss;
 
@@ -244,11 +244,11 @@ namespace rte
 
             oss << "[ ";
             oss << "node id: " << current.node_index;
-            oss << ", user id: " << format_user_id(n.m_user_id);
-            oss << ", name: " << n.m_name;
-            oss << ", mesh: " << format_mesh_id(n.m_mesh);
-            oss << ", material: " << format_material_id(n.m_material);
-            oss << ", local transform: " << n.m_local_transform;
+            oss << ", user id: " << format_user_id(n.m_elem.m_user_id);
+            oss << ", name: " << n.m_elem.m_name;
+            oss << ", mesh: " << format_mesh_id(n.m_elem.m_mesh);
+            oss << ", material: " << format_material_id(n.m_elem.m_material);
+            oss << ", local transform: " << n.m_elem.m_local_transform;
             oss << " ]";
             log(LOG_LEVEL_DEBUG, oss.str().c_str());
 
@@ -274,7 +274,7 @@ namespace rte
         log(LOG_LEVEL_DEBUG, oss.str().c_str());
     }
 
-    void log_point_light(point_ligth_database::size_type point_light_index, const point_light_database& db)
+    void log_point_light(point_light_database::size_type point_light_index, const point_light_database& db)
     {
         auto& pl = db.at(point_light_index);
         std::ostringstream oss;
@@ -302,7 +302,7 @@ namespace rte
         log(LOG_LEVEL_DEBUG, oss.str().c_str());
 
         oss.str("");
-        oss << "        user_id : " << format_user_id(s.m_user_id);
+        oss << "        user_id : " << format_user_id(s.m_elem.m_user_id);
         log(LOG_LEVEL_DEBUG, oss.str().c_str());
 
         log_directional_light(s);
@@ -317,7 +317,7 @@ namespace rte
         }
 
         oss.str("");
-        node_database::size_type root = get_scene_root_node(s);
+        node_database::size_type root = s.m_elem.m_root_node;
         oss << "        root node :";
         log(LOG_LEVEL_DEBUG, oss.str().c_str());
 
@@ -331,9 +331,9 @@ namespace rte
     {
         log(LOG_LEVEL_DEBUG, "---------------------------------------------------------------------------------------------------");
         log(LOG_LEVEL_DEBUG, "scenegraph: scenes begin");
-        auto& scene_list = db.m_scenes(0);
+        auto& scene_list = db.m_scenes.at(0);
         for (auto it = scene_list.begin(); it != scene_list.end(); ++it) {
-            log_scene(index(it), db.m_scens);
+            log_scene(index(it), db);
         }
         log(LOG_LEVEL_DEBUG, "scenegraph: scenes end");
     }

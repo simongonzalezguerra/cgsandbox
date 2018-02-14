@@ -44,7 +44,7 @@ namespace rte
         void load_materials(material_database& db)
         {
             for (auto& m : document.at("materials")) {
-                material_databse::size_type new_index = db.insert(material());
+                material_database::size_type new_index = db.insert(material());
                 auto& new_material = db.at(new_index);
                 user_id material_user_id = m.value("user_id", nuser_id);
                 new_material.m_elem.m_diffuse_color = array_to_vec3(m.at("diffuse_color"));
@@ -60,8 +60,6 @@ namespace rte
                     material_ids[material_user_id] = new_index;
                 }
             }
-
-            materials.insert(materials.end(), make_move_iterator(added_materials.begin()), make_move_iterator(added_materials.end()));
         }
 
         void fill_index_vector(const json& mesh_document, std::vector<vindex>& out, const std::string& field_name)
@@ -118,11 +116,11 @@ namespace rte
                 mesh_database::size_type new_index = db.insert(mesh());
                 auto& new_mesh = db.at(new_index);
                 user_id mesh_user_id = m.value("user_id", nuser_id);
-                new_mesh.m_eleme.m_user_id = mesh_user_id;
+                new_mesh.m_elem.m_user_id = mesh_user_id;
                 fill_3d_vector(m, new_mesh.m_elem.m_vertices, "vertices");
                 fill_2d_vector(m, new_mesh.m_elem.m_texture_coords, "texture_coords");
                 fill_3d_vector(m, new_mesh.m_elem.m_normals, "normals");
-                fill_index_vector(m, new_mesh.m_indices, "indices");
+                fill_index_vector(m, new_mesh.m_elem.m_indices, "indices");
                 if (mesh_user_id != nuser_id) {
                     mesh_ids[mesh_user_id] = new_index;
                 }
@@ -131,7 +129,7 @@ namespace rte
 
         bool resource_has_child(resource_database::size_type resource_index,
                                 unsigned int child_index,
-                                resource_database::size_type& child_index_out
+                                resource_database::size_type& child_index_out,
                                 const resource_database& db)
         {
             auto& res = db.at(resource_index);
@@ -155,15 +153,15 @@ namespace rte
             if (resource_document.count("from_file")) {
                 load_resources(resource_document.value("from_file", std::string()), new_root_index, db);
             } else {
-                auto& new_resource_index = db.m_resources(insert, parent_index);
-                auto& new_resource = db.m_resources.at(new_resource_index);
+                new_root_index = db.m_resources.insert(resource(), parent_index);
                 user_id mesh_user_id = resource_document.value("mesh", nuser_id);
                 mesh_map::iterator mit;
                 if ((mit = mesh_ids.find(mesh_user_id)) != mesh_ids.end()) {
-                    new_resource.m_elem.m_mesh = mit->second;
+                    db.m_resources.at(new_root_index).m_elem.m_mesh = mit->second;
                 }
                 // materials are set later in a second traversal
             }
+            auto& new_resource = db.m_resources.at(new_root_index);
             new_resource.m_elem.m_name = resource_document.value("name", std::string());
             new_resource.m_elem.m_user_id = resource_document.value("user_id", nuser_id);
             if (resource_document.count("user_id")) {
@@ -187,7 +185,7 @@ namespace rte
                 pending_nodes.pop_back();
                 resource_database::size_type current_resource = resource_database::value_type::npos;
                 if (current.parent_index == resource_database::value_type::npos
-                    || !resource_has_child(current.parent_index, current.local_child_index, current_resource)) {
+                    || !resource_has_child(current.parent_index, current.local_child_index, current_resource, db.m_resources)) {
                     create_resource(current.doc, current.parent_index, current_resource, db);
                     if (!root_set) {
                         new_root_index = current_resource; // only the first resource created is saved into new_root_index
@@ -201,8 +199,8 @@ namespace rte
                 if (current.doc.count("children")) {
                     unsigned int n_child = 0;
                     auto& children_list = current.doc.at("children");
-                    for (auto& json_it = children_list.rbegin(); json_it != children_list.rend(); ++json_it) {
-                        pending_nodes.push_back({json_it, current_resource, n_child++});
+                    for (auto json_it = children_list.rbegin(); json_it != children_list.rend(); ++json_it) {
+                        pending_nodes.push_back(json_context{*json_it, current_resource, n_child++});
                     }                    
                 }
             }
@@ -234,8 +232,9 @@ namespace rte
                 // so we just push them in the order in which they come (the last child will be processed first)
                 if (current.doc.count("children")) {
                     auto rit = res.begin();
-                    for (auto& json_child : current.doc.at("children")) {
-                        pending_nodes.push_back({json_child, index(rit)});
+                    auto& children_list = current.doc.at("children");
+                    for (auto json_child = children_list.begin(); json_child != children_list.end(); ++json_child) {
+                        pending_nodes.push_back({*json_child, index(rit)});
                         ++rit;
                     }                    
                 }
@@ -254,7 +253,7 @@ namespace rte
         void load_cubemaps(cubemap_database& db)
         {
             for (auto& cubemap_doc : document.at("cubemaps")) {
-                auto& new_cubemap_index = db.insert(cubemap());
+                auto new_cubemap_index = db.insert(cubemap());
                 auto& new_cubemap = db.at(new_cubemap_index);
                 for (auto& face_doc : cubemap_doc.at("faces")) {
                     new_cubemap.m_elem.m_faces.push_back(face_doc.get<std::string>());
@@ -266,96 +265,96 @@ namespace rte
             }
         }
 
-        bool node_has_child(node_id n, unsigned int index, node_id* child_out)
-        {
-            // TODO
-            node_id child = get_first_child_node(n);
-            unsigned int n_child = 0U;
-            while (child != node_database::value_type::npos && n_child++ < index) {
-                child = get_next_sibling_node(child);
-            }
+//         bool node_has_child(node_id n, unsigned int index, node_id* child_out)
+//         {
+//             // TODO
+//             node_id child = get_first_child_node(n);
+//             unsigned int n_child = 0U;
+//             while (child != node_database::value_type::npos && n_child++ < index) {
+//                 child = get_next_sibling_node(child);
+//             }
+// 
+//             *child_out = child;
+//             return (child != node_database::value_type::npos);
+//         }
 
-            *child_out = child;
-            return (child != node_database::value_type::npos);
-        }
+//        void create_node(const json& node_document, node_id parent, node_vector* nodes_out, node_id* root_out)
+//        {
+//            // TODO
+//            node_id new_node = node_database::value_type::npos;
+//            node_vector added_nodes;
+//            user_id resource_user_id = node_document.value("resource", nuser_id);
+//            resource_database::size_type resource = (resource_user_id == nuser_id ? resource_database::value_type::npos : resource_ids.at(resource_user_id));
+//            // resource can be resource_database::value_type::npos, in that case make_node() creates an empty node
+//            make_node(parent, resource, &new_node, &added_nodes);
+//
+//            set_node_name(new_node, node_document.value("name", std::string()));
+//            set_node_user_id(new_node, node_document.value("user_id", nuser_id));
+//
+//            // The transform inherited from the resource is only overwritten if the document includes all required properties
+//            if (node_document.count("scale") && node_document.count("rotation_angle") && node_document.count("rotation_axis") && node_document.count("translation")) {
+//                glm::mat4 scale = glm::scale(array_to_vec3(node_document.at("scale")));
+//                glm::mat4 rotation = glm::rotate(node_document.at("rotation_angle").get<float>(), array_to_vec3(node_document.at("rotation_axis")));;
+//                glm::mat4 translation = glm::translate(array_to_vec3(node_document.at("translation")));
+//                set_node_transform(new_node, translation * rotation * scale);
+//            }
+//            // materials are set later in a second traversal
+//
+//            *root_out = new_node;
+//            nodes_out->insert(nodes_out->end(), make_move_iterator(added_nodes.begin()), make_move_iterator(added_nodes.end()));
+//        }
 
-        void create_node(const json& node_document, node_id parent, node_vector* nodes_out, node_id* root_out)
-        {
-            // TODO
-            node_id new_node = node_database::value_type::npos;
-            node_vector added_nodes;
-            user_id resource_user_id = node_document.value("resource", nuser_id);
-            resource_database::size_type resource = (resource_user_id == nuser_id ? resource_database::value_type::npos : resource_ids.at(resource_user_id));
-            // resource can be resource_database::value_type::npos, in that case make_node() creates an empty node
-            make_node(parent, resource, &new_node, &added_nodes);
-
-            set_node_name(new_node, node_document.value("name", std::string()));
-            set_node_user_id(new_node, node_document.value("user_id", nuser_id));
-
-            // The transform inherited from the resource is only overwritten if the document includes all required properties
-            if (node_document.count("scale") && node_document.count("rotation_angle") && node_document.count("rotation_axis") && node_document.count("translation")) {
-                glm::mat4 scale = glm::scale(array_to_vec3(node_document.at("scale")));
-                glm::mat4 rotation = glm::rotate(node_document.at("rotation_angle").get<float>(), array_to_vec3(node_document.at("rotation_axis")));;
-                glm::mat4 translation = glm::translate(array_to_vec3(node_document.at("translation")));
-                set_node_transform(new_node, translation * rotation * scale);
-            }
-            // materials are set later in a second traversal
-
-            *root_out = new_node;
-            nodes_out->insert(nodes_out->end(), make_move_iterator(added_nodes.begin()), make_move_iterator(added_nodes.end()));
-        }
-
-        void create_node_tree(const json& node_document, node_id scene_root, node_vector* nodes_out, node_id* root)
-        {
-            // TODO
-            node_vector added_nodes;
-            material_vector added_materials;
-            mesh_vector added_meshes;
-            bool root_set = false;
-            *root = node_database::value_type::npos;
-            struct json_context { const json& doc; node_id parent; unsigned int index; };
-            std::stack<json_context, std::vector<json_context>> pending_nodes;
-            pending_nodes.push({node_document, scene_root, 0U});
-            while (!pending_nodes.empty()) {
-                auto current = pending_nodes.top();
-                pending_nodes.pop();
-                node_id current_node = node_database::value_type::npos;
-                if (current.parent == scene_root || !node_has_child(current.parent, current.index, &current_node)) {
-                    create_node(current.doc, current.parent, &added_nodes, &current_node);
-                    if (!root_set) {
-                        *root  = current_node; // only the first node created is saved into root
-                        root_set = true;
-                    }
-                }
-
-                // We are using a stack to process depth-first, so in order for the children to be
-                // processed in the order in which they appear we must push them in reverse order,
-                // otherwise the last child will be processed first
-                std::vector<json_context> children_list;
-                unsigned int n_child = 0;
-                if (current.doc.count("children")) {
-                    for (auto& child : current.doc.at("children")) {
-                        children_list.push_back({child, current_node, n_child++});
-                    }                    
-                }
-
-                for (auto cit = children_list.rbegin(); cit != children_list.rend(); cit++) {
-                    pending_nodes.push(*cit);
-                }
-            }
-
-            nodes_out->insert(nodes_out->end(), make_move_iterator(added_nodes.begin()), make_move_iterator(added_nodes.end()));
-        }
+//         void create_node_tree(const json& node_document, node_id scene_root, node_vector* nodes_out, node_id* root)
+//         {
+//             // TODO
+//             node_vector added_nodes;
+//             material_vector added_materials;
+//             mesh_vector added_meshes;
+//             bool root_set = false;
+//             *root = node_database::value_type::npos;
+//             struct json_context { const json& doc; node_id parent; unsigned int index; };
+//             std::vector<json_context> pending_nodes;
+//             pending_nodes.push_back({node_document, scene_root, 0U});
+//             while (!pending_nodes.empty()) {
+//                 auto current = pending_nodes.back();
+//                 pending_nodes.pop_back();
+//                 node_id current_node = node_database::value_type::npos;
+//                 if (current.parent == scene_root || !node_has_child(current.parent, current.index, &current_node)) {
+//                     create_node(current.doc, current.parent, &added_nodes, &current_node);
+//                     if (!root_set) {
+//                         *root  = current_node; // only the first node created is saved into root
+//                         root_set = true;
+//                     }
+//                 }
+// 
+//                 // We are using a stack to process depth-first, so in order for the children to be
+//                 // processed in the order in which they appear we must push them in reverse order,
+//                 // otherwise the last child will be processed first
+//                 std::vector<json_context> children_list;
+//                 unsigned int n_child = 0;
+//                 if (current.doc.count("children")) {
+//                     for (auto& child : current.doc.at("children")) {
+//                         children_list.push_back({child, current_node, n_child++});
+//                     }                    
+//                 }
+// 
+//                 for (auto cit = children_list.rbegin(); cit != children_list.rend(); cit++) {
+//                     pending_nodes.push_back(*cit);
+//                 }
+//             }
+// 
+//             nodes_out->insert(nodes_out->end(), make_move_iterator(added_nodes.begin()), make_move_iterator(added_nodes.end()));
+//         }
 
         void set_node_tree_materials_and_names(const json& node_document, node_id root)
         {
             // TODO
             struct json_context { const json& doc; node_id nid; };
-            std::stack<json_context, std::vector<json_context>> pending_nodes;
-            pending_nodes.push({node_document, root });
+            std::vector<json_context> pending_nodes;
+            pending_nodes.push_back({node_document, root });
             while (!pending_nodes.empty()) {
-                auto current = pending_nodes.top();
-                pending_nodes.pop();
+                auto current = pending_nodes.back();
+                pending_nodes.pop_back();
 
                 user_id material_user_id = current.doc.value("material", nuser_id);
                 material_map::iterator mit;
@@ -380,7 +379,7 @@ namespace rte
                 }
 
                 for (auto cit = children_list.rbegin(); cit != children_list.rend(); cit++) {
-                    pending_nodes.push(*cit);
+                    pending_nodes.push_back(*cit);
                 }
             }
         }
@@ -388,14 +387,11 @@ namespace rte
         void load_nodes(const json& scene_doc)
         {
             // TODO
-            node_vector added_nodes;
             for (auto& n : scene_doc.at("nodes")) {
                 node_id added_root = node_database::value_type::npos;
-                create_node_tree(n, get_scene_root_node(current_scene), &added_nodes, &added_root);
+                //create_node_tree(n, get_scene_root_node(current_scene), &added_nodes, &added_root);
                 set_node_tree_materials_and_names(n, added_root);
             }
-
-            nodes.insert(nodes.end(), make_move_iterator(added_nodes.begin()), make_move_iterator(added_nodes.end()));
         }
 
         void load_directional_light(const json& scene_doc)
@@ -407,35 +403,32 @@ namespace rte
             set_directional_light_direction(current_scene, array_to_vec3(scene_doc.at("directional_light").at("direction")));
         }
 
-        void create_point_light(const json& point_light_document, point_light_vector* point_lights)
-        {
-            // TODO
-            unique_point_light pl = make_point_light(current_scene);
-            set_point_light_user_id(pl.get(), point_light_document.value("user_id", nuser_id));
-            set_point_light_position(pl.get(), array_to_vec3(point_light_document.at("position")));
-            set_point_light_ambient_color(pl.get(), array_to_vec3(point_light_document.at("ambient_color")));
-            set_point_light_diffuse_color(pl.get(), array_to_vec3(point_light_document.at("diffuse_color")));
-            set_point_light_specular_color(pl.get(), array_to_vec3(point_light_document.at("specular_color")));
-            set_point_light_constant_attenuation(pl.get(), point_light_document.at("constant_attenuation").get<float>());
-            set_point_light_linear_attenuation(pl.get(), point_light_document.at("linear_attenuation").get<float>());
-            set_point_light_quadratic_attenuation(pl.get(), point_light_document.at("quadratic_attenuation").get<float>());
-            point_lights->push_back(std::move(pl));
-        }
+//        void create_point_light(const json& point_light_document, point_light_vector* point_lights)
+//        {
+//            // TODO
+//            unique_point_light pl = make_point_light(current_scene);
+//            set_point_light_user_id(pl.get(), point_light_document.value("user_id", nuser_id));
+//            set_point_light_position(pl.get(), array_to_vec3(point_light_document.at("position")));
+//            set_point_light_ambient_color(pl.get(), array_to_vec3(point_light_document.at("ambient_color")));
+//            set_point_light_diffuse_color(pl.get(), array_to_vec3(point_light_document.at("diffuse_color")));
+//            set_point_light_specular_color(pl.get(), array_to_vec3(point_light_document.at("specular_color")));
+//            set_point_light_constant_attenuation(pl.get(), point_light_document.at("constant_attenuation").get<float>());
+//            set_point_light_linear_attenuation(pl.get(), point_light_document.at("linear_attenuation").get<float>());
+//            set_point_light_quadratic_attenuation(pl.get(), point_light_document.at("quadratic_attenuation").get<float>());
+//            point_lights->push_back(std::move(pl));
+//        }
 
-        void load_point_lights(const json& scene_doc)
+        void load_point_lights(const json& /* scene_doc */)
         {
             // TODO
-            point_light_vector added_point_lights;
-            for (auto& point_light_document : scene_doc.at("point_lights")) {
-                create_point_light(point_light_document, &added_point_lights);
-            }
-            point_lights.insert(point_lights.end(), make_move_iterator(added_point_lights.begin()), make_move_iterator(added_point_lights.end()));
+            // for (auto& point_light_document : scene_doc.at("point_lights")) {
+            //     // create_point_light(point_light_document, &added_point_lights);
+            // }
         }
 
         void load_scenes()
         {
             // TODO
-            scene_vector added_scenes;
             for (auto& scene_doc : document.at("scenes")) {
                 unique_scene scene = make_scene();
                 set_scene_user_id(scene.get(), scene_doc.value("user_id", nuser_id));
@@ -451,11 +444,9 @@ namespace rte
                 load_directional_light(scene_doc);
                 load_point_lights(scene_doc);
 
-                added_scenes.push_back(std::move(scene));
+                //added_scenes.push_back(std::move(scene));
                 current_scene = scene_database::value_type::npos;
             }
-
-            scenes.insert(scenes.end(), make_move_iterator(added_scenes.begin()), make_move_iterator(added_scenes.end()));
         }
 
     } // anonymous namespace
@@ -469,20 +460,13 @@ namespace rte
         if (!initialized) {
             log(LOG_LEVEL_DEBUG, "database_loader: initializing database loader");
             document = json();
-            materials.clear();
-            meshes.clear();
-            resources.clear();
-            cubemaps.clear();
-            nodes.clear();
-            point_lights.clear();
-            scenes.clear();
             resource_ids.clear();
             initialized = true;
             log(LOG_LEVEL_DEBUG, "database_loader: database loader initialized");
         }
     }
 
-    void load_database(view_database& db)
+    void load_database(view_database& /* db */)
     {
         // TODO
         if (!initialized) return;
@@ -526,13 +510,6 @@ namespace rte
         // TODO
         if (initialized) {
             log(LOG_LEVEL_DEBUG, "database_loader: finalizing database loader");
-            materials.clear();
-            meshes.clear();
-            resources.clear();
-            cubemaps.clear();
-            nodes.clear();
-            point_lights.clear();
-            scenes.clear();
             initialized = false;
             log(LOG_LEVEL_DEBUG, "database_loader: finalized");
         }
