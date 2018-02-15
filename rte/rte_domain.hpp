@@ -158,27 +158,12 @@ namespace rte
         glm::vec3      m_direction;      //!< direction of the directional light
     };
 
-    struct camera
-    {
-        camera() :
-            m_view_transform(),
-            m_projection_transform(),
-            m_name() {}
-
-        glm::mat4        m_view_transform;
-        glm::mat4        m_projection_transform;
-        std::string      m_name;
-    };
-
-    typedef sparse_tree<camera> camera_database;
-
     struct scene
     {
         scene() :
             m_point_lights(point_light_database::value_type::npos),
             m_root_node(node_database::value_type::npos),
             m_skybox(cubemap_database::value_type::npos),
-            m_cameras(camera_database::value_type::npos),
             m_enabled(false),
             m_dirlight(),
             m_user_id(nuser_id),
@@ -187,7 +172,6 @@ namespace rte
         point_light_database::size_type      m_point_lights;                     //!< list of point lights in the scene
         node_database::size_type             m_root_node;                        //!< handle to the root node of this scene
         cubemap_database::size_type          m_skybox;                           //!< the id of the cubemap to use as skybox (can be cubemap_database::value_type::npos)
-        camera_database::size_type           m_cameras;                          //!< list of cameras in this scene
         bool                                 m_enabled;                          //!< is this scene enabled?
         dirlight                             m_dirlight;                         //!< directional light
         user_id                              m_user_id;                          //!< user id of this scene
@@ -195,38 +179,6 @@ namespace rte
     };
 
     typedef sparse_tree<scene> scene_database;
-
-    struct layer
-    {
-        layer() :
-            m_scene(scene_database::value_type::npos),
-            m_camera(camera_database::value_type::npos),
-            m_viewport_x(0U),
-            m_viewport_y(0U),
-            m_viewport_width_percentage(0.0f),
-            m_viewport_height_percentage(0.0f) {}
-
-        scene_database::size_type       m_scene;
-        camera_database::size_type      m_camera;
-        unsigned int                    m_viewport_x;                  //!< position of the viewport upper left corner, relative to the upper left corner of the window, in pixels. X increases to the right.
-        unsigned int                    m_viewport_y;                  //!< position of the viewport upper left corner, relative to the upper left corner of the window, in pixels. Y increases downwards.
-        float                           m_viewport_width_percentage;   //!< viewport width, as a percentage of the total window width
-        float                           m_viewport_height_percentage;  //!< viewport hieght, as a percentage of the total window height
-    };
-
-    typedef sparse_tree<layer> layer_database;
-
-    struct settings
-    {
-        settings() :
-            m_window_width(0U),
-            m_window_heght(0U),
-            m_fullscreen(false) {}
-
-        unsigned int m_window_width;
-        unsigned int m_window_heght;
-        bool         m_fullscreen;
-    };
 
     struct view_database
     {
@@ -236,10 +188,7 @@ namespace rte
         cubemap_database          m_cubemaps;
         node_database             m_nodes;
         point_light_database      m_point_lights;
-        camera_database           m_cameras;
         scene_database            m_scenes;
-        layer_database            m_layers;
-        settings                  m_settings;
     };
 
     void log_materials(const view_database& db);

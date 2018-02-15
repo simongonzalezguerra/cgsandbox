@@ -25,8 +25,8 @@ namespace rte
         texture_vector         textures;
         buffer_vector          buffers;
         gl_cubemap_vector      gl_cubemaps;
-        buffer_vector          gl_cubemap_position_buffers;            // placeholder, only contains one element
-        buffer_vector          gl_cubemap_index_buffers;               // placeholder, only contains one element
+        buffer_vector          gl_cubemap_position_buffers;         // placeholder, only contains one element
+        buffer_vector          gl_cubemap_index_buffers;            // placeholder, only contains one element
         program_vector         phong_programs;                      // placeholder, only contains one element
         program_vector         environment_mapping_programs;        // placeholder, only contains one element
         program_vector         skybox_programs;                     // placeholder, only contains one element
@@ -329,17 +329,17 @@ namespace rte
         }
     }
 
-    void render(scene_id s)
+    void render(const view_database& /* db */)
     {
-        driver.initialize_frame();
-        // Convert tree into list and filter out non-enabled nodes
-        current_scene = s;
-        nodes_to_render.clear();
-        get_descendant_nodes(get_scene_root_node(s), nodes_to_render);
-        driver_context = gl_driver_context();
-        get_scene_properties();
-        render_phong_nodes();
-        render_environment_mapping_nodes();
-        render_skybox();
+        // driver.initialize_frame();
+        // // Convert tree into list and filter out non-enabled nodes
+        // current_scene = nscene;
+        // nodes_to_render.clear();
+        // TODO get_descendant_nodes(get_scene_root_node(s), nodes_to_render);
+        // driver_context = gl_driver_context();
+        // get_scene_properties();
+        // render_phong_nodes();
+        // render_environment_mapping_nodes();
+        // render_skybox();
     }
 } // namespace rte

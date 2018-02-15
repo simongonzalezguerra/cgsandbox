@@ -154,7 +154,7 @@ namespace rte
             compute_accum_transforms();
 
             // Render the scene
-            render(get_first_scene()); // TODO the renderer should be fed all the layers, not the first scene
+            render(m_view_db);
             swap_buffers(m_window.get());
 
             // Control framerate
