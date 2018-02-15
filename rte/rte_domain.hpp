@@ -5,6 +5,8 @@
 #include "rte_common.hpp"
 #include "glm/glm.hpp"
 
+#include <memory>
+
 namespace rte
 {
     struct material
@@ -49,6 +51,38 @@ namespace rte
             m_user_id(nuser_id),
             m_name() {}
     
+        mesh(const mesh& m) = default;
+
+        mesh(mesh&& m) :
+            m_vertices(std::move(m.m_vertices)),
+            m_texture_coords(std::move(m.m_texture_coords)),
+            m_normals(std::move(m.m_normals)),
+            m_indices(std::move(m.m_indices)),
+            m_position_buffer_id(std::move(m.m_position_buffer_id)),
+            m_uv_buffer_id(std::move(m.m_uv_buffer_id)),
+            m_normal_buffer_id(std::move(m.m_normal_buffer_id)),
+            m_index_buffer_id(std::move(m.m_index_buffer_id)),
+            m_user_id(std::move(m.m_user_id)),
+            m_name(std::move(m.m_name)) {}
+
+        mesh& operator=(const mesh& m) = default;
+
+        mesh& operator=(mesh&& m)
+        {
+            m_vertices = std::move(m.m_vertices);
+            m_texture_coords = std::move(m.m_texture_coords);
+            m_normals = std::move(m.m_normals);
+            m_indices = std::move(m.m_indices);
+            m_position_buffer_id = std::move(m.m_position_buffer_id);
+            m_uv_buffer_id = std::move(m.m_uv_buffer_id);
+            m_normal_buffer_id = std::move(m.m_normal_buffer_id);
+            m_index_buffer_id = std::move(m.m_index_buffer_id);
+            m_user_id = std::move(m.m_user_id);
+            m_name = std::move(m.m_name);
+
+            return *this;            
+        }
+
         std::vector<glm::vec3>      m_vertices;            //!< vertex coordinates
         std::vector<glm::vec2>      m_texture_coords;      //!< texture coordinates for each vertex
         std::vector<glm::vec3>      m_normals;             //!< normals of the mesh
@@ -182,6 +216,34 @@ namespace rte
 
     struct view_database
     {
+        view_database() = default;
+
+        view_database(const view_database& vbd) = default;
+
+        view_database(view_database&& vdb) :
+            m_materials(std::move(vdb.m_materials)),
+            m_meshes(std::move(vdb.m_meshes)),
+            m_resources(std::move(vdb.m_resources)),
+            m_cubemaps(std::move(vdb.m_cubemaps)),
+            m_nodes(std::move(vdb.m_nodes)),
+            m_point_lights(std::move(vdb.m_point_lights)),
+            m_scenes(std::move(vdb.m_scenes)) {}
+
+        view_database& operator=(const view_database&) = default;
+
+        view_database& operator=(view_database&& vdb)
+        {
+            m_materials = std::move(vdb.m_materials);
+            m_meshes = std::move(vdb.m_meshes);
+            m_resources = std::move(vdb.m_resources);
+            m_cubemaps = std::move(vdb.m_cubemaps);
+            m_nodes = std::move(vdb.m_nodes);
+            m_point_lights = std::move(vdb.m_point_lights);
+            m_scenes = std::move(vdb.m_scenes);
+
+            return *this;
+        }
+
         material_database         m_materials;
         mesh_database             m_meshes;
         resource_database         m_resources;
