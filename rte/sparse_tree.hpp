@@ -5,6 +5,7 @@
 #include <stdexcept>
 #include <iterator>
 #include <cassert>
+#include <memory>
 #include <vector>
 #include <set>
 #include <map>
@@ -271,11 +272,20 @@ namespace rte
             m_elems.push_back(root_node);
         }
 
+        sparse_tree(sparse_tree&& st) :
+            m_elems(std::move(st.m_elems)) {}
+
         sparse_tree(const sparse_tree&) = default;
 
         ~sparse_tree() {}
     
         sparse_tree& operator=(const sparse_tree&) = default;
+
+        sparse_tree& operator=(sparse_tree&& st)
+        {
+            m_elems = std::move(st.m_elems);
+            return *this;
+        }
 
         // This class has no begin() and end() methods. This is intentional. In order to iterate
         // over the nodes, use method at() to access a tree_node by its index, and then call the

@@ -32,7 +32,6 @@ namespace rte
         mesh_map                       mesh_ids;
         resource_map                   resource_ids;
         cubemap_map                    cubemap_ids;
-        scene_database::size_type      current_scene = scene_database::value_type::npos;
 
         //---------------------------------------------------------------------------------------------
         // Helper functions
@@ -391,63 +390,53 @@ namespace rte
             }
         }
 
-        void load_directional_light(const json& scene_doc)
-        {
-            // TODO
-            set_directional_light_ambient_color(current_scene, array_to_vec3(scene_doc.at("directional_light").at("ambient_color")));
-            set_directional_light_diffuse_color(current_scene, array_to_vec3(scene_doc.at("directional_light").at("diffuse_color")));
-            set_directional_light_specular_color(current_scene, array_to_vec3(scene_doc.at("directional_light").at("specular_color")));
-            set_directional_light_direction(current_scene, array_to_vec3(scene_doc.at("directional_light").at("direction")));
-        }
+       void create_point_light(const json& point_light_document, view_database& db)
+       {
+            auto new_point_light_index = db.m_point_lights.insert(point_light(), point_light_database::value_type::root);
+            auto& new_point_light = db.m_point_lights.at(new_point_light_index);
+            new_point_light.m_elem.m_user_id = point_light_document.value("user_id", nuser_id);
+            new_point_light.m_elem.m_position = array_to_vec3(point_light_document.at("position"));
+            new_point_light.m_elem.m_ambient_color = array_to_vec3(point_light_document.at("ambient_color"));
+            new_point_light.m_elem.m_diffuse_color = array_to_vec3(point_light_document.at("diffuse_color"));
+            new_point_light.m_elem.m_specular_color = array_to_vec3(point_light_document.at("specular_color"));
+            new_point_light.m_elem.m_constant_attenuation = point_light_document.at("constant_attenuation").get<float>();
+            new_point_light.m_elem.m_linear_attenuation = point_light_document.at("linear_attenuation").get<float>();
+            new_point_light.m_elem.m_quadratic_attenuation = point_light_document.at("quadratic_attenuation").get<float>();
+       }
 
-//        void create_point_light(const json& point_light_document, point_light_vector* point_lights)
-//        {
-//            // TODO
-//            unique_point_light pl = make_point_light(current_scene);
-//            set_point_light_user_id(pl.get(), point_light_document.value("user_id", nuser_id));
-//            set_point_light_position(pl.get(), array_to_vec3(point_light_document.at("position")));
-//            set_point_light_ambient_color(pl.get(), array_to_vec3(point_light_document.at("ambient_color")));
-//            set_point_light_diffuse_color(pl.get(), array_to_vec3(point_light_document.at("diffuse_color")));
-//            set_point_light_specular_color(pl.get(), array_to_vec3(point_light_document.at("specular_color")));
-//            set_point_light_constant_attenuation(pl.get(), point_light_document.at("constant_attenuation").get<float>());
-//            set_point_light_linear_attenuation(pl.get(), point_light_document.at("linear_attenuation").get<float>());
-//            set_point_light_quadratic_attenuation(pl.get(), point_light_document.at("quadratic_attenuation").get<float>());
-//            point_lights->push_back(std::move(pl));
-//        }
-
-        void load_point_lights(const json& /* scene_doc */)
+        void load_point_lights(const json& scene_doc, view_database& db)
         {
-            // TODO
-            // for (auto& point_light_document : scene_doc.at("point_lights")) {
-            //     // create_point_light(point_light_document, &added_point_lights);
-            // }
+            for (auto& point_light_document : scene_doc.at("point_lights")) {
+                create_point_light(point_light_document, db);
+            }
         }
 
         void load_scenes(view_database& db)
         {
-            // TODO
             for (auto& scene_doc : document.at("scenes")) {
-                unique_scene scene = make_scene();
-                // TODO Create the scene root node
-                node_database::size_type scene_root_index = node_database::value_type::npos;
-                set_scene_user_id(scene.get(), scene_doc.value("user_id", nuser_id));
-                current_scene = scene.get();
+                auto new_scene_index = db.m_scenes.insert(scene(), scene_database::value_type::root);
+                auto& new_scene = db.m_scenes.at(new_scene_index);
+
+                auto scene_root_node_index = db.m_nodes.insert(node(), node_database::value_type::root);
+                new_scene.m_elem.m_root_node = scene_root_node_index;
+
+                new_scene.m_elem.m_user_id = scene_doc.value("user_id", nuser_id);
 
                 user_id skybox_user_id = scene_doc.value("skybox", nuser_id);
                 cubemap_map::iterator mit;
                 if ((mit = cubemap_ids.find(skybox_user_id)) != cubemap_ids.end()) {
-                    set_scene_skybox(scene.get(), mit->second);
+                    new_scene.m_elem.m_skybox = mit->second;
                 }
 
-                load_nodes(scene_doc, scene_root_index, db);
-                load_directional_light(scene_doc);
-                load_point_lights(scene_doc);
+                new_scene.m_elem.m_dirlight.m_ambient_color = array_to_vec3(scene_doc.at("directional_light").at("ambient_color"));
+                new_scene.m_elem.m_dirlight.m_diffuse_color = array_to_vec3(scene_doc.at("directional_light").at("diffuse_color"));
+                new_scene.m_elem.m_dirlight.m_specular_color = array_to_vec3(scene_doc.at("directional_light").at("specular_color"));
+                new_scene.m_elem.m_dirlight.m_direction = array_to_vec3(scene_doc.at("directional_light").at("direction"));
 
-                //added_scenes.push_back(std::move(scene));
-                current_scene = scene_database::value_type::npos;
+                load_nodes(scene_doc, scene_root_node_index, db);
+                load_point_lights(scene_doc, db);
             }
         }
-
     } // anonymous namespace
 
     //-----------------------------------------------------------------------------------------------
@@ -455,19 +444,20 @@ namespace rte
     //-----------------------------------------------------------------------------------------------
     void database_loader_initialize()
     {
-        // TODO
         if (!initialized) {
             log(LOG_LEVEL_DEBUG, "database_loader: initializing database loader");
             document = json();
+            material_ids.clear();
+            mesh_ids.clear();
             resource_ids.clear();
+            cubemap_ids.clear();
             initialized = true;
             log(LOG_LEVEL_DEBUG, "database_loader: database loader initialized");
         }
     }
 
-    void load_database(view_database& /* db */)
+    void load_database(view_database& db)
     {
-        // TODO
         if (!initialized) return;
         std::string filename = cmd_line_args_get_option_value("-config", "");
 
@@ -483,11 +473,8 @@ namespace rte
         load_resources(tmp_db);
         load_cubemaps(tmp_db.m_cubemaps);
         load_scenes(tmp_db);
-        // TODO load cameras
-        // TODO load layers
-        // TODO load settings
 
-        // TODO move tmp_db into db
+        db = std::move(tmp_db);
         document = json();
         log(LOG_LEVEL_DEBUG, "database_loader: database loaded successfully");
     }
@@ -499,14 +486,10 @@ namespace rte
         log_resources(db);
         log_cubemaps(db);
         log_scenes(db);
-        // TODO log cameras
-        // TODO log layers
-        // TODO log settings
     }
 
     void database_loader_finalize()
     {
-        // TODO
         if (initialized) {
             log(LOG_LEVEL_DEBUG, "database_loader: finalizing database loader");
             initialized = false;
