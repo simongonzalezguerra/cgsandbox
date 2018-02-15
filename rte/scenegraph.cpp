@@ -20,7 +20,6 @@ namespace rte
         //---------------------------------------------------------------------------------------------
         // Internal declarations
         //---------------------------------------------------------------------------------------------
-        // TODO Remove this module once all its functionality has been moved out
         struct node
         {
             node() :
@@ -425,8 +424,7 @@ namespace rte
             throw std::logic_error("get_node_mesh error: invalid arguments");
         }
 
-        // TODO remove conditional
-        return ((n < nodes.size() && nodes[n].m_used)? nodes[n].m_mesh : nmesh);
+        return nodes[n].m_mesh;
     }
 
     void set_node_material(node_id n, mat_id mat)
@@ -435,10 +433,7 @@ namespace rte
             throw std::logic_error("set_node_material error: invalid arguments");
         }
 
-        // TODO remove conditional
-        if (n < nodes.size() && nodes[n].m_used) {
-            nodes[n].m_material = mat;
-        }
+        nodes[n].m_material = mat;
     }
 
     mat_id get_node_material(node_id n)
@@ -447,8 +442,7 @@ namespace rte
             throw std::logic_error("get_node_material error: invalid arguments");
         }
 
-        // TODO remove conditional
-        return ((n < nodes.size() && nodes[n].m_used)? nodes[n].m_material : nmat);
+        return nodes[n].m_material;
     }
 
     void set_node_name(node_id n, const std::string& name)

@@ -197,6 +197,8 @@ namespace rte
         scene() :
             m_point_lights(point_light_database::value_type::npos),
             m_root_node(node_database::value_type::npos),
+            m_view_transform(glm::mat4(1.0f)),
+            m_projection_transform(glm::mat4(1.0f)),
             m_skybox(cubemap_database::value_type::npos),
             m_enabled(false),
             m_dirlight(),
@@ -205,6 +207,8 @@ namespace rte
     
         point_light_database::size_type      m_point_lights;                     //!< list of point lights in the scene
         node_database::size_type             m_root_node;                        //!< handle to the root node of this scene
+        glm::mat4                            m_view_transform;                   //!< the view transform used to render all objects in the scene
+        glm::mat4                            m_projection_transform;             //!< the projection transform used to render all objects in the scene
         cubemap_database::size_type          m_skybox;                           //!< the id of the cubemap to use as skybox (can be cubemap_database::value_type::npos)
         bool                                 m_enabled;                          //!< is this scene enabled?
         dirlight                             m_dirlight;                         //!< directional light
@@ -263,6 +267,9 @@ namespace rte
                         node_database::size_type parent_index,
                         node_database::size_type& node_index_out,
                         view_database& db);
+    void get_descendant_nodes(node_database::size_type node_index,
+                        std::vector<node_database::size_type>& nodes_out,
+                        const view_database& db);
 } // namespace rte
 
 #endif // RTE_DOMAIN_HPP

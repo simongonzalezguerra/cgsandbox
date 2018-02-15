@@ -144,6 +144,14 @@ namespace rte
                 }
             }
         }
+
+        struct node_context{ node_database::size_type node_index; };
+        typedef std::vector<node_context> node_context_vector;
+
+        //---------------------------------------------------------------------------------------------
+        // Internal data structures
+        //---------------------------------------------------------------------------------------------    
+        node_context_vector      pending_nodes;   //!< helper structure used in get_descendant_nodes
     } // Anonymous namespace
 
     //-----------------------------------------------------------------------------------------------
@@ -371,5 +379,33 @@ namespace rte
         }
 
         node_index_out = db.m_nodes.insert(tmp_db, new_tmp_root_node, parent_index);
+    }
+
+    void get_descendant_nodes(node_database::size_type root_index,
+                        std::vector<node_database::size_type>& nodes_out,
+                        const view_database& db)
+    {
+        pending_nodes.clear();
+        pending_nodes.push_back({root_index});
+
+        while (!pending_nodes.empty()) {
+            auto current = pending_nodes.back();
+            pending_nodes.pop_back();
+
+            auto& current_node = db.m_nodes.at(current.node_index);
+
+            // If a node is not enabled, all its subtree is pruned
+            if (current_node.m_elem.m_enabled) {
+                // If a node doesn't have any meshes or materials it is ignored, but its children are processed
+                if (current_node.m_elem.m_mesh != mesh_database::value_type::npos
+                        && current_node.m_elem.m_material != material_database::value_type::npos) {
+                    nodes_out.push_back(current.node_index);
+                }
+    
+                for (auto it = current_node.rbegin(); it != current_node.rend(); ++it) {
+                    pending_nodes.push_back({index(it)});
+                }            
+            }
+        }
     }
 } // namespace rte

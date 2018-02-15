@@ -16,22 +16,23 @@ namespace rte
         //---------------------------------------------------------------------------------------------
         // Internal declarations
         //---------------------------------------------------------------------------------------------
-        std::vector<node_id>   nodes_to_render;
-        glm::vec3              camera_position_worldspace;
-        gl_driver              driver;
-        gl_driver_context      driver_context;
-        cubemap_id             skybox_id = ncubemap;
-        default_texture_vector default_textures;                    // placeholder, only contains one element
-        texture_vector         textures;
-        buffer_vector          buffers;
-        gl_cubemap_vector      gl_cubemaps;
-        buffer_vector          gl_cubemap_position_buffers;         // placeholder, only contains one element
-        buffer_vector          gl_cubemap_index_buffers;            // placeholder, only contains one element
-        program_vector         phong_programs;                      // placeholder, only contains one element
-        program_vector         environment_mapping_programs;        // placeholder, only contains one element
-        program_vector         skybox_programs;                     // placeholder, only contains one element
-        bool                   gl_driver_set = false;
-        scene_id               current_scene = nscene;
+        typedef std::vector<node_database::size_type> node_vector;
+
+        node_vector                      nodes_to_render;
+        glm::vec3                        camera_position_worldspace;
+        gl_driver                        driver;
+        gl_driver_context                driver_context;
+        cubemap_database::size_type      skybox_id = cubemap_database::value_type::npos;
+        default_texture_vector           default_textures;                    // placeholder, only contains one element
+        texture_vector                   textures;
+        buffer_vector                    buffers;
+        gl_cubemap_vector                gl_cubemaps;
+        buffer_vector                    gl_cubemap_position_buffers;         // placeholder, only contains one element
+        buffer_vector                    gl_cubemap_index_buffers;            // placeholder, only contains one element
+        program_vector                   phong_programs;                      // placeholder, only contains one element
+        program_vector                   environment_mapping_programs;        // placeholder, only contains one element
+        program_vector                   skybox_programs;                     // placeholder, only contains one element
+        bool                             gl_driver_set = false;
 
         //---------------------------------------------------------------------------------------------
         // Helper functions
@@ -54,7 +55,7 @@ namespace rte
             log(LOG_LEVEL_DEBUG, "initialize_renderer: shaders loaded successfully");
         }
 
-        void initialize_textures()
+        void initialize_textures(view_database db)
         {
             // Create a default texture to use as diffuse map on objects that don't have a texture
             // The custom deleter in unique_default_texture makes it impossible to declare an empty
@@ -67,15 +68,17 @@ namespace rte
             // Load all textures
             texture_vector new_textures;
             log(LOG_LEVEL_DEBUG, "initialize_renderer: loading textures");
-            for (mat_id mat = get_first_material(); mat != nmat; mat = get_next_material(mat)) {
-                set_material_texture_id(mat, default_textures[0].get());
-                if (!get_material_texture_path(mat).empty()) {
+            auto& root_material = db.m_materials.at(material_database::value_type::root);
+            for (auto it = root_material.begin(); it != root_material.end(); ++it) {
+                auto& mat = *it;
+                mat.m_elem.m_texture_id = default_textures[0].get();
+                if (!mat.m_elem.m_texture_path.empty()) {
                     // Load the texture into memory            
                     image img;
-                    img.load(get_material_texture_path(mat));
+                    img.load(mat.m_elem.m_texture_path);
                     // Load the texture into the graphics API
-                    auto tex = make_texture(driver,img.get_width(), img.get_height(), img.get_format(), img.get_data());
-                    set_material_texture_id(mat, tex.get());
+                    auto tex = make_texture(driver, img.get_width(), img.get_height(), img.get_format(), img.get_data());
+                    mat.m_elem.m_texture_id = tex.get();
                     new_textures.push_back(std::move(tex));
                 }
             }
@@ -84,20 +87,23 @@ namespace rte
             log(LOG_LEVEL_DEBUG, "initialize_renderer: textures loaded successfully");
         }
 
-        void initialize_meshes()
+        void initialize_meshes(view_database& db)
         {
             // Load all meshes
             log(LOG_LEVEL_DEBUG, "initialize_renderer: loading meshes");
-            for (mesh_id mid = get_first_mesh(); mid != nmesh; mid = get_next_mesh(mid)) {
-                auto position_buffer = make_3d_buffer(driver, get_mesh_vertices(mid));
-                auto uv_buffer = make_2d_buffer(driver, get_mesh_texture_coords(mid));
-                auto normal_buffer = make_3d_buffer(driver, get_mesh_normals(mid));
-                auto index_buffer = make_index_buffer(driver, get_mesh_indices(mid));
+            auto& root_mesh = db.m_meshes.at(mesh_database::value_type::root);
+            for (auto it = root_mesh.begin(); it != root_mesh.end(); ++it) {
+                auto& m = *it;
 
-                set_mesh_position_buffer_id(mid, position_buffer.get());
-                set_mesh_uv_buffer_id(mid, uv_buffer.get());
-                set_mesh_normal_buffer_id(mid, normal_buffer.get());
-                set_mesh_index_buffer_id(mid, index_buffer.get());
+                auto position_buffer = make_3d_buffer(driver, m.m_elem.m_vertices);
+                auto uv_buffer = make_2d_buffer(driver, m.m_elem.m_texture_coords);
+                auto normal_buffer = make_3d_buffer(driver, m.m_elem.m_normals);
+                auto index_buffer = make_index_buffer(driver, m.m_elem.m_indices);
+
+                m.m_elem.m_position_buffer_id = position_buffer.get();
+                m.m_elem.m_uv_buffer_id = uv_buffer.get();
+                m.m_elem.m_normal_buffer_id = normal_buffer.get();
+                m.m_elem.m_index_buffer_id = index_buffer.get();
 
                 buffers.push_back(std::move(position_buffer));
                 buffers.push_back(std::move(uv_buffer));
@@ -146,8 +152,7 @@ namespace rte
             return skybox_indices;
         }
 
-
-        void initialize_gl_cubemaps()
+        void initialize_gl_cubemaps(view_database& db)
         {
             if (gl_cubemap_position_buffers.empty()) {
                 gl_cubemap_position_buffers.push_back(make_3d_buffer(driver, make_skybox_positions()));
@@ -158,10 +163,12 @@ namespace rte
             }
 
             log(LOG_LEVEL_DEBUG, "initialize_renderer: loading cubemaps");
-            for (cubemap_id cid = get_first_cubemap(); cid != ncubemap; cid = get_next_cubemap(cid)) {
+            auto& root_cubemap = db.m_cubemaps.at(cubemap_database::value_type::root);
+            for (auto it = root_cubemap.begin(); it != root_cubemap.end(); ++it) {
+                auto& cm = *it;
                 std::vector<const unsigned char*> faces_data;
                 std::vector<std::unique_ptr<image>> faces;
-                for (auto path : get_cubemap_faces(cid)) {
+                for (auto path : cm.m_elem.m_faces) {
                     auto face_ptr = std::make_unique<image>();
                     face_ptr->load(path);
                     faces.push_back(std::move(face_ptr));
@@ -173,7 +180,7 @@ namespace rte
                     faces_data.push_back(i->get_data());
                 });
                 auto gl_cubemap = make_gl_cubemap(driver, faces[0]->get_width(), faces[0]->get_height(), faces[0]->get_format(), faces_data);
-                set_cubemap_gl_cubemap_id(cid, gl_cubemap.get());
+                cm.m_elem.m_gl_cubemap_id = gl_cubemap.get();
                 gl_cubemaps.push_back(std::move(gl_cubemap));
             }
 
@@ -190,7 +197,7 @@ namespace rte
         gl_driver_set = true;
     }
 
-    void initialize_renderer()
+    void initialize_renderer(view_database& db)
     {
         if (get_first_window() == nwindow) {
             throw std::logic_error("initialize_renderer: error, trying to initialize renderer but a context hasn't been created");
@@ -203,9 +210,9 @@ namespace rte
         // Initialize the graphics API
         driver.gl_driver_init();
         initialize_shaders();
-        initialize_textures();
-        initialize_meshes();
-        initialize_gl_cubemaps();
+        initialize_textures(db);
+        initialize_meshes(db);
+        initialize_gl_cubemaps(db);
     }
 
     void finalize_renderer()
@@ -221,92 +228,100 @@ namespace rte
         skybox_programs.clear();
     }
 
-    void get_scene_properties()
+    void get_scene_properties(const view_database& db)
     {
         // Set view and projection matrices for the scene
-        get_scene_projection_transform(current_scene, &driver_context.m_projection);
-        get_scene_view_transform(current_scene, &driver_context.m_view);
+        auto& root_scene = db.m_scenes.at(scene_database::value_type::root);
+        auto& current_scene = *(root_scene.begin());
+
+        // Set projection and view transforms
+        driver_context.m_projection = current_scene.m_elem.m_projection_transform;
+        driver_context.m_view = current_scene.m_elem.m_view_transform;
 
         // Set directional light properties
-        driver_context.m_dirlight.m_ambient_color = get_directional_light_ambient_color(current_scene);
-        driver_context.m_dirlight.m_diffuse_color = get_directional_light_diffuse_color(current_scene);
-        driver_context.m_dirlight.m_specular_color = get_directional_light_specular_color(current_scene);
-        driver_context.m_dirlight.m_direction_cameraspace = from_homogenous_coords(driver_context.m_view * direction_to_homogenous_coords(get_directional_light_direction(current_scene)));
+        driver_context.m_dirlight.m_ambient_color = current_scene.m_elem.m_dirlight.m_ambient_color;
+        driver_context.m_dirlight.m_diffuse_color = current_scene.m_elem.m_dirlight.m_diffuse_color;
+        driver_context.m_dirlight.m_specular_color = current_scene.m_elem.m_dirlight.m_specular_color;
+        driver_context.m_dirlight.m_direction_cameraspace = from_homogenous_coords(driver_context.m_view * direction_to_homogenous_coords(current_scene.m_elem.m_dirlight.m_direction));
 
         // Set the cubemap texture to use
         driver_context.m_gl_cubemap = 0U;
-        skybox_id = get_scene_skybox(current_scene);
-        if (skybox_id != ncubemap) {
-            driver_context.m_gl_cubemap = get_cubemap_gl_cubemap_id(skybox_id);
+        skybox_id = current_scene.m_elem.m_skybox;
+        if (skybox_id != cubemap_database::value_type::npos) {
+            driver_context.m_gl_cubemap = db.m_cubemaps.at(skybox_id).m_elem.m_gl_cubemap_id;
         }
 
         // Set point light data
-        for (point_light_id pl = get_first_point_light(); pl != npoint_light; pl = get_next_point_light(pl)) {
-            if (get_point_light_scene(pl) == current_scene) {
-                point_light_data pl_data;
-                pl_data.m_position_cameraspace = from_homogenous_coords(driver_context.m_view * position_to_homogenous_coords(get_point_light_position(pl)));
-                pl_data.m_ambient_color = get_point_light_ambient_color(pl);
-                pl_data.m_diffuse_color = get_point_light_diffuse_color(pl);
-                pl_data.m_specular_color = get_point_light_specular_color(pl);
-                pl_data.m_constant_attenuation = get_point_light_constant_attenuation(pl);
-                pl_data.m_linear_attenuation = get_point_light_linear_attenuation(pl);
-                pl_data.m_quadratic_attenuation = get_point_light_quadratic_attenuation(pl);
-                driver_context.m_point_lights.push_back(pl_data);
-            }
+        auto& point_light_list = db.m_point_lights.at(current_scene.m_elem.m_point_lights);
+        for (auto it = point_light_list.begin(); it != point_light_list.end(); ++it) {
+            auto& pl = *it;
+            point_light_data pl_data;
+            pl_data.m_position_cameraspace = from_homogenous_coords(driver_context.m_view * position_to_homogenous_coords(pl.m_elem.m_position));
+            pl_data.m_ambient_color = pl.m_elem.m_ambient_color;
+            pl_data.m_diffuse_color = pl.m_elem.m_diffuse_color;
+            pl_data.m_specular_color = pl.m_elem.m_specular_color;
+            pl_data.m_constant_attenuation = pl.m_elem.m_constant_attenuation;
+            pl_data.m_linear_attenuation = pl.m_elem.m_linear_attenuation;
+            pl_data.m_quadratic_attenuation = pl.m_elem.m_quadratic_attenuation;
+            driver_context.m_point_lights.push_back(pl_data);
         }
 
         // Set the depth func to use
         driver_context.m_depth_func = depth_func::less;
     }
 
-    void get_node_properties(node_id n)
+    void get_node_properties(node_database::size_type node_index, const view_database& db)
     {
-        driver_context.m_node.m_texture = get_material_texture_id(get_node_material(n));
-        mesh_id mid = get_node_mesh(n);
-        driver_context.m_node.m_position_buffer = get_mesh_position_buffer_id(mid);
-        driver_context.m_node.m_texture_coords_buffer = get_mesh_uv_buffer_id(mid);
-        driver_context.m_node.m_normal_buffer = get_mesh_normal_buffer_id(mid);
-        driver_context.m_node.m_index_buffer = get_mesh_index_buffer_id(mid);
-        driver_context.m_node.m_num_indices = get_mesh_indices(mid).size();
-        driver_context.m_node.m_material.m_diffuse_color = get_material_diffuse_color(get_node_material(n));
-        driver_context.m_node.m_material.m_specular_color = get_material_specular_color(get_node_material(n));
-        driver_context.m_node.m_material.m_smoothness = get_material_smoothness(get_node_material(n));
-        driver_context.m_node.m_material.m_reflectivity = get_material_reflectivity(get_node_material(n));
-        driver_context.m_node.m_material.m_translucency = get_material_translucency(get_node_material(n));
-        driver_context.m_node.m_material.m_refractive_index = get_material_refractive_index(get_node_material(n));
-        glm::mat4 local_transform;
-        glm::mat4 accum_transform;
-        get_node_transform(n, &local_transform, &accum_transform);
-        driver_context.m_node.m_model = accum_transform;
+        auto& current_node = db.m_nodes.at(node_index);
+        auto& current_material = db.m_materials.at(current_node.m_elem.m_material);
+        auto& current_mesh = db.m_meshes.at(current_node.m_elem.m_mesh);
+
+        driver_context.m_node.m_texture = current_material.m_elem.m_texture_id;
+
+        driver_context.m_node.m_position_buffer = current_mesh.m_elem.m_position_buffer_id;
+        driver_context.m_node.m_texture_coords_buffer = current_mesh.m_elem.m_uv_buffer_id;
+        driver_context.m_node.m_normal_buffer = current_mesh.m_elem.m_normal_buffer_id;
+        driver_context.m_node.m_index_buffer = current_mesh.m_elem.m_index_buffer_id;
+        driver_context.m_node.m_num_indices = current_mesh.m_elem.m_indices.size();
+
+        driver_context.m_node.m_material.m_diffuse_color = current_material.m_elem.m_diffuse_color;
+        driver_context.m_node.m_material.m_specular_color = current_material.m_elem.m_specular_color;
+        driver_context.m_node.m_material.m_smoothness = current_material.m_elem.m_smoothness;
+        driver_context.m_node.m_material.m_reflectivity = current_material.m_elem.m_reflectivity;
+        driver_context.m_node.m_material.m_translucency = current_material.m_elem.m_translucency;
+        driver_context.m_node.m_material.m_refractive_index = current_material.m_elem.m_refractive_index;
+
+        driver_context.m_node.m_model = current_node.m_elem.m_accum_transform;
     }
 
-    void render_phong_nodes()
+    void render_phong_nodes(const view_database& db)
     {
         // Render nodes that are neither reflective nor tranlucent with the phong model
         driver_context.m_program = phong_programs[0].get();
-        for (auto n : nodes_to_render) {
-            mat_id mat = get_node_material(n);
-            float reflectivity = get_material_reflectivity(mat);
-            float translucency = get_material_translucency(mat);
-            if (get_node_material(n) != nmat && reflectivity == 0.0f && translucency == 0.0f) {
+        for (auto node_index : nodes_to_render) {
+            auto& current_node = db.m_nodes.at(node_index);
+            auto& current_material = db.m_materials.at(current_node.m_elem.m_material);
+            if (current_node.m_elem.m_material != material_database::value_type::npos
+                    && current_material.m_elem.m_reflectivity == 0.0f
+                    && current_material.m_elem.m_translucency == 0.0f) {
                 driver_context.m_node = gl_node_context();
-                get_node_properties(n);
+                get_node_properties(node_index, db);
                 driver.draw(driver_context);
             }
         }
     }
 
-    void render_environment_mapping_nodes()
+    void render_environment_mapping_nodes(const view_database& db)
     {
         // Render reflective or translucent nodes
         driver_context.m_program = environment_mapping_programs[0].get();
-        for (auto n : nodes_to_render) {
-            mat_id mat = get_node_material(n);
-            float reflectivity = get_material_reflectivity(mat);
-            float translucency = get_material_translucency(mat);
-            if (reflectivity > 0.0f || translucency > 0.0f) {
+        for (auto node_index : nodes_to_render) {
+            auto& current_node = db.m_nodes.at(node_index);
+            auto& current_material = db.m_materials.at(current_node.m_elem.m_material);
+            if (current_material.m_elem.m_reflectivity > 0.0f
+                    || current_material.m_elem.m_translucency > 0.0f) {
                 driver_context.m_node = gl_node_context();
-                get_node_properties(n);
+                get_node_properties(node_index, db);
                 driver.draw(driver_context);
             }
         }
@@ -315,31 +330,32 @@ namespace rte
     void render_skybox()
     {
         // Render the skybox
-        if (skybox_id != ncubemap) {
-            driver_context.m_program = skybox_programs[0].get();
+        if (skybox_id != cubemap_database::value_type::npos) {
+            driver_context.m_program = skybox_programs.at(0).get();
             driver_context.m_node = gl_node_context();
             // Change depth function so depth test passes when values are equal to depth buffer's content
             driver_context.m_depth_func = depth_func::lequal;
             // Remove translation from the view matrix
             driver_context.m_view = glm::mat4(glm::mat3(driver_context.m_view));
-            driver_context.m_node.m_position_buffer = gl_cubemap_position_buffers[0].get();
-            driver_context.m_node.m_index_buffer = gl_cubemap_index_buffers[0].get();
+            driver_context.m_node.m_position_buffer = gl_cubemap_position_buffers.at(0).get();
+            driver_context.m_node.m_index_buffer = gl_cubemap_index_buffers.at(0).get();
             driver_context.m_node.m_num_indices = 36U;
             driver.draw(driver_context);
         }
     }
 
-    void render(const view_database& /* db */)
+    void render(const view_database& db)
     {
-        // driver.initialize_frame();
-        // // Convert tree into list and filter out non-enabled nodes
-        // current_scene = nscene;
-        // nodes_to_render.clear();
-        // TODO get_descendant_nodes(get_scene_root_node(s), nodes_to_render);
-        // driver_context = gl_driver_context();
-        // get_scene_properties();
-        // render_phong_nodes();
-        // render_environment_mapping_nodes();
-        // render_skybox();
+        driver.initialize_frame();
+        // Convert tree into list and filter out non-enabled nodes
+        nodes_to_render.clear();
+        auto& root_scene = db.m_scenes.at(scene_database::value_type::root);
+        auto& current_scene = *(root_scene.begin());
+        get_descendant_nodes(current_scene.m_elem.m_root_node, nodes_to_render, db);
+        driver_context = gl_driver_context();
+        get_scene_properties(db);
+        render_phong_nodes(db);
+        render_environment_mapping_nodes(db);
+        render_skybox();
     }
 } // namespace rte

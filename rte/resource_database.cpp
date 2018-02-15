@@ -18,8 +18,6 @@ namespace rte
         //---------------------------------------------------------------------------------------------
         // Internal declarations
         //---------------------------------------------------------------------------------------------
-        // TODO Remove this module once all its functionality has been moved out
-
         typedef std::set<resource_id> resource_set;
 
         struct material

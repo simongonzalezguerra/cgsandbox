@@ -46,7 +46,6 @@ namespace rte
 
         void initialize(unsigned int argc, char** argv)
         {
-            // TODO add a settings component to the database
             if (m_is_initialized) return;
 
             log(LOG_LEVEL_DEBUG, "real_time_engine: initializing application");
@@ -73,7 +72,7 @@ namespace rte
 
             set_gl_driver(get_opengl_driver());
 
-            initialize_renderer();
+            initialize_renderer(m_view_db);
 
             m_last_time = get_time();
 
