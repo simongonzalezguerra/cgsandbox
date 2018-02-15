@@ -337,4 +337,39 @@ namespace rte
         }
         log(LOG_LEVEL_DEBUG, "scenegraph: scenes end");
     }
+
+    void insert_node_tree(resource_database::size_type root_resource_index,
+                        node_database::size_type parent_index,
+                        node_database::size_type& node_index_out,
+                        view_database& db)
+    {
+        if (root_resource_index == resource_database::value_type::npos) {
+            node_index_out = db.m_nodes.insert(node(), parent_index);
+            return;
+        }
+
+        node_database tmp_db;
+        node_database::size_type new_tmp_root_node = node_database::value_type::npos;
+        struct context{ resource_database::size_type resource_index; node_database::size_type parent_node; };
+        std::vector<context> pending_nodes;
+        pending_nodes.push_back({root_resource_index, node_database::value_type::root});
+        while (!pending_nodes.empty()) {
+            auto current = pending_nodes.back();
+            pending_nodes.pop_back();
+
+            node_database::size_type new_node_index = tmp_db.insert(node(), current.parent_node);
+            auto& new_node = tmp_db.at(new_node_index);
+            new_tmp_root_node = (new_tmp_root_node == node_database::value_type::npos ? new_node_index : new_tmp_root_node);
+            auto& res = db.m_resources.at(current.resource_index);
+            new_node.m_elem.m_local_transform = res.m_elem.m_local_transform;
+            new_node.m_elem.m_mesh = res.m_elem.m_mesh;
+            new_node.m_elem.m_material = res.m_elem.m_material;
+
+            for (auto it = res.rbegin(); it != res.rend(); ++it) {
+                pending_nodes.push_back({index(it), new_node_index});
+            }
+        }
+
+        node_index_out = db.m_nodes.insert(tmp_db, new_tmp_root_node, parent_index);
+    }
 } // namespace rte

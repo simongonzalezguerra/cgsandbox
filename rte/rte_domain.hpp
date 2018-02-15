@@ -247,6 +247,11 @@ namespace rte
     void log_resources(const view_database& db);
     void log_cubemaps(const view_database& db);
     void log_scenes(const view_database& db);
+    // resource_index can be resource_database::value_type::npos, in that case insert_node_tree() creates a tree with a single, empty node
+    void insert_node_tree(resource_database::size_type resource_index,
+                        node_database::size_type parent_index,
+                        node_database::size_type& node_index_out,
+                        view_database& db);
 } // namespace rte
 
 #endif // RTE_DOMAIN_HPP

@@ -175,6 +175,7 @@ namespace rte
         typedef typename container::difference_type difference_type;
         typedef typename container::size_type size_type;
         static const size_type npos;
+        static const size_type root;
     
         tree_node(container& elems) :
             m_elem(),
@@ -241,6 +242,9 @@ namespace rte
     template<typename T>
     typename tree_node<T>::size_type const tree_node<T>::npos = -1;
 
+    template<typename T>
+    typename tree_node<T>::size_type const tree_node<T>::root = 0U;
+
     template <typename T>
     class sparse_tree
     {
@@ -280,7 +284,7 @@ namespace rte
         // which is the parent of all trees.
 
         // Inserts a single node as the last child of an existing one
-        size_type insert(const contained_type& t, size_type parent_index = 0U)
+        size_type insert(const contained_type& t, size_type parent_index = value_type::root)
         {
             assert(parent_index < m_elems.size());
             if (!(parent_index < m_elems.size())) {

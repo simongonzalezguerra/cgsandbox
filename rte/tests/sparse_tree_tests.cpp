@@ -15,7 +15,7 @@ protected:
 
 TEST_F(sparse_tree_test, default_construction) {
     my_tree st;
-    auto& root = st.at(0);
+    auto& root = st.at(my_tree::value_type::root);
     ASSERT_EQ(root.m_used, true);
     ASSERT_EQ(root.m_parent, my_tree::value_type::npos);
     ASSERT_EQ(root.m_first_child, my_tree::value_type::npos);
@@ -26,14 +26,14 @@ TEST_F(sparse_tree_test, default_construction) {
 
 TEST_F(sparse_tree_test, insert_one_node) {
     my_tree st;
-    auto new_index = st.insert(1, 0);
+    auto new_index = st.insert(1, my_tree::value_type::root);
     ASSERT_EQ(new_index, 1U);
 }
 
 bool find_value(int value, const my_tree& st, my_tree::size_type& index_out)
 {
     std::vector<my_tree::size_type> pending_nodes;
-    pending_nodes.push_back(0);
+    pending_nodes.push_back(my_tree::value_type::root);
     bool found = false;
     while (!found && !pending_nodes.empty()) {
         auto node_index = pending_nodes.back();
@@ -79,7 +79,7 @@ void print_tree(const my_tree& st, my_tree::size_type root_index)
 void print_first_level(const my_tree& st)
 {
     // This tests the const version of at()
-    auto& root_node = st.at(0);
+    auto& root_node = st.at(my_tree::value_type::root);
     // This tests the const version of begin() and end()
     for (auto it = root_node.begin(); it != root_node.end(); ++it) {
         // to test tree_node_iterator::operator-> and tree_node_iterator::operator*
@@ -98,7 +98,7 @@ void print_first_level(const my_tree& st)
 //     8
 TEST_F(sparse_tree_test, insert_erase_search) {
     my_tree st;
-    auto new_index = st.insert(1, 0);
+    auto new_index = st.insert(1, my_tree::value_type::root);
     ASSERT_EQ(new_index, 1U);
 
     new_index = st.insert(2, 1);
@@ -211,7 +211,7 @@ my_tree::size_type get_number_of_nodes_with_begin(my_tree& st)
 {
     my_tree::size_type ret = 0U;
     std::vector<my_tree::size_type> pending_nodes;
-    pending_nodes.push_back(0);
+    pending_nodes.push_back(my_tree::value_type::root);
     while (!pending_nodes.empty()) {
         auto& node_index = pending_nodes.back();
         auto& node = st.at(node_index); // This tests the non-const version of at()
@@ -230,7 +230,7 @@ my_tree::size_type get_number_of_nodes_with_cbegin(my_tree& st)
 {
     my_tree::size_type ret = 0U;
     std::vector<my_tree::size_type> pending_nodes;
-    pending_nodes.push_back(0);
+    pending_nodes.push_back(my_tree::value_type::root);
     while (!pending_nodes.empty()) {
         auto& node_index = pending_nodes.back();
         auto& node = st.at(node_index);
@@ -248,7 +248,7 @@ my_tree::size_type get_number_of_nodes_with_rbegin(my_tree& st)
 {
     my_tree::size_type ret = 0U;
     std::vector<my_tree::size_type> pending_nodes;
-    pending_nodes.push_back(0);
+    pending_nodes.push_back(my_tree::value_type::root);
     while (!pending_nodes.empty()) {
         auto& node_index = pending_nodes.back();
         auto& node = st.at(node_index);
@@ -267,7 +267,7 @@ my_tree::size_type get_number_of_nodes_with_crbegin(my_tree& st)
 {
     my_tree::size_type ret = 0U;
     std::vector<my_tree::size_type> pending_nodes;
-    pending_nodes.push_back(0);
+    pending_nodes.push_back(my_tree::value_type::root);
     while (!pending_nodes.empty()) {
         auto& node_index = pending_nodes.back();
         auto& node = st.at(node_index);
@@ -285,7 +285,7 @@ my_tree::size_type get_number_of_nodes_with_begin_backwards(my_tree& st)
 {
     my_tree::size_type ret = 0U;
     std::vector<my_tree::size_type> pending_nodes;
-    pending_nodes.push_back(0);
+    pending_nodes.push_back(my_tree::value_type::root);
     while (!pending_nodes.empty()) {
         auto& node_index = pending_nodes.back();
         auto& node = st.at(node_index);

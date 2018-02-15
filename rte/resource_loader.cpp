@@ -176,7 +176,7 @@ namespace rte
                 }
             }
 
-            root_out = db.m_resources.insert(new_resource_db, new_resource_index, 0);
+            root_out = db.m_resources.insert(new_resource_db, new_resource_index, resource_database::value_type::root);
         }
     } // anonymous namespace
 
