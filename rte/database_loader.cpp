@@ -286,12 +286,12 @@ namespace rte
                         node_database::size_type& new_root_index_out,
                         view_database& db)
         {
-            node_database::size_type new_node_index = db.m_nodes.insert(node());
-            auto& new_node = db.m_nodes.at(new_node_index);
             user_id resource_user_id = node_document.value("resource", nuser_id);
             resource_database::size_type resource_index = (resource_user_id == nuser_id ? resource_database::value_type::npos : resource_ids.at(resource_user_id));
             // resource_index can be resource_database::value_type::npos, in that case make_node() creates an empty node
+            node_database::size_type new_node_index = node_database::value_type::npos;
             insert_node_tree(resource_index, parent_index, new_node_index, db);
+            auto& new_node = db.m_nodes.at(new_node_index);
             new_node.m_elem.m_name = node_document.value("name", std::string());
             new_node.m_elem.m_user_id = node_document.value("user_id", nuser_id);
 
@@ -476,6 +476,7 @@ namespace rte
         load_scenes(tmp_db);
 
         db = std::move(tmp_db);
+
         document = json();
         log(LOG_LEVEL_DEBUG, "database_loader: database loaded successfully");
     }

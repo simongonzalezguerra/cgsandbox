@@ -193,7 +193,6 @@ namespace rte
         log(LOG_LEVEL_DEBUG, "resource_database: meshes end");
     }
 
-
     void log_resources(const view_database& db)
     {
         log(LOG_LEVEL_DEBUG, "---------------------------------------------------------------------------------------------------");
