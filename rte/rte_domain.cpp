@@ -251,7 +251,7 @@ namespace rte
             }
 
             oss << "[ ";
-            oss << "node id: " << current.node_index;
+            oss << "index: " << current.node_index;
             oss << ", user id: " << format_user_id(n.m_elem.m_user_id);
             oss << ", name: " << n.m_elem.m_name;
             oss << ", mesh: " << format_mesh_id(n.m_elem.m_mesh);

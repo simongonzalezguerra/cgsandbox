@@ -55,7 +55,7 @@ namespace rte
             log(LOG_LEVEL_DEBUG, "initialize_renderer: shaders loaded successfully");
         }
 
-        void initialize_textures(view_database db)
+        void initialize_textures(view_database& db)
         {
             // Create a default texture to use as diffuse map on objects that don't have a texture
             // The custom deleter in unique_default_texture makes it impossible to declare an empty
