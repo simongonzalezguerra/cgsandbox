@@ -194,6 +194,7 @@ namespace rte
     
         tree_node& operator=(const tree_node& node)
         {
+            // The reference to the container is not touched, this is set in the constructor and never modified
             if (&node != this) {
                 m_elem = node.m_elem;
                 m_parent = node.m_parent;
@@ -255,6 +256,7 @@ namespace rte
         typedef value_type& reference;
         typedef const value_type& const_reference;
         typedef std::vector<value_type> container;
+        typedef std::unique_ptr<container> container_ptr;
         typedef typename container::difference_type difference_type;
         typedef typename container::allocator_type allocator_type;
         typedef typename container::size_type size_type;
@@ -263,27 +265,55 @@ namespace rte
         typedef std::reverse_iterator<iterator> reverse_iterator;
         typedef std::reverse_iterator<const_iterator> const_reverse_iterator;
     
-        sparse_tree()
+        sparse_tree() :
+            m_elems(std::make_unique<container>())
         {
             // This node acts as the common parent of all trees. This makes it possible to iterate over
             // all roots, by iterating over the children of node 0.
-            value_type root_node(m_elems);
+            value_type root_node(*m_elems);
             root_node.m_used = true;
-            m_elems.push_back(root_node);
+            m_elems->push_back(root_node);
+        }
+
+        sparse_tree(const sparse_tree& st)
+        {
+            container_ptr new_container = std::make_unique<container>();
+            for (auto& elem : *st.m_elems) {
+                new_container->push_back(value_type(*new_container));
+                new_container->back() = elem;
+                new_container->back().m_used = elem.m_used;
+            }
+
+            m_elems = std::move(new_container);
         }
 
         sparse_tree(sparse_tree&& st) :
             m_elems(std::move(st.m_elems)) {}
 
-        sparse_tree(const sparse_tree&) = default;
-
         ~sparse_tree() {}
     
-        sparse_tree& operator=(const sparse_tree&) = default;
+        sparse_tree& operator=(const sparse_tree& st)
+        {
+            if (&st != this) {
+                container_ptr new_container = std::make_unique<container>();
+                for (auto& elem : *st.m_elems) {
+                    new_container->push_back(value_type(*new_container));
+                    new_container->back() = elem;
+                    new_container->back().m_used = elem.m_used;
+                }
+
+                m_elems = std::move(new_container);
+            }
+
+            return *this;
+        }
 
         sparse_tree& operator=(sparse_tree&& st)
         {
-            m_elems = std::move(st.m_elems);
+            if (&st != this) {
+                m_elems = std::move(st.m_elems);            
+            }
+
             return *this;
         }
 
@@ -296,26 +326,26 @@ namespace rte
         // Inserts a single node as the last child of an existing one
         size_type insert(const contained_type& t, size_type parent_index = value_type::root)
         {
-            assert(parent_index < m_elems.size());
-            if (!(parent_index < m_elems.size())) {
+            assert(parent_index < m_elems->size());
+            if (!(parent_index < m_elems->size())) {
                 throw std::out_of_range("sparse_tree::insert: invalid parent index");
             }
-            assert(m_elems[parent_index].m_used);
-            if (!(m_elems[parent_index].m_used)) {
+            assert(m_elems->at(parent_index).m_used);
+            if (!(m_elems->at(parent_index).m_used)) {
                 throw std::domain_error("sparse_tree::insert: parent has been erased");
             }
 
-            auto nit = std::find_if(m_elems.begin(), m_elems.end(), [](const value_type& tn) {
+            auto nit = std::find_if(m_elems->begin(), m_elems->end(), [](const value_type& tn) {
                 return !tn.m_used;
             });
-            size_type new_index = nit - m_elems.begin();
-            if (new_index == m_elems.size()) {
-                m_elems.push_back(value_type(m_elems));
+            size_type new_index = nit - m_elems->begin();
+            if (new_index == m_elems->size()) {
+                m_elems->push_back(value_type(*m_elems));
             }
 
             // Exception safety: now that we have passed all the throw points, impact the changes in the structure
-            m_elems[new_index].m_elem = t;
-            m_elems[new_index].m_used = true;
+            m_elems->at(new_index).m_elem = t;
+            m_elems->at(new_index).m_used = true;
             add_child(parent_index, new_index);
 
             return new_index;
@@ -327,20 +357,20 @@ namespace rte
         // parent_index the index of the node in this sparse_tree to insert the subtree under.
         size_type insert(const sparse_tree<T>& input_tree, size_type input_index, size_type parent_index)
         {
-            assert(parent_index < m_elems.size());
-            if (!(parent_index < m_elems.size())) {
+            assert(parent_index < m_elems->size());
+            if (!(parent_index < m_elems->size())) {
                 throw std::out_of_range("sparse_tree::insert: invalid parent index");
             }
-            assert(m_elems[parent_index].m_used);
-            if (!(m_elems[parent_index].m_used)) {
+            assert(m_elems->at(parent_index).m_used);
+            if (!(m_elems->at(parent_index).m_used)) {
                 throw std::domain_error("sparse_tree::insert: parent has been erased");
             }
-            assert(input_index < input_tree.m_elems.size());
-            if (!(input_index < input_tree.m_elems.size())) {
+            assert(input_index < input_tree.m_elems->size());
+            if (!(input_index < input_tree.m_elems->size())) {
                 throw std::out_of_range("sparse_tree::insert: invalid input index");
             }
-            assert(input_tree.m_elems.at(input_index).m_used);
-            if (!(input_tree.m_elems.at(input_index).m_used)) {
+            assert(input_tree.m_elems->at(input_index).m_used);
+            if (!(input_tree.m_elems->at(input_index).m_used)) {
                 throw std::out_of_range("sparse_tree::insert: input index has been erased");
             }
 
@@ -362,7 +392,7 @@ namespace rte
 
                 // Insert the value in its new position
                 const value_type& input_node = input_tree.at(input_node_index);
-                m_elems.at(new_index) = input_node;
+                m_elems->at(new_index) = input_node;
 
                 for (auto it = input_node.rbegin(); it != input_node.rend(); ++it) {
                     pending_nodes.push_back(index(it));
@@ -372,10 +402,10 @@ namespace rte
             // Update the references in all inserted nodes
             // Remove the external index that may be present in the parent reference of the output root node
             // (we will set this later in method add_child())
-            m_elems.at(new_index_map.at(input_index)).m_parent = value_type::npos;
+            m_elems->at(new_index_map.at(input_index)).m_parent = value_type::npos;
             for (auto& it : new_index_map) {
                 if (it.second != value_type::npos) {
-                    value_type& new_node = m_elems.at(it.second);
+                    value_type& new_node = m_elems->at(it.second);
                     new_node.m_parent = new_index_map.at(new_node.m_parent);
                     new_node.m_first_child = new_index_map.at(new_node.m_first_child);
                     new_node.m_last_child = new_index_map.at(new_node.m_last_child);
@@ -392,7 +422,7 @@ namespace rte
             // Mark all the new nodes as used to make them visible
             for (auto& it : new_index_map) {
                 if (it.second != value_type::npos) {
-                    m_elems.at(it.second).m_used = true;
+                    m_elems->at(it.second).m_used = true;
                 }
             }
 
@@ -401,10 +431,10 @@ namespace rte
 
         reference at(size_type index)
         {
-            assert(index < m_elems.size());
-            assert(m_elems[index].m_used);
+            assert(index < m_elems->size());
+            assert(m_elems->at(index).m_used);
 
-            reference ret = m_elems.at(index);
+            reference ret = m_elems->at(index);
 
             if (!ret.m_used) {
                 throw std::domain_error("sparse_tree::at invalid index, element has been erased");
@@ -415,10 +445,10 @@ namespace rte
 
         const_reference at(size_type index) const
         {
-            assert(index < m_elems.size());
-            assert(m_elems[index].m_used);
+            assert(index < m_elems->size());
+            assert(m_elems->at(index).m_used);
 
-            const_reference ret = m_elems.at(index);
+            const_reference ret = m_elems->at(index);
 
             if (!ret.m_used) {
                 throw std::domain_error("sparse_tree::at invalid index, element has been erased");
@@ -429,20 +459,20 @@ namespace rte
 
         void erase(size_type remove_index)
         {
-            assert(remove_index < m_elems.size());
-            if (!(remove_index < m_elems.size())) {
+            assert(remove_index < m_elems->size());
+            if (!(remove_index < m_elems->size())) {
                 throw std::out_of_range("sparse_tree::erase: invalid remove index");
             }
-            assert(m_elems[remove_index].m_used);
-            if (!(m_elems[remove_index].m_used)) {
+            assert(m_elems->at(remove_index).m_used);
+            if (!(m_elems->at(remove_index).m_used)) {
                 throw std::domain_error("sparse_tree::erase: remove index has already been erased");
             }
             assert(remove_index > 0);
             if (!(remove_index > 0)) {
                 throw std::domain_error("sparse_tree:erase: attempted to remove root node (index 0)");
             }
-            assert(m_elems.at(remove_index).m_parent < m_elems.size());
-            if (!(m_elems.at(remove_index).m_parent < m_elems.size())) {
+            assert(m_elems->at(remove_index).m_parent < m_elems->size());
+            if (!(m_elems->at(remove_index).m_parent < m_elems->size())) {
                 throw std::domain_error("sparse_tree:erase: remove index has no valid parent");
             }
 
@@ -454,7 +484,7 @@ namespace rte
                 size_type pending_index = pending_nodes.back();
                 pending_nodes.pop_back();
 
-                value_type& node = m_elems.at(pending_index);
+                value_type& node = m_elems->at(pending_index);
                 to_delete.insert(pending_index);
 
                 for (auto it = node.rbegin(); it != node.rend(); ++it) {
@@ -464,19 +494,19 @@ namespace rte
 
             // Exception safety: now that we have passed all the throw points, impact the changes in the structure
             for (auto it = to_delete.begin(); it != to_delete.end(); ++it) {
-                m_elems.at(*it).m_used = false;
+                m_elems->at(*it).m_used = false;
             }
-            remove_child(m_elems.at(remove_index).m_parent, remove_index);
+            remove_child(m_elems->at(remove_index).m_parent, remove_index);
         }
 
         void clear()
         {
-            m_elems.clear();
+            m_elems->clear();
             // This node acts as the common parent of all trees. This makes it possible to iterate over
             // all roots, by iterating over the children of node 0.
-            value_type root_node(m_elems);
+            value_type root_node(*m_elems);
             root_node.m_used = true;
-            m_elems.push_back(root_node);
+            m_elems->push_back(root_node);
         }
 
         void swap(sparse_tree& sf)
@@ -487,15 +517,15 @@ namespace rte
     private:
         size_type allocate_node(const std::set<size_type>& previously_allocated_indexes)
         {
-            size_type ret = m_elems.size();
-            for (size_type i = 0; i < m_elems.size(); i++) {
-                if (!m_elems.at(i).m_used && previously_allocated_indexes.count(i) == 0) {
+            size_type ret = m_elems->size();
+            for (size_type i = 0; i < m_elems->size(); i++) {
+                if (!m_elems->at(i).m_used && previously_allocated_indexes.count(i) == 0) {
                     ret = i;
                     break;
                 }
             }
-            if ((!ret < m_elems.size())) {
-                m_elems.push_back(value_type(m_elems));
+            if ((!ret < m_elems->size())) {
+                m_elems->push_back(value_type(*m_elems));
             }
 
             return ret;
@@ -503,13 +533,13 @@ namespace rte
 
         void add_child(size_type parent_index, size_type new_index)
         {
-            assert(parent_index < m_elems.size());
-            assert(new_index < m_elems.size());
-            value_type& parent = m_elems.at(parent_index);
-            value_type& new_node = m_elems.at(new_index);
+            assert(parent_index < m_elems->size());
+            assert(new_index < m_elems->size());
+            value_type& parent = m_elems->at(parent_index);
+            value_type& new_node = m_elems->at(new_index);
 
-            if (parent.m_last_child < m_elems.size()) {
-                m_elems.at(parent.m_last_child).m_next_sibling = new_index;
+            if (parent.m_last_child < m_elems->size()) {
+                m_elems->at(parent.m_last_child).m_next_sibling = new_index;
             }
 
             new_node.m_parent = parent_index;
@@ -522,29 +552,29 @@ namespace rte
         // Note: remove_index must still have valid references when this method is called
         void remove_child(size_type parent_index, size_type remove_index)
         {
-            assert(parent_index < m_elems.size());
-            assert(remove_index < m_elems.size());
+            assert(parent_index < m_elems->size());
+            assert(remove_index < m_elems->size());
 
-            size_type previous_sibling_index = m_elems.at(remove_index).m_previous_sibling;
-            if (previous_sibling_index < m_elems.size()) {
-                value_type& previous_sibling = m_elems.at(previous_sibling_index);
-                previous_sibling.m_next_sibling = m_elems.at(remove_index).m_next_sibling;
+            size_type previous_sibling_index = m_elems->at(remove_index).m_previous_sibling;
+            if (previous_sibling_index < m_elems->size()) {
+                value_type& previous_sibling = m_elems->at(previous_sibling_index);
+                previous_sibling.m_next_sibling = m_elems->at(remove_index).m_next_sibling;
             }
 
-            size_type next_sibling_index = m_elems.at(remove_index).m_next_sibling;
-            if (next_sibling_index < m_elems.size()) {
-                value_type& next_sibling = m_elems.at(next_sibling_index);
-                next_sibling.m_previous_sibling = m_elems.at(remove_index).m_previous_sibling;
+            size_type next_sibling_index = m_elems->at(remove_index).m_next_sibling;
+            if (next_sibling_index < m_elems->size()) {
+                value_type& next_sibling = m_elems->at(next_sibling_index);
+                next_sibling.m_previous_sibling = m_elems->at(remove_index).m_previous_sibling;
             }
 
-            if (parent_index < m_elems.size()) {
-                value_type& parent = m_elems.at(parent_index);
-                parent.m_first_child = (parent.m_first_child == remove_index? m_elems.at(remove_index).m_next_sibling : parent.m_first_child);
-                parent.m_last_child = (parent.m_last_child == remove_index? m_elems.at(remove_index).m_previous_sibling : parent.m_last_child);
+            if (parent_index < m_elems->size()) {
+                value_type& parent = m_elems->at(parent_index);
+                parent.m_first_child = (parent.m_first_child == remove_index? m_elems->at(remove_index).m_next_sibling : parent.m_first_child);
+                parent.m_last_child = (parent.m_last_child == remove_index? m_elems->at(remove_index).m_previous_sibling : parent.m_last_child);
             }
         }
 
-        container  m_elems;
+        container_ptr      m_elems;
     };
 } // namespace rte
 
