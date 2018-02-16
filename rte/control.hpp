@@ -1,6 +1,7 @@
 #ifndef CONTROL_HPP
 #define CONTROL_HPP
 
+#include "rte_domain.hpp"
 #include "renderer.hpp"
 #include "system.hpp"
 
@@ -12,7 +13,7 @@ namespace rte
     class fps_camera_controller
     {
     public:
-        fps_camera_controller();
+        fps_camera_controller(view_database& db);
         ~fps_camera_controller();
         void set_scene(rte::scene_id scene);
         void set_position(glm::vec3 position);
@@ -36,7 +37,7 @@ namespace rte
     class perspective_controller
     {
     public:
-        perspective_controller();
+        perspective_controller(view_database& db);
         ~perspective_controller();
         void set_scene(rte::scene_id scene);
         void set_window_width(float window_width);

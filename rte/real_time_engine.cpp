@@ -27,15 +27,15 @@ namespace rte
         real_time_engine_impl(unsigned int max_errors) :
             m_events(),
             m_max_errors(max_errors),
-            m_fps_camera_controller(),
-            m_framerate_controller(),
-            m_perspective_controller(),
             m_last_time(0.0f),
             m_should_continue(true),
             m_sim_rotation_speed(0.0f),
             m_sim_rotation_yaw(0.0f),
             m_is_initialized(false),
-            m_view_db()
+            m_view_db(),
+            m_fps_camera_controller(m_view_db),
+            m_framerate_controller(),
+            m_perspective_controller(m_view_db)
         {
         }
 
@@ -76,14 +76,16 @@ namespace rte
 
             m_last_time = get_time();
 
-            m_fps_camera_controller.set_scene(get_first_scene()); // FIXME cameras should be created from the config
+            auto& root_scene = m_view_db.m_scenes.at(scene_database::value_type::root);
+            auto current_scene_index = index(root_scene.begin());
+            m_fps_camera_controller.set_scene(current_scene_index);
             m_fps_camera_controller.set_position(glm::vec3(-14.28f, 13.71f, 29.35f));
             m_fps_camera_controller.set_yaw(-41.50f);
             m_fps_camera_controller.set_pitch(-20.37f);
             m_fps_camera_controller.set_speed(40.0f);
             m_fps_camera_controller.set_mouse_speed(0.1f);
 
-            m_perspective_controller.set_scene(get_first_scene()); // FIXME cameras should be created from the config
+            m_perspective_controller.set_scene(current_scene_index);
             m_perspective_controller.set_window_width(1920.0f);
             m_perspective_controller.set_window_height(1080.0f);
             m_perspective_controller.set_fov_speed(0.5f);
@@ -115,8 +117,7 @@ namespace rte
             }            
         }
 
-
-       void process_events(const std::vector<event>& m_events) {
+        void process_events(const std::vector<event>& m_events) {
             for (auto it = m_events.cbegin(); it != m_events.cend(); it++) {
                 if (it->type == EVENT_KEY_PRESS && it->value == KEY_ESCAPE) {
                     m_should_continue = false;
@@ -124,9 +125,31 @@ namespace rte
             }
         }
 
-        void compute_accum_transforms()
+        void compute_accum_transforms(view_database& db)
         {
-            // TODO Update accumulated transforms
+            auto& root_scene = db.m_scenes.at(scene_database::value_type::root);
+            auto& current_scene = *(root_scene.begin());
+            auto& root_node = db.m_nodes.at(current_scene.m_elem.m_root_node);
+            root_node.m_elem.m_accum_transform = root_node.m_elem.m_local_transform;
+            struct context { node_database::size_type node_index; };
+            std::vector<context> pending_nodes;
+            pending_nodes.push_back({current_scene.m_elem.m_root_node });
+            while (!pending_nodes.empty()) {
+                auto current = pending_nodes.back();
+                pending_nodes.pop_back();
+
+                auto& current_node = db.m_nodes.at(current.node_index);
+                glm::mat4 previous_transform(1.0f);
+                if (current_node.m_parent != node_database::value_type::npos) {
+                    previous_transform = db.m_nodes.at(current_node.m_parent).m_elem.m_accum_transform;
+                }
+                current_node.m_elem.m_accum_transform = current_node.m_elem.m_local_transform * previous_transform;
+
+                // process current
+                for (auto it = current_node.rbegin(); it != current_node.rend(); ++it) {
+                    pending_nodes.push_back({index(it)});
+                }
+            }
         }
 
         bool frame()
@@ -140,7 +163,6 @@ namespace rte
             m_events.clear();
             get_window_events(m_window.get(), &m_events);
 
-      
             // Check for escape key
             process_events(m_events);
         
@@ -150,7 +172,7 @@ namespace rte
             // Control projection (update fov)
             m_perspective_controller.process(dt, m_events);
 
-            compute_accum_transforms();
+            compute_accum_transforms(m_view_db);
 
             // Render the scene
             render(m_view_db);
@@ -165,15 +187,15 @@ namespace rte
         std::vector<event>     m_events;
         unique_window          m_window;
         unsigned int           m_max_errors;
-        fps_camera_controller  m_fps_camera_controller;
-        framerate_controller   m_framerate_controller;
-        perspective_controller m_perspective_controller;
         float                  m_last_time;
         bool                   m_should_continue;
         float                  m_sim_rotation_speed;
         float                  m_sim_rotation_yaw;
         bool                   m_is_initialized;
         view_database          m_view_db;
+        fps_camera_controller  m_fps_camera_controller;
+        framerate_controller   m_framerate_controller;
+        perspective_controller m_perspective_controller;
     };
 
     real_time_engine::real_time_engine(unsigned int max_errors) :

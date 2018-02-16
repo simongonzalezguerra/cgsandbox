@@ -178,7 +178,7 @@ namespace rte
             bool root_set = false;
             struct json_context { const json& doc; resource_database::size_type parent_index; unsigned int local_child_index; };
             std::vector<json_context> pending_nodes;
-            pending_nodes.push_back({resource_document, resource_database::value_type::npos, 0U});
+            pending_nodes.push_back({resource_document, resource_database::value_type::root, 0U});
             while (!pending_nodes.empty()) {
                 auto current = pending_nodes.back();
                 pending_nodes.pop_back();
@@ -263,7 +263,6 @@ namespace rte
                 }
             }
         }
-
 
         bool node_has_child(node_database::size_type node_index,
                             unsigned int child_index,
@@ -390,19 +389,19 @@ namespace rte
             }
         }
 
-       void create_point_light(const json& point_light_document, view_database& db)
-       {
-            auto new_point_light_index = db.m_point_lights.insert(point_light(), point_light_database::value_type::root);
-            auto& new_point_light = db.m_point_lights.at(new_point_light_index);
-            new_point_light.m_elem.m_user_id = point_light_document.value("user_id", nuser_id);
-            new_point_light.m_elem.m_position = array_to_vec3(point_light_document.at("position"));
-            new_point_light.m_elem.m_ambient_color = array_to_vec3(point_light_document.at("ambient_color"));
-            new_point_light.m_elem.m_diffuse_color = array_to_vec3(point_light_document.at("diffuse_color"));
-            new_point_light.m_elem.m_specular_color = array_to_vec3(point_light_document.at("specular_color"));
-            new_point_light.m_elem.m_constant_attenuation = point_light_document.at("constant_attenuation").get<float>();
-            new_point_light.m_elem.m_linear_attenuation = point_light_document.at("linear_attenuation").get<float>();
-            new_point_light.m_elem.m_quadratic_attenuation = point_light_document.at("quadratic_attenuation").get<float>();
-       }
+        void create_point_light(const json& point_light_document, view_database& db)
+        {
+             auto new_point_light_index = db.m_point_lights.insert(point_light(), point_light_database::value_type::root);
+             auto& new_point_light = db.m_point_lights.at(new_point_light_index);
+             new_point_light.m_elem.m_user_id = point_light_document.value("user_id", nuser_id);
+             new_point_light.m_elem.m_position = array_to_vec3(point_light_document.at("position"));
+             new_point_light.m_elem.m_ambient_color = array_to_vec3(point_light_document.at("ambient_color"));
+             new_point_light.m_elem.m_diffuse_color = array_to_vec3(point_light_document.at("diffuse_color"));
+             new_point_light.m_elem.m_specular_color = array_to_vec3(point_light_document.at("specular_color"));
+             new_point_light.m_elem.m_constant_attenuation = point_light_document.at("constant_attenuation").get<float>();
+             new_point_light.m_elem.m_linear_attenuation = point_light_document.at("linear_attenuation").get<float>();
+             new_point_light.m_elem.m_quadratic_attenuation = point_light_document.at("quadratic_attenuation").get<float>();
+        }
 
         void load_point_lights(const json& scene_doc, view_database& db)
         {

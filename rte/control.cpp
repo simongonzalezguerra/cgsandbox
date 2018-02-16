@@ -19,8 +19,9 @@ namespace rte
     class fps_camera_controller::fps_camera_controller_impl
     {
     public:
-        fps_camera_controller_impl() :
-            m_scene(rte::nscene),
+        fps_camera_controller_impl(view_database& db) :
+            m_db(db),
+            m_scene_index(rte::scene_database::value_type::npos),
             m_position{0.0f},
             m_yaw(0.0f),
             m_pitch(0.0f),
@@ -31,6 +32,88 @@ namespace rte
             m_moving_right(false),
             m_moving_left(false) {}
 
+        void process(float dt, const std::vector<rte::event>& events)
+        {
+            // Process events
+            for (auto it = events.cbegin(); it != events.cend(); it++) {
+                if (it->type == rte::EVENT_MOUSE_MOVE) {
+                    // Compute new orientation
+                    // Yaw rotates the camera around the Y axis counter-clockwise. Mouse X coordinates increase
+                    // to the right, so we use mouse motion to substract from yaw.
+                    m_yaw -= m_mouse_speed * it->delta_mouse_x;
+                    // Pitch rotates the camera around the X axis counter-clockwise. Mouse Y coordinates
+                    // increase down, so we use mouse motion to subtract from yaw
+                    m_pitch = glm::clamp(m_pitch - m_mouse_speed * it->delta_mouse_y, min_pitch, max_pitch);
+    
+                    // std::ostringstream oss;
+                    // oss << "fps_camera_controller: updated angles, "<< std::fixed << std::setprecision(2)
+                    //     << " yaw: " << m_yaw << ", pitch: " << m_pitch;
+                    // rte::log(rte::LOG_LEVEL_DEBUG, oss.str());
+                }
+    
+                if (it->type == rte::EVENT_KEY_PRESS) {
+                    if (it->value == rte::KEY_W) {
+                        m_moving_forward = true;
+                        m_moving_backward = false;
+                    } else if (it->value == rte::KEY_S) {
+                        m_moving_forward = false;
+                        m_moving_backward = true;
+                    } else if (it->value == rte::KEY_D) {
+                        m_moving_right = true;
+                        m_moving_left = false;
+                    } else if (it->value == rte::KEY_A) {
+                        m_moving_right = false;
+                        m_moving_left = true;
+                    }
+                } else if (it->type == rte::EVENT_KEY_RELEASE) {
+                    if (it->value == rte::KEY_W || it->value == rte::KEY_S) {
+                        m_moving_forward = false;
+                        m_moving_backward = false;
+                    } else if (it->value == rte::KEY_D || it->value == rte::KEY_A) {
+                        m_moving_right = false;
+                        m_moving_left = false;
+                    }
+                }
+            }
+    
+            // Update view
+    
+            // Direction : Spherical coordinates to Cartesian coordinates conversion
+            // Result of putting the vector (0, 0, -1) through an extrinsic rotation of m_pitch degrees
+            // around X and m_yaw around Y
+            glm::vec3 direction = glm::vec3(-sinf(glm::radians(m_yaw)), sinf(glm::radians(m_pitch)), -cosf(glm::radians(m_yaw)));
+    
+            // Result of putting the vector (1, 0, 0) through a rotation of m_yaw degrees around Y
+            glm::vec3 right = glm::vec3(-sinf(glm::radians(m_yaw - 90.0f)), 0.0f, -cosf(glm::radians(m_yaw - 90.0f)));
+    
+            glm::vec3 up = glm::cross(right, direction);
+    
+            // Compute new m_position based on direction and time
+            if (m_moving_forward){
+                // Move forward
+                m_position += direction * dt * m_speed;
+                log_position();
+            }
+            if (m_moving_backward){
+                // Move backward
+                m_position -= direction * dt * m_speed;
+                log_position();
+            }
+            if (m_moving_right){
+                // Strafe right
+                m_position += right * dt * m_speed;
+                log_position();
+            }
+            if (m_moving_left){
+                // Strafe left
+                m_position -= right * dt * m_speed;
+                log_position();
+            }
+    
+            auto& current_scene = m_db.m_scenes.at(m_scene_index);
+            current_scene.m_elem.m_view_transform = glm::lookAt(m_position, m_position + direction, up);
+        }
+
         void log_position()
         {
             // std::ostringstream oss;
@@ -39,26 +122,27 @@ namespace rte
             // rte::log(rte::LOG_LEVEL_DEBUG, oss.str());
         }
 
-        rte:: scene_id m_scene;
-        glm::vec3      m_position;
-        float          m_yaw;
-        float          m_pitch;
-        float          m_speed;
-        float          m_mouse_speed;
-        bool           m_moving_forward;
-        bool           m_moving_backward;
-        bool           m_moving_right;
-        bool           m_moving_left;
+        view_database&                 m_db;
+        scene_database::size_type      m_scene_index;
+        glm::vec3                      m_position;
+        float                          m_yaw;
+        float                          m_pitch;
+        float                          m_speed;
+        float                          m_mouse_speed;
+        bool                           m_moving_forward;
+        bool                           m_moving_backward;
+        bool                           m_moving_right;
+        bool                           m_moving_left;
     };
 
-    fps_camera_controller::fps_camera_controller() :
-        m_impl(std::make_unique<fps_camera_controller_impl>()) {}
+    fps_camera_controller::fps_camera_controller(view_database& db) :
+        m_impl(std::make_unique<fps_camera_controller_impl>(db)) {}
 
     fps_camera_controller::~fps_camera_controller() {}
 
-    void fps_camera_controller::set_scene(rte::scene_id scene)
+    void fps_camera_controller::set_scene(rte::scene_database::size_type scene)
     {
-        m_impl->m_scene = scene;
+        m_impl->m_scene_index = scene;
     }
 
     void fps_camera_controller::set_position(glm::vec3 position)
@@ -86,9 +170,9 @@ namespace rte
         m_impl->m_mouse_speed = m_mouse_speed;
     }
 
-    rte::scene_id fps_camera_controller::get_scene()
+    rte::scene_database::size_type fps_camera_controller::get_scene()
     {
-        return m_impl->m_scene;
+        return m_impl->m_scene_index;
     }
 
     glm::vec3 fps_camera_controller::get_position()
@@ -118,83 +202,7 @@ namespace rte
 
     void fps_camera_controller::process(float dt, const std::vector<rte::event>& events)
     {
-        // Process events
-        for (auto it = events.cbegin(); it != events.cend(); it++) {
-            if (it->type == rte::EVENT_MOUSE_MOVE) {
-                // Compute new orientation
-                // Yaw rotates the camera around the Y axis counter-clockwise. Mouse X coordinates increase
-                // to the right, so we use mouse motion to substract from yaw.
-                m_impl->m_yaw -= m_impl->m_mouse_speed * it->delta_mouse_x;
-                // Pitch rotates the camera around the X axis counter-clockwise. Mouse Y coordinates
-                // increase down, so we use mouse motion to subtract from yaw
-                m_impl->m_pitch = glm::clamp(m_impl->m_pitch - m_impl->m_mouse_speed * it->delta_mouse_y, min_pitch, max_pitch);
-
-                // std::ostringstream oss;
-                // oss << "fps_camera_controller: updated angles, "<< std::fixed << std::setprecision(2)
-                //     << " yaw: " << m_impl->m_yaw << ", pitch: " << m_impl->m_pitch;
-                // rte::log(rte::LOG_LEVEL_DEBUG, oss.str());
-            }
-
-            if (it->type == rte::EVENT_KEY_PRESS) {
-                if (it->value == rte::KEY_W) {
-                    m_impl->m_moving_forward = true;
-                    m_impl->m_moving_backward = false;
-                } else if (it->value == rte::KEY_S) {
-                    m_impl->m_moving_forward = false;
-                    m_impl->m_moving_backward = true;
-                } else if (it->value == rte::KEY_D) {
-                    m_impl->m_moving_right = true;
-                    m_impl->m_moving_left = false;
-                } else if (it->value == rte::KEY_A) {
-                    m_impl->m_moving_right = false;
-                    m_impl->m_moving_left = true;
-                }
-            } else if (it->type == rte::EVENT_KEY_RELEASE) {
-                if (it->value == rte::KEY_W || it->value == rte::KEY_S) {
-                    m_impl->m_moving_forward = false;
-                    m_impl->m_moving_backward = false;
-                } else if (it->value == rte::KEY_D || it->value == rte::KEY_A) {
-                    m_impl->m_moving_right = false;
-                    m_impl->m_moving_left = false;
-                }
-            }
-        }
-
-        // Update view
-
-        // Direction : Spherical coordinates to Cartesian coordinates conversion
-        // Result of putting the vector (0, 0, -1) through an extrinsic rotation of m_pitch degrees
-        // around X and m_yaw around Y
-        glm::vec3 direction = glm::vec3(-sinf(glm::radians(m_impl->m_yaw)), sinf(glm::radians(m_impl->m_pitch)), -cosf(glm::radians(m_impl->m_yaw)));
-
-        // Result of putting the vector (1, 0, 0) through a rotation of m_yaw degrees around Y
-        glm::vec3 right = glm::vec3(-sinf(glm::radians(m_impl->m_yaw - 90.0f)), 0.0f, -cosf(glm::radians(m_impl->m_yaw - 90.0f)));
-
-        glm::vec3 up = glm::cross(right, direction);
-
-        // Compute new m_position based on direction and time
-        if (m_impl->m_moving_forward){
-            // Move forward
-            m_impl->m_position += direction * dt * m_impl->m_speed;
-            m_impl->log_position();
-        }
-        if (m_impl->m_moving_backward){
-            // Move backward
-            m_impl->m_position -= direction * dt * m_impl->m_speed;
-            m_impl->log_position();
-        }
-        if (m_impl->m_moving_right){
-            // Strafe right
-            m_impl->m_position += right * dt * m_impl->m_speed;
-            m_impl->log_position();
-        }
-        if (m_impl->m_moving_left){
-            // Strafe left
-            m_impl->m_position -= right * dt * m_impl->m_speed;
-            m_impl->log_position();
-        }
-
-        rte::set_scene_view_transform(m_impl->m_scene, glm::lookAt(m_impl->m_position, m_impl->m_position + direction, up));
+        m_impl->process(dt, events);
     }
 
     //-----------------------------------------------------------------------------------------------
@@ -206,8 +214,9 @@ namespace rte
     class perspective_controller::perspective_controller_impl
     {
     public:
-        perspective_controller_impl() :
-            m_scene(nscene),
+        perspective_controller_impl(view_database& db) :
+            m_db(db),
+            m_scene_index(scene_database::value_type::npos),
             m_window_width(0.0f),
             m_window_height(0.0f),
             m_increasing_fov(false),
@@ -265,30 +274,31 @@ namespace rte
             // http://glm.g-truc.net/0.9.7/api/a00174.html#gac3613dcb6c6916465ad5b7ad5a786175
             // This is why our utility function fov_to_fovy takes radians and returns radians
             float fovy_radians = rte::fov_to_fovy(m_fov_radians, m_window_width, m_window_height);
-            glm::mat4 projection_transform = glm::perspective(fovy_radians, m_window_width / m_window_height, m_near, m_far);
-            rte::set_scene_projection_transform(m_scene, projection_transform);
+            auto& current_scene = m_db.m_scenes.at(m_scene_index);
+            current_scene.m_elem.m_projection_transform = glm::perspective(fovy_radians, m_window_width / m_window_height, m_near, m_far);
         }
 
         // Member variables
-        rte::scene_id m_scene;
-        float         m_window_width;
-        float         m_window_height;
-        bool          m_increasing_fov;
-        bool          m_decreasing_fov;
-        float         m_fov_speed;
-        float         m_fov_radians;
-        float         m_near;
-        float         m_far;
+        view_database&                 m_db;
+        scene_database::size_type      m_scene_index;
+        float                          m_window_width;
+        float                          m_window_height;
+        bool                           m_increasing_fov;
+        bool                           m_decreasing_fov;
+        float                          m_fov_speed;
+        float                          m_fov_radians;
+        float                          m_near;
+        float                          m_far;
     };
 
-    perspective_controller::perspective_controller() :
-        m_impl(std::make_unique<perspective_controller_impl>()) {}
+    perspective_controller::perspective_controller(view_database& db) :
+        m_impl(std::make_unique<perspective_controller_impl>(db)) {}
 
     perspective_controller::~perspective_controller() {}
 
-    void perspective_controller::set_scene(rte::scene_id scene)
+    void perspective_controller::set_scene(rte::scene_database::size_type scene)
     {
-        m_impl->m_scene = scene;
+        m_impl->m_scene_index = scene;
     }
 
     void perspective_controller::set_window_width(float window_width)
@@ -331,9 +341,9 @@ namespace rte
         return m_impl->m_fov_radians;
     }
 
-    rte::scene_id perspective_controller::get_scene()
+    rte::scene_database::size_type perspective_controller::get_scene()
     {
-        return m_impl->m_scene;
+        return m_impl->m_scene_index;
     }
 
     float perspective_controller::get_window_width()
@@ -364,7 +374,6 @@ namespace rte
     //-----------------------------------------------------------------------------------------------
     // framerate_controller
     //-----------------------------------------------------------------------------------------------
-
     class framerate_controller::framerate_controller_impl
     {
     public:
@@ -391,11 +400,11 @@ namespace rte
         }
 
         // Member variables
-        unsigned int m_n_frames;
-        float        m_framerate_sample_time;
-        float        m_minimum_framerate;
-        float        m_maximum_framerate;
-        float        m_average_framerate;
+        unsigned int      m_n_frames;
+        float             m_framerate_sample_time;
+        float             m_minimum_framerate;
+        float             m_maximum_framerate;
+        float             m_average_framerate;
     };
 
     framerate_controller::framerate_controller() :
@@ -433,5 +442,4 @@ namespace rte
     {
         m_impl->process(dt);
     }
-
 }
