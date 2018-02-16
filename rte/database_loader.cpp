@@ -300,6 +300,7 @@ namespace rte
                     && node_document.count("rotation_angle")
                     && node_document.count("rotation_axis")
                     && node_document.count("translation")) {
+                // The rotation angle is in degrees!
                 glm::mat4 scale = glm::scale(array_to_vec3(node_document.at("scale")));
                 glm::mat4 rotation = glm::rotate(node_document.at("rotation_angle").get<float>(), array_to_vec3(node_document.at("rotation_axis")));;
                 glm::mat4 translation = glm::translate(array_to_vec3(node_document.at("translation")));

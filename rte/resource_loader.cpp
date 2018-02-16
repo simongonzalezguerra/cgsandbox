@@ -122,8 +122,7 @@ namespace rte
         void create_resources(const struct aiScene* scene, resource_database::size_type& root_out, view_database& db)
         {
             resource_database new_resource_db;
-            resource new_resource;
-            resource_database::size_type new_resource_index = new_resource_db.insert(new_resource);
+            resource_database::size_type new_resource_index = new_resource_db.insert(resource());
             struct context{ resource_database::size_type added_resource_index; aiNode* ai_node; };
             std::vector<context> pending_nodes;
             pending_nodes.push_back({new_resource_index, scene->mRootNode});
