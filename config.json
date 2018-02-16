@@ -105,10 +105,12 @@
     },
     {
       "user_id" : 2,
+      "name" : "Plane resource",
       "from_file" : "../../../resources/f-14D-super-tomcat/F-14D_SuperTomcatRotated.obj"
     },
     {
       "user_id" : 3,
+      "name" : "Teapot resource",
       "from_file" : "../../../resources/Teapot/Teapot.obj",
       "children" :
       [
@@ -119,11 +121,13 @@
     },
     {
       "user_id" : 4,
+      "name" : "Bunny resource",
       "from_file" : "../../../resources/stanford-bunny/bun_zipper.ply",
       "material" : 4
     },
     {
       "user_id" : 5,
+      "name" : "Dragon resource",
       "from_file" : "../../../resources/stanford-dragon2/dragon.obj",
       "material" : 5
     }
