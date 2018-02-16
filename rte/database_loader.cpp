@@ -434,6 +434,8 @@ namespace rte
 
                 load_nodes(scene_doc, scene_root_node_index, db);
                 load_point_lights(scene_doc, db);
+
+                new_scene.m_elem.m_point_lights = scene_database::value_type::root;
             }
         }
     } // anonymous namespace

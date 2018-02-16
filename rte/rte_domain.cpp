@@ -72,7 +72,7 @@ namespace rte
             log(LOG_LEVEL_DEBUG, oss.str().c_str());
     
             oss.str("");
-            oss << "        m.m_vertices: " << m.m_vertices.size();
+            oss << "        vertices: " << m.m_vertices.size();
             log(LOG_LEVEL_DEBUG, oss.str().c_str());
     
             oss.str("");
@@ -94,14 +94,14 @@ namespace rte
             log(LOG_LEVEL_DEBUG, oss.str().c_str());
     
             oss.str("");
-            oss << "        m.m_indices: ";
+            oss << "        indices: ";
             if (m.m_indices.size()) {
                 preview_sequence(&m.m_indices[0], m.m_indices.size(), oss);
             }
             log(LOG_LEVEL_DEBUG, oss.str().c_str());
     
             oss.str("");
-            oss << "        m.m_normals: ";
+            oss << "        normals: ";
             if (m.m_normals.size()) {
                 preview_sequence(&m.m_normals[0][0], 3 * m.m_normals.size(), oss);
             }
@@ -127,7 +127,7 @@ namespace rte
                 }
     
                 oss << "[ ";
-                oss << "resource index: " << current.resource_index;
+                oss << "index: " << current.resource_index;
                 oss << ", user id: " << format_user_id(res.m_elem.m_user_id);
                 oss << ", name: " << res.m_elem.m_name;
                 oss << ", mesh: " << format_mesh_id(res.m_elem.m_mesh);
@@ -166,7 +166,7 @@ namespace rte
             auto& mat = it->m_elem;
             std::ostringstream oss; 
             oss << std::setprecision(2) << std::fixed;
-            oss << "    material index: " << index(it);
+            oss << "    index: " << index(it);
             oss << ", user id: " << format_user_id(mat.m_user_id);
             oss << ", name: " << mat.m_name;
             oss << ", diffuse color: " << mat.m_diffuse_color;
@@ -287,7 +287,7 @@ namespace rte
         auto& pl = db.at(point_light_index);
         std::ostringstream oss;
         oss << std::setprecision(2) << std::fixed;
-        oss << "            [ point light index: " << point_light_index;
+        oss << "            [ index: " << point_light_index;
         oss << ", user_id : " << format_user_id(pl.m_elem.m_user_id);
         oss << ", position : " << pl.m_elem.m_position;
         oss << ", ambient color : " << pl.m_elem.m_ambient_color;
@@ -306,7 +306,7 @@ namespace rte
 
         std::ostringstream oss;
         oss << std::setprecision(2) << std::fixed;
-        oss << "    scene index: " << scene_index;
+        oss << "    index: " << scene_index;
         log(LOG_LEVEL_DEBUG, oss.str().c_str());
 
         oss.str("");
