@@ -69,16 +69,18 @@ namespace rte
 
         mesh& operator=(mesh&& m)
         {
-            m_vertices = std::move(m.m_vertices);
-            m_texture_coords = std::move(m.m_texture_coords);
-            m_normals = std::move(m.m_normals);
-            m_indices = std::move(m.m_indices);
-            m_position_buffer_id = std::move(m.m_position_buffer_id);
-            m_uv_buffer_id = std::move(m.m_uv_buffer_id);
-            m_normal_buffer_id = std::move(m.m_normal_buffer_id);
-            m_index_buffer_id = std::move(m.m_index_buffer_id);
-            m_user_id = std::move(m.m_user_id);
-            m_name = std::move(m.m_name);
+            if (&m != this) {
+                m_vertices = std::move(m.m_vertices);
+                m_texture_coords = std::move(m.m_texture_coords);
+                m_normals = std::move(m.m_normals);
+                m_indices = std::move(m.m_indices);
+                m_position_buffer_id = std::move(m.m_position_buffer_id);
+                m_uv_buffer_id = std::move(m.m_uv_buffer_id);
+                m_normal_buffer_id = std::move(m.m_normal_buffer_id);
+                m_index_buffer_id = std::move(m.m_index_buffer_id);
+                m_user_id = std::move(m.m_user_id);
+                m_name = std::move(m.m_name);            
+            }
 
             return *this;            
         }
@@ -237,13 +239,15 @@ namespace rte
 
         view_database& operator=(view_database&& vdb)
         {
-            m_materials = std::move(vdb.m_materials);
-            m_meshes = std::move(vdb.m_meshes);
-            m_resources = std::move(vdb.m_resources);
-            m_cubemaps = std::move(vdb.m_cubemaps);
-            m_nodes = std::move(vdb.m_nodes);
-            m_point_lights = std::move(vdb.m_point_lights);
-            m_scenes = std::move(vdb.m_scenes);
+            if (&vdb != this) {
+                m_materials = std::move(vdb.m_materials);
+                m_meshes = std::move(vdb.m_meshes);
+                m_resources = std::move(vdb.m_resources);
+                m_cubemaps = std::move(vdb.m_cubemaps);
+                m_nodes = std::move(vdb.m_nodes);
+                m_point_lights = std::move(vdb.m_point_lights);
+                m_scenes = std::move(vdb.m_scenes);            
+            }
 
             return *this;
         }

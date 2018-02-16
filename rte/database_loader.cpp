@@ -183,7 +183,7 @@ namespace rte
                 auto current = pending_nodes.back();
                 pending_nodes.pop_back();
                 resource_database::size_type current_resource = resource_database::value_type::npos;
-                if (current.parent_index == resource_database::value_type::npos
+                if (current.parent_index == resource_database::value_type::root
                     || !resource_has_child(current.parent_index, current.local_child_index, current_resource, db.m_resources)) {
                     create_resource(current.doc, current.parent_index, current_resource, db);
                     if (!root_set) {
@@ -196,10 +196,10 @@ namespace rte
                 // processed in the order in which they appear we must push them in reverse order,
                 // otherwise the last child will be processed first
                 if (current.doc.count("children")) {
-                    unsigned int n_child = 0;
                     auto& children_list = current.doc.at("children");
+                    unsigned int n_child = children_list.size() - 1;
                     for (auto json_it = children_list.rbegin(); json_it != children_list.rend(); ++json_it) {
-                        pending_nodes.push_back(json_context{*json_it, current_resource, n_child++});
+                        pending_nodes.push_back(json_context{*json_it, current_resource, n_child--});
                     }                    
                 }
             }
@@ -335,11 +335,11 @@ namespace rte
                 // We are using a stack to process depth-first, so in order for the children to be
                 // processed in the order in which they appear we must push them in reverse order,
                 // otherwise the last child will be processed first
-                unsigned int n_child = 0;
                 if (current.doc.count("children")) {
                     auto& children_list = current.doc.at("children");
+                    unsigned int n_child = children_list.size() - 1;
                     for (auto child = children_list.rbegin(); child != children_list.rend(); ++child) {
-                        pending_nodes.push_back({*child, current_node_index, n_child++});
+                        pending_nodes.push_back({*child, current_node_index, n_child--});
                     }                    
                 }
             }

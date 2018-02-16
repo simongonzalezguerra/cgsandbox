@@ -124,19 +124,21 @@ namespace rte
             resource_database new_resource_db;
             resource new_resource;
             resource_database::size_type new_resource_index = new_resource_db.insert(new_resource);
-            struct context{ resource_database::size_type added_resource; aiNode* ai_node; };
+            struct context{ resource_database::size_type added_resource_index; aiNode* ai_node; };
             std::vector<context> pending_nodes;
             pending_nodes.push_back({new_resource_index, scene->mRootNode});
             while (!pending_nodes.empty()) {
                 auto current = pending_nodes.back();
                 pending_nodes.pop_back();
 
+                auto& added_resource = new_resource_db.at(current.added_resource_index);
+
                 // Fill resource mesh and material
                 if (current.ai_node->mNumMeshes > 0 && mesh_indices.find(current.ai_node->mMeshes[0]) != mesh_indices.end()) {
-                    set_resource_mesh(current.added_resource, mesh_indices[current.ai_node->mMeshes[0]]);                
+                    added_resource.m_elem.m_mesh = mesh_indices[current.ai_node->mMeshes[0]]; 
                     unsigned int material_index = scene->mMeshes[current.ai_node->mMeshes[0]]->mMaterialIndex;
                     if (material_indices.find(material_index) != material_indices.end()) {
-                        new_resource_db.at(current.added_resource).m_elem.m_material = material_indices.at(material_index);
+                        added_resource.m_elem.m_material = material_indices.at(material_index);
                     }
                 }
 
@@ -146,17 +148,17 @@ namespace rte
                 // and we need column-major.
                 aiMatrix4x4 local_transform = current.ai_node->mTransformation;
                 aiTransposeMatrix4(&local_transform);
-                new_resource_db.at(current.added_resource).m_elem.m_local_transform = glm::make_mat4((float *) &local_transform);
+                added_resource.m_elem.m_local_transform = glm::make_mat4((float *) &local_transform);
 
                 // Assimp creates a structure with several meshes by node, and each mesh has a
                 // material. In practice though most models have one mesh by node. Our model has one
                 // mesh by resource node, and the material is assigned to the resource not the mesh.
                 // We convert Assimp's structure to our own by translating a node with several
                 // meshes into several resource nodes. f the node has more than one mesh, we map
-                // each mesh to a new node, hanging them as descendants of current.added_resource as a vertical branch,
+                // each mesh to a new node, hanging them as descendants of current.added_resource_index as a vertical branch,
                 // not siblings. All these node have identity as their transform, so that they will
-                // in effect use the same transform as current.added_resource.
-                resource_database::size_type last_parent_index = current.added_resource;
+                // in effect use the same transform as current.added_resource_index.
+                resource_database::size_type last_parent_index = current.added_resource_index;
                 unsigned int ai_mesh = 1;
                 while (ai_mesh < current.ai_node->mNumMeshes) {
                     resource res;

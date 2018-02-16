@@ -161,7 +161,7 @@ namespace rte
     {    
         log(LOG_LEVEL_DEBUG, "---------------------------------------------------------------------------------------------------");
         log(LOG_LEVEL_DEBUG, "resource_database: materials begin");
-        auto& material_list = db.m_materials.at(0);
+        auto& material_list = db.m_materials.at(material_database::value_type::root);
         for (auto it = material_list.begin(); it != material_list.end(); ++it) {
             auto& mat = it->m_elem;
             std::ostringstream oss; 
