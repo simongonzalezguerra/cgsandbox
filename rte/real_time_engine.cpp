@@ -129,8 +129,6 @@ namespace rte
         {
             auto& root_scene = db.m_scenes.at(scene_database::value_type::root);
             auto& current_scene = *(root_scene.begin());
-            auto& root_node = db.m_nodes.at(current_scene.m_elem.m_root_node);
-            root_node.m_elem.m_accum_transform = root_node.m_elem.m_local_transform;
             struct context { node_database::size_type node_index; };
             std::vector<context> pending_nodes;
             pending_nodes.push_back({current_scene.m_elem.m_root_node });
