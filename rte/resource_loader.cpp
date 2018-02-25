@@ -77,44 +77,44 @@ namespace rte
 
         void create_meshes(const struct aiScene* scene, view_database& db)
         {
-            mesh new_mesh;
             for (std::size_t i_mesh = 0; i_mesh < scene->mNumMeshes; i_mesh++) {
-                aiMesh* mesh = scene->mMeshes[i_mesh];
+                aiMesh* ai_mesh = scene->mMeshes[i_mesh];
 
-                if (material_indices.find(mesh->mMaterialIndex) == material_indices.end()) continue;
-                auto m = make_mesh();
+                if (material_indices.find(ai_mesh->mMaterialIndex) == material_indices.end()) continue;
+                auto new_mesh_index = db.m_meshes.insert(mesh());
+                auto& new_mesh = db.m_meshes.at(new_mesh_index);
 
-                if (mesh->HasPositions()) {
-                    for (std::size_t i_vertices = 0; i_vertices < mesh->mNumVertices; i_vertices++) {
-                        aiVector3D vertex = mesh->mVertices[i_vertices];
-                        new_mesh.m_vertices.push_back(glm::vec3(vertex.x, vertex.y, vertex.z));
+                mesh_indices[i_mesh] = new_mesh_index;
+
+                if (ai_mesh->HasPositions()) {
+                    for (std::size_t i_vertices = 0; i_vertices < ai_mesh->mNumVertices; i_vertices++) {
+                        aiVector3D vertex = ai_mesh->mVertices[i_vertices];
+                        new_mesh.m_elem.m_vertices.push_back(glm::vec3(vertex.x, vertex.y, vertex.z));
                     }
                 }
 
-                if (mesh->HasTextureCoords(0)) {
-                    for (std::size_t i_vertices = 0; i_vertices < mesh->mNumVertices; i_vertices++) {
-                        aiVector3D tex_coords = mesh->mTextureCoords[0][i_vertices];
-                        new_mesh.m_texture_coords.push_back(glm::vec2(tex_coords.x, tex_coords.y));
+                if (ai_mesh->HasTextureCoords(0)) {
+                    for (std::size_t i_vertices = 0; i_vertices < ai_mesh->mNumVertices; i_vertices++) {
+                        aiVector3D tex_coords = ai_mesh->mTextureCoords[0][i_vertices];
+                        new_mesh.m_elem.m_texture_coords.push_back(glm::vec2(tex_coords.x, tex_coords.y));
                     }
                 }
 
-                if (mesh->HasNormals()) {
-                    for (std::size_t i_normals = 0; i_normals < mesh->mNumVertices; i_normals++) {
-                        aiVector3D normal = mesh->mNormals[i_normals];
-                        new_mesh.m_normals.push_back(glm::vec3(normal.x, normal.y, normal.z));
+                if (ai_mesh->HasNormals()) {
+                    for (std::size_t i_normals = 0; i_normals < ai_mesh->mNumVertices; i_normals++) {
+                        aiVector3D normal = ai_mesh->mNormals[i_normals];
+                        new_mesh.m_elem.m_normals.push_back(glm::vec3(normal.x, normal.y, normal.z));
                     }
                 }
 
-                if (mesh->HasFaces()) {
-                    for (std::size_t i_faces = 0; i_faces < mesh->mNumFaces; i_faces++) {
-                        aiFace face = mesh->mFaces[i_faces];
+                if (ai_mesh->HasFaces()) {
+                    for (std::size_t i_faces = 0; i_faces < ai_mesh->mNumFaces; i_faces++) {
+                        aiFace face = ai_mesh->mFaces[i_faces];
                         for (std::size_t i_indices = 0; i_indices < face.mNumIndices; i_indices++) {
-                            new_mesh.m_indices.push_back(face.mIndices[i_indices]);
+                            new_mesh.m_elem.m_indices.push_back(face.mIndices[i_indices]);
                         }
                     }
                 }
-
-                mesh_indices[i_mesh] = db.m_meshes.insert(new_mesh);
             }
         }
 
