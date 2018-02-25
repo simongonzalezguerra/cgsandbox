@@ -118,7 +118,6 @@ namespace rte
             }
         }
 
-
         void create_resources(const struct aiScene* scene, resource_database::size_type& root_out, view_database& db)
         {
             resource_database new_resource_db;
