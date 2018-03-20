@@ -188,13 +188,13 @@ namespace rte
     };
 
     template<typename T, bool isconst>
-    typename T::index_type index(const tree_node_iterator<T, isconst>& it)
+    index_type index(const tree_node_iterator<T, isconst>& it)
     {
         return it.get_current();
     }
 
     template<typename I>
-    typename I::index_type index(const std::reverse_iterator<I>& it)
+    index_type index(const std::reverse_iterator<I>& it)
     {
         // std::reverse_iterator refers to the element one before the one refered by its internal iterator
         auto tmp = it.base();
@@ -280,6 +280,24 @@ namespace rte
             return ret;
         }
 
+        // This method has the same behavior as at() but doesn't check for m_used. This is meant to be used
+        // in contexts where entries that have not yet been marked as used need to be manipulated
+        reference physical_at(index_type index)
+        {
+            assert(index < m_elems.size());
+            reference ret = m_elems.at(index);
+
+            return ret;
+        }
+
+        const_reference physical_at(index_type index) const
+        {
+            assert(index < m_elems.size());
+            const_reference ret = m_elems.at(index);
+
+            return ret;
+        }
+
         void erase(const std::set<index_type>& to_delete)
         {
             for (auto it = to_delete.begin(); it != to_delete.end(); ++it) {
@@ -314,26 +332,27 @@ namespace rte
     {
         index_type ret = tree.size();
         for (index_type i = 0; i < tree.size(); i++) {
-            if (!tree.at(i).m_used && previously_allocated_indexes.count(i) == 0) {
+            if (!tree.physical_at(i).m_used && previously_allocated_indexes.count(i) == 0) {
                 ret = i;
                 break;
             }
         }
         if ((!ret < tree.size())) {
-            tree.push_back(V::value_type());
+            tree.push_back(typename V::value_type());
         }
 
         return ret;
     }
 
     // parent_index must be the index of a valid, used element.
+    // new_index can be not marked as used yet
     template<typename V>
     void tree_add_child(V& tree, index_type parent_index, index_type new_index)
     {
         assert(parent_index < tree.size());
         assert(new_index < tree.size());
         auto& parent = tree.at(parent_index);
-        auto& new_node = tree.at(new_index);
+        auto& new_node = tree.physical_at(new_index);
 
         if (parent.m_last_child < tree.size()) {
             tree.at(parent.m_last_child).m_next_sibling = new_index;
@@ -400,7 +419,7 @@ namespace rte
     // input_index is the index of the root of the subtree to read nodes from.
     // output_parent_index the index of the node in this sparse_vector to insert the subtree under.
     template<typename V>
-    index_type tree_insert(const V& input_tree, index_type input_index, V& output_tree, index_type output_parent_index)    
+    index_type tree_insert(const V& input_tree, index_type input_index, V& output_tree, index_type output_parent_index)
     {
         assert(output_parent_index == npos || output_parent_index < output_tree.size());
         if (!(output_parent_index == npos || output_parent_index < output_tree.size())) {
@@ -409,12 +428,12 @@ namespace rte
         if (!(output_parent_index == npos || output_tree.at(output_parent_index).m_used)) {
             throw std::domain_error("tree_insert: parent has been erased");
         }
-        assert(input_index < input_tree.output_tree.size());
-        if (!(input_index < input_tree.output_tree.size())) {
+        assert(input_index < input_tree.size());
+        if (!(input_index < input_tree.size())) {
             throw std::out_of_range("tree_insert: invalid input index");
         }
-        assert(input_tree.output_tree.at(input_index).m_used);
-        if (!(input_tree.output_tree.at(input_index).m_used)) {
+        assert(input_tree.at(input_index).m_used);
+        if (!(input_tree.at(input_index).m_used)) {
             throw std::out_of_range("tree_insert: input index has been erased");
         }
 
@@ -434,11 +453,13 @@ namespace rte
             new_indices.insert(new_index);
             new_index_map[input_node_index] = new_index;
 
-            // Insert the value in its new position
+            // Insert the value in its new position. The new entries are not yet marked as used, so we
+            // can't use at() because it would fail the assertion on m_used. We use utility method physical_at
+            // which has the same behavior as at() but doesn't check for m_used
             const auto& input_node = input_tree.at(input_node_index);
-            output_tree.at(new_index) = input_node;
+            output_tree.physical_at(new_index) = input_node;
 
-            for (auto it = input_node.rbegin(); it != input_node.rend(); ++it) {
+            for (auto it = tree_rbegin(input_tree, input_node_index); it != tree_rend(input_tree, input_node_index); ++it) {
                 pending_nodes.push_back(index(it));
             }
         }
@@ -446,10 +467,10 @@ namespace rte
         // Update the references in all inserted nodes
         // Remove the external index that may be present in the parent reference of the output root node
         // (we will set this later in function tree_add_child())
-        output_tree.at(new_index_map.at(input_index)).m_parent = npos;
+        output_tree.physical_at(new_index_map.at(input_index)).m_parent = npos;
         for (auto& it : new_index_map) {
             if (it.second != npos) {
-                auto& new_node = output_tree.at(it.second);
+                auto& new_node = output_tree.physical_at(it.second);
                 new_node.m_parent = new_index_map.at(new_node.m_parent);
                 new_node.m_first_child = new_index_map.at(new_node.m_first_child);
                 new_node.m_last_child = new_index_map.at(new_node.m_last_child);
@@ -462,7 +483,7 @@ namespace rte
 
         // Insert the root in the list of children of the parent
         index_type new_root_index = new_index_map.at(input_index);
-        if (output_parent_index < output_tree.size() && output_tree.at(output_parent_index).m_used) {
+        if (output_parent_index < output_tree.size() && output_tree.physical_at(output_parent_index).m_used) {
             tree_add_child(output_tree, output_parent_index, new_root_index);        
         }
 
@@ -477,7 +498,7 @@ namespace rte
     }
 
     template<typename V>
-    index_type tree_erase(V& tree, index_type erase_index)
+    void tree_erase(V& tree, index_type erase_index)
     {
         assert(erase_index < tree.size());
         if (!(erase_index < tree.size())) {
@@ -487,15 +508,6 @@ namespace rte
         if (!(tree.at(erase_index).m_used)) {
             throw std::domain_error("sparse_vector::erase: remove index has already been erased");
         }
-        assert(erase_index > 0);
-        if (!(erase_index > 0)) {
-            throw std::domain_error("sparse_vector:erase: attempted to remove root node (index 0)");
-        }
-        assert(tree.at(erase_index).m_parent < tree.size());
-        if (!(tree.at(erase_index).m_parent < tree.size())) {
-            throw std::domain_error("sparse_vector:erase: remove index has no valid parent");
-        }
-
         // Mark the node and all its descendants as not used, recursively
         std::set<index_type> to_delete;
         std::vector<index_type> pending_nodes;
@@ -504,33 +516,34 @@ namespace rte
             index_type pending_index = pending_nodes.back();
             pending_nodes.pop_back();
 
-            auto& node = tree.at(pending_index);
             to_delete.insert(pending_index);
 
-            for (auto it = node.rbegin(); it != node.rend(); ++it) {
+            for (auto it = tree_rbegin(tree, pending_index); it != tree_rend(tree, pending_index); ++it) {
                 pending_nodes.push_back(index(it));
             }
         }
 
         // Exception safety: now that we have passed all the throw points, impact the changes in the structure
+        if (tree.at(erase_index).m_parent < tree.size()) {
+            tree_remove_child(tree, tree.at(erase_index).m_parent, erase_index);
+        }
         for (auto it = to_delete.begin(); it != to_delete.end(); ++it) {
             tree.clear_used(*it);
         }
-        tree_remove_child(tree, tree.at(erase_index).m_parent, erase_index);
     }
 
-    //template<typename V> typename V::iterator tree_begin(V& v, index_type i) { auto& elem = v.at(i); return V::iterator(&v.at(0), npos, elem.m_first_child, elem.m_first_child != npos? v.at(elem.m_first_child).elem.m_next_sibling : npos, v.size()); }
-    //template<typename V> typename V::const_iterator tree_begin(const V& v, index_type i) { auto& elem = v.at(i); return V::const_iterator(&v.at(0), npos, elem.m_first_child, elem.m_first_child != npos? v.at(elem.m_first_child).elem.m_next_sibling : npos, v.size()); }
-    //template<typename V> typename V::const_iterator tree_cbegin(const V& v, index_type i) { auto& elem = v.at(i); return V::const_iterator(&v.at(0), npos, elem.m_first_child, elem.m_first_child != npos? v.at(elem.m_first_child).elem.m_next_sibling : npos, v.size()); }
-    template<typename V> typename V::iterator tree_end(V& v, index_type i) { auto& elem = v.at(i); return V::iterator(&v.at(0), elem.m_last_child, npos, npos, v.size()); }
-    template<typename V> typename  V::const_iterator tree_end(const V& v, index_type i) { auto& elem = v.at(i); return V::const_iterator(&v.at(0), elem.m_last_child, npos, npos, v.size()); }
+    template<typename V> typename V::iterator tree_begin(V& v, index_type i) { auto& elem = v.at(i); return typename V::iterator(&v.at(0), npos, elem.m_first_child, elem.m_first_child != npos? v.at(elem.m_first_child).m_next_sibling : npos, v.size()); }
+    template<typename V> typename V::const_iterator tree_begin(const V& v, index_type i) { auto& elem = v.at(i); return typename V::const_iterator(&v.at(0), npos, elem.m_first_child, elem.m_first_child != npos? v.at(elem.m_first_child).m_next_sibling : npos, v.size()); }
+    //template<typename V> typename V::const_iterator tree_cbegin(const V& v, index_type i) { auto& elem = v.at(i); return typename V::const_iterator(&v.at(0), npos, elem.m_first_child, elem.m_first_child != npos? v.at(elem.m_first_child).m_next_sibling : npos, v.size()); }
+    template<typename V> typename V::iterator tree_end(V& v, index_type i) { auto& elem = v.at(i); return typename V::iterator(&v.at(0), elem.m_last_child, npos, npos, v.size()); }
+    template<typename V> typename  V::const_iterator tree_end(const V& v, index_type i) { auto& elem = v.at(i); return typename V::const_iterator(&v.at(0), elem.m_last_child, npos, npos, v.size()); }
     //template<typename V> typename  V::const_iterator tree_cend(const V& v, index_type i) { auto& elem = v.at(i); return V::const_iterator(&v.at(0), elem.m_last_child, npos, npos, v.size()); }
-    template<typename V> typename  V::reverse_iterator tree_rbegin(V& v, index_type i) { return V::reverse_iterator(tree_end(v, i)); }
-    template<typename V> typename  V::const_reverse_iterator tree_rbegin(const V& v, index_type i) { return V::const_reverse_iterator(tree_end(v, i)); }
-    //template<typename V> typename V::const_reverse_iterator tree_crbegin(const V&, index_type i) { return V::const_reverse_iterator(tree_end(v, i)); }
-    template<typename V> typename V::reverse_iterator tree_rend(V& v, index_type i) { return V::reverse_iterator(tree_begin(v, i)); }
-    template<typename V> typename V::const_reverse_iterator tree_rend(const V& v, index_type i) { return V::const_reverse_iterator(tree_begin(v, i)); }
-    //template<typename V> typename V::const_reverse_iterator tree_crend(const V& v, index_type i) { return V::const_reverse_iterator(tree_begin(v, i)); }
+    template<typename V> typename V::reverse_iterator tree_rbegin(V& v, index_type i) { return typename V::reverse_iterator(tree_end(v, i)); }
+    template<typename V> typename V::const_reverse_iterator tree_rbegin(const V& v, index_type i) { return typename V::const_reverse_iterator(tree_end(v, i)); }
+    //template<typename V> typename V::const_reverse_iterator tree_crbegin(const V&, index_type i) { return typename V::const_reverse_iterator(tree_end(v, i)); }
+    template<typename V> typename V::reverse_iterator tree_rend(V& v, index_type i) { return typename V::reverse_iterator(tree_begin(v, i)); }
+    template<typename V> typename V::const_reverse_iterator tree_rend(const V& v, index_type i) { return typename V::const_reverse_iterator(tree_begin(v, i)); }
+    //template<typename V> typename V::const_reverse_iterator tree_crend(const V& v, index_type i) { return typename V::const_reverse_iterator(tree_begin(v, i)); }
 } // namespace rte
 
 #endif // SPARSE_TREE_HPP
