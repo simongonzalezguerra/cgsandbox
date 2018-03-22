@@ -534,16 +534,16 @@ namespace rte
 
     template<typename V> typename V::iterator tree_begin(V& v, index_type i) { auto& elem = v.at(i); return typename V::iterator(&v.at(0), npos, elem.m_first_child, elem.m_first_child != npos? v.at(elem.m_first_child).m_next_sibling : npos, v.size()); }
     template<typename V> typename V::const_iterator tree_begin(const V& v, index_type i) { auto& elem = v.at(i); return typename V::const_iterator(&v.at(0), npos, elem.m_first_child, elem.m_first_child != npos? v.at(elem.m_first_child).m_next_sibling : npos, v.size()); }
-    //template<typename V> typename V::const_iterator tree_cbegin(const V& v, index_type i) { auto& elem = v.at(i); return typename V::const_iterator(&v.at(0), npos, elem.m_first_child, elem.m_first_child != npos? v.at(elem.m_first_child).m_next_sibling : npos, v.size()); }
+    template<typename V> typename V::const_iterator tree_cbegin(const V& v, index_type i) { auto& elem = v.at(i); return typename V::const_iterator(&v.at(0), npos, elem.m_first_child, elem.m_first_child != npos? v.at(elem.m_first_child).m_next_sibling : npos, v.size()); }
     template<typename V> typename V::iterator tree_end(V& v, index_type i) { auto& elem = v.at(i); return typename V::iterator(&v.at(0), elem.m_last_child, npos, npos, v.size()); }
-    template<typename V> typename  V::const_iterator tree_end(const V& v, index_type i) { auto& elem = v.at(i); return typename V::const_iterator(&v.at(0), elem.m_last_child, npos, npos, v.size()); }
-    //template<typename V> typename  V::const_iterator tree_cend(const V& v, index_type i) { auto& elem = v.at(i); return V::const_iterator(&v.at(0), elem.m_last_child, npos, npos, v.size()); }
+    template<typename V> typename V::const_iterator tree_end(const V& v, index_type i)  { auto& elem = v.at(i); return typename V::const_iterator(&v.at(0), elem.m_last_child, npos, npos, v.size()); }
+    template<typename V> typename V::const_iterator tree_cend(const V& v, index_type i) { auto& elem = v.at(i); return typename V::const_iterator(&v.at(0), elem.m_last_child, npos, npos, v.size()); }
     template<typename V> typename V::reverse_iterator tree_rbegin(V& v, index_type i) { return typename V::reverse_iterator(tree_end(v, i)); }
     template<typename V> typename V::const_reverse_iterator tree_rbegin(const V& v, index_type i) { return typename V::const_reverse_iterator(tree_end(v, i)); }
-    //template<typename V> typename V::const_reverse_iterator tree_crbegin(const V&, index_type i) { return typename V::const_reverse_iterator(tree_end(v, i)); }
+    template<typename V> typename V::const_reverse_iterator tree_crbegin(const V& v, index_type i) { return typename V::const_reverse_iterator(tree_end(v, i)); }
     template<typename V> typename V::reverse_iterator tree_rend(V& v, index_type i) { return typename V::reverse_iterator(tree_begin(v, i)); }
     template<typename V> typename V::const_reverse_iterator tree_rend(const V& v, index_type i) { return typename V::const_reverse_iterator(tree_begin(v, i)); }
-    //template<typename V> typename V::const_reverse_iterator tree_crend(const V& v, index_type i) { return typename V::const_reverse_iterator(tree_begin(v, i)); }
+    template<typename V> typename V::const_reverse_iterator tree_crend(const V& v, index_type i) { return typename V::const_reverse_iterator(tree_begin(v, i)); }
 } // namespace rte
 
 #endif // SPARSE_TREE_HPP

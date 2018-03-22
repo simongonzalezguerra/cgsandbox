@@ -218,187 +218,196 @@ TEST_F(sparse_tree_test, insert_tree) {
     ASSERT_EQ(search_result, true);
     ASSERT_EQ(search_index, 15U);
 }
-// 
-// index_type get_number_of_nodes_with_begin(my_vector& st)
-// {
-//     index_type ret = 0U;
-//     std::vector<index_type> pending_nodes;
-//     pending_nodes.push_back(my_vector::value_type::root);
-//     while (!pending_nodes.empty()) {
-//         auto& node_index = pending_nodes.back();
-//         auto& node = st.at(node_index); // This tests the non-const version of at()
-//         pending_nodes.pop_back();
-//         ret++;
-//         // This tests the non-const version of begin() and end()
-//         for (auto it = node.begin(); it != node.end(); it++) {
-//             pending_nodes.push_back(index(it));
-//         }
-//     }
-// 
-//     return ret;
-// }
-// 
-// index_type get_number_of_nodes_with_cbegin(my_vector& st)
-// {
-//     index_type ret = 0U;
-//     std::vector<index_type> pending_nodes;
-//     pending_nodes.push_back(my_vector::value_type::root);
-//     while (!pending_nodes.empty()) {
-//         auto& node_index = pending_nodes.back();
-//         auto& node = st.at(node_index);
-//         pending_nodes.pop_back();
-//         ret++;
-//         for (auto it = node.cbegin(); it != node.cend(); it++) {
-//             pending_nodes.push_back(index(it));
-//         }
-//     }
-// 
-//     return ret;
-// }
-// 
-// index_type get_number_of_nodes_with_rbegin(my_vector& st)
-// {
-//     index_type ret = 0U;
-//     std::vector<index_type> pending_nodes;
-//     pending_nodes.push_back(my_vector::value_type::root);
-//     while (!pending_nodes.empty()) {
-//         auto& node_index = pending_nodes.back();
-//         auto& node = st.at(node_index);
-//         pending_nodes.pop_back();
-//         ret++;
-//         // This tests the non-const version of rbegin() and rend()
-//         for (auto it = node.rbegin(); it != node.rend(); it++) {
-//             pending_nodes.push_back(index(it));
-//         }
-//     }
-// 
-//     return ret;
-// }
-// 
-// index_type get_number_of_nodes_with_crbegin(my_vector& st)
-// {
-//     index_type ret = 0U;
-//     std::vector<index_type> pending_nodes;
-//     pending_nodes.push_back(my_vector::value_type::root);
-//     while (!pending_nodes.empty()) {
-//         auto& node_index = pending_nodes.back();
-//         auto& node = st.at(node_index);
-//         pending_nodes.pop_back();
-//         ret++;
-//         for (auto it = node.crbegin(); it != node.crend(); it++) {
-//             pending_nodes.push_back(index(it));
-//         }
-//     }
-// 
-//     return ret;
-// }
-// 
-// index_type get_number_of_nodes_with_begin_backwards(my_vector& st)
-// {
-//     index_type ret = 0U;
-//     std::vector<index_type> pending_nodes;
-//     pending_nodes.push_back(my_vector::value_type::root);
-//     while (!pending_nodes.empty()) {
-//         auto& node_index = pending_nodes.back();
-//         auto& node = st.at(node_index);
-//         pending_nodes.pop_back();
-//         ret++;
-// 
-//         my_vector::iterator it = node.end();
-//         it--;
-//         while (it != node.end()) {
-//             pending_nodes.push_back(index(it));
-//             it--;
-//         }
-//     }
-// 
-//     return ret;
-// }
-// 
-// TEST_F(sparse_tree_test, iteration) {
-//     // build initial tree
-//     my_vector st;
-//     tree_insert(st, 1, 0);
-//     tree_insert(st, 2, 1);
-//     tree_insert(st, 3, 2);
-//     tree_insert(st, 4, 2);
-//     tree_insert(st, 5, 1);
-//     tree_insert(st, 6, 1);
-//     tree_insert(st, 7, 6);
-//     tree_insert(st, 8, 6);
-// 
-//     ASSERT_EQ(get_number_of_nodes_with_begin(st), 9U);
-//     ASSERT_EQ(get_number_of_nodes_with_cbegin(st), 9U);
-//     ASSERT_EQ(get_number_of_nodes_with_rbegin(st), 9U);
-//     ASSERT_EQ(get_number_of_nodes_with_crbegin(st), 9U);
-//     ASSERT_EQ(get_number_of_nodes_with_begin_backwards(st), 9U);
-// }
-// 
-// TEST_F(sparse_tree_test, clear) {
-//     // build initial tree
-//     my_vector st;
-//     tree_insert(st, 1, 0);
-//     tree_insert(st, 2, 1);
-//     tree_insert(st, 3, 2);
-//     tree_insert(st, 4, 2);
-//     tree_insert(st, 5, 1);
-//     tree_insert(st, 6, 1);
-//     tree_insert(st, 7, 6);
-//     tree_insert(st, 8, 6);
-// 
-//     st.clear();
-//     ASSERT_EQ(get_number_of_nodes_with_begin(st), 1U);
-// }
-// 
-// TEST_F(sparse_tree_test, dereference) {
-//     // build initial tree
-//     my_vector st;
-//     tree_insert(st, 1, 0);
-//     tree_insert(st, 2, 1);
-//     tree_insert(st, 3, 2);
-//     tree_insert(st, 4, 2);
-//     tree_insert(st, 5, 1);
-//     tree_insert(st, 6, 1);
-//     tree_insert(st, 7, 6);
-//     tree_insert(st, 8, 6);
-// 
-//     print_first_level(st);
-// }
-// 
-// TEST_F(sparse_tree_test, swap) {
-//     // build initial tree
-//     my_vector st;
-//     tree_insert(st, 1, 0);
-//     tree_insert(st, 2, 1);
-//     tree_insert(st, 3, 2);
-//     tree_insert(st, 4, 2);
-//     tree_insert(st, 5, 1);
-//     tree_insert(st, 6, 1);
-//     tree_insert(st, 7, 6);
-//     tree_insert(st, 8, 6);
-// 
-//     ASSERT_EQ(get_number_of_nodes_with_begin(st), 9U);
-//     my_vector().swap(st);
-//     ASSERT_EQ(get_number_of_nodes_with_begin(st), 1U);
-// }
-// 
-// TEST_F(sparse_tree_test, assignment) {
-//     // build initial tree
-//     my_vector st1;
-//     st1.insert(1, 0);
-//     st1.insert(2, 1);
-//     st1.insert(3, 2);
-//     st1.insert(4, 2);
-//     st1.insert(5, 1);
-//     st1.insert(6, 1);
-//     st1.insert(7, 6);
-//     st1.insert(8, 6);
-//     ASSERT_EQ(get_number_of_nodes_with_begin(st1), 9U);
-// 
-//     my_vector st2;
-//     st2 = st1;
-//     ASSERT_EQ(get_number_of_nodes_with_begin(st2), 9U);
-// }
+
+index_type get_number_of_nodes_with_begin(my_vector& st, index_type root)
+{
+    index_type ret = 0U;
+    std::vector<index_type> pending_nodes;
+    pending_nodes.push_back(root);
+    while (!pending_nodes.empty()) {
+        auto& node_index = pending_nodes.back();
+        pending_nodes.pop_back();
+        ret++;
+        // This tests the non-const version of begin() and end()
+        for (auto it = tree_begin(st, node_index); it != tree_end(st, node_index); it++) {
+            pending_nodes.push_back(index(it));
+        }
+    }
+
+    return ret;
+}
+
+index_type get_number_of_nodes_with_cbegin(my_vector& st, index_type root)
+{
+    index_type ret = 0U;
+    std::vector<index_type> pending_nodes;
+    pending_nodes.push_back(root);
+    while (!pending_nodes.empty()) {
+        auto node_index = pending_nodes.back();
+        pending_nodes.pop_back();
+        ret++;
+        for (auto it = tree_cbegin(st, node_index); it != tree_cend(st, node_index); it++) {
+            pending_nodes.push_back(index(it));
+        }
+    }
+
+    return ret;
+}
+
+index_type get_number_of_nodes_with_rbegin(my_vector& st, index_type root)
+{
+    index_type ret = 0U;
+    std::vector<index_type> pending_nodes;
+    pending_nodes.push_back(root);
+    while (!pending_nodes.empty()) {
+        auto node_index = pending_nodes.back();
+        pending_nodes.pop_back();
+        ret++;
+        // This tests the non-const version of rbegin() and rend()
+        for (auto it = tree_rbegin(st, node_index); it != tree_rend(st, node_index); it++) {
+            pending_nodes.push_back(index(it));
+        }
+    }
+
+    return ret;
+}
+
+index_type get_number_of_nodes_with_crbegin(my_vector& st, index_type root)
+{
+    index_type ret = 0U;
+    std::vector<index_type> pending_nodes;
+    pending_nodes.push_back(root);
+    while (!pending_nodes.empty()) {
+        auto node_index = pending_nodes.back();
+        pending_nodes.pop_back();
+        ret++;
+        for (auto it = tree_crbegin(st, node_index); it != tree_crend(st, node_index); it++) {
+            pending_nodes.push_back(index(it));
+        }
+    }
+
+    return ret;
+}
+
+index_type get_number_of_nodes_with_begin_backwards(my_vector& st, index_type root)
+{
+    index_type ret = 0U;
+    std::vector<index_type> pending_nodes;
+    pending_nodes.push_back(root);
+    while (!pending_nodes.empty()) {
+        auto node_index = pending_nodes.back();
+        pending_nodes.pop_back();
+        ret++;
+
+        my_vector::iterator it = tree_end(st, node_index);
+        it--;
+        while (it != tree_end(st, node_index)) {
+            pending_nodes.push_back(index(it));
+            it--;
+        }
+    }
+
+    return ret;
+}
+
+TEST_F(sparse_tree_test, non_const_at) {
+    my_vector st;
+    tree_insert(st, my_struct(11));
+    auto& node = st.at(0); // This tests the non-const version of at())
+    ASSERT_EQ(node.m_val, 11);
+}
+
+TEST_F(sparse_tree_test, iteration) {
+    // build initial tree
+    my_vector st;
+    tree_insert(st, my_struct(0));
+    tree_insert(st, my_struct(1), 0);
+    tree_insert(st, my_struct(2), 1);
+    tree_insert(st, my_struct(3), 2);
+    tree_insert(st, my_struct(4), 2);
+    tree_insert(st, my_struct(5), 1);
+    tree_insert(st, my_struct(6), 1);
+    tree_insert(st, my_struct(7), 6);
+    tree_insert(st, my_struct(8), 6);
+
+    ASSERT_EQ(get_number_of_nodes_with_begin(st, 0), 9U);
+    ASSERT_EQ(get_number_of_nodes_with_cbegin(st, 0), 9U);
+    ASSERT_EQ(get_number_of_nodes_with_rbegin(st, 0), 9U);
+    ASSERT_EQ(get_number_of_nodes_with_crbegin(st, 0), 9U);
+    ASSERT_EQ(get_number_of_nodes_with_begin_backwards(st, 0), 9U);
+}
+
+TEST_F(sparse_tree_test, clear) {
+    // build initial tree
+    my_vector st;
+    tree_insert(st, my_struct(0));
+    tree_insert(st, my_struct(1), 0);
+    tree_insert(st, my_struct(2), 1);
+    tree_insert(st, my_struct(3), 2);
+    tree_insert(st, my_struct(4), 2);
+    tree_insert(st, my_struct(5), 1);
+    tree_insert(st, my_struct(6), 1);
+    tree_insert(st, my_struct(7), 6);
+    tree_insert(st, my_struct(8), 6);
+
+    st.clear();
+    tree_insert(st, my_struct(23));
+    ASSERT_EQ(get_number_of_nodes_with_begin(st, 0), 1U);
+}
+
+TEST_F(sparse_tree_test, dereference) {
+    // build initial tree
+    my_vector st;
+    tree_insert(st, my_struct(0));
+    tree_insert(st, my_struct(1), 0);
+    tree_insert(st, my_struct(2), 1);
+    tree_insert(st, my_struct(3), 2);
+    tree_insert(st, my_struct(4), 2);
+    tree_insert(st, my_struct(5), 1);
+    tree_insert(st, my_struct(6), 1);
+    tree_insert(st, my_struct(7), 6);
+    tree_insert(st, my_struct(8), 6);
+
+    print_first_level(st);
+}
+
+TEST_F(sparse_tree_test, swap) {
+    // build initial tree
+    my_vector st;
+    tree_insert(st, my_struct(0));
+    tree_insert(st, my_struct(1), 0);
+    tree_insert(st, my_struct(2), 1);
+    tree_insert(st, my_struct(3), 2);
+    tree_insert(st, my_struct(4), 2);
+    tree_insert(st, my_struct(5), 1);
+    tree_insert(st, my_struct(6), 1);
+    tree_insert(st, my_struct(7), 6);
+    tree_insert(st, my_struct(8), 6);
+
+    ASSERT_EQ(get_number_of_nodes_with_begin(st, 0), 9U);
+    my_vector().swap(st);
+    tree_insert(st, my_struct(23));
+    ASSERT_EQ(get_number_of_nodes_with_begin(st, 0), 1U);
+}
+
+TEST_F(sparse_tree_test, assignment) {
+    // build initial tree
+    my_vector st1;
+    tree_insert(st1, my_struct(0));
+    tree_insert(st1, my_struct(1), 0);
+    tree_insert(st1, my_struct(2), 1);
+    tree_insert(st1, my_struct(3), 2);
+    tree_insert(st1, my_struct(4), 2);
+    tree_insert(st1, my_struct(5), 1);
+    tree_insert(st1, my_struct(6), 1);
+    tree_insert(st1, my_struct(7), 6);
+    tree_insert(st1, my_struct(8), 6);
+    ASSERT_EQ(get_number_of_nodes_with_begin(st1, 0), 9U);
+
+    my_vector st2;
+    st2 = st1;
+    ASSERT_EQ(get_number_of_nodes_with_begin(st2, 0), 9U);
+}
 
 int main(int argc, char** argv)
 {
