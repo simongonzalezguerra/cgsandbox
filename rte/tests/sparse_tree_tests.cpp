@@ -109,6 +109,7 @@ void print_first_level(const my_vector& st)
 //     7
 TEST_F(sparse_tree_test, insert_erase_search) {
     my_vector st;
+    tree_init(st);
     auto new_index = tree_insert(st, my_struct(0));
     ASSERT_EQ(new_index, 0U);
 
@@ -174,6 +175,7 @@ TEST_F(sparse_tree_test, insert_erase_search) {
 TEST_F(sparse_tree_test, insert_tree) {
     // build initial tree
     my_vector ot;
+    tree_init(ot);
     tree_insert(ot, my_struct(0));
     tree_insert(ot, my_struct(1), 0);
     tree_insert(ot, my_struct(2), 1);
@@ -187,6 +189,7 @@ TEST_F(sparse_tree_test, insert_tree) {
 
     // build tree to add
     my_vector it;
+    tree_init(it);
     tree_insert(it, my_struct(8));
     tree_insert(it, my_struct(9), 0);
     tree_insert(it, my_struct(10), 1);
@@ -312,6 +315,7 @@ index_type get_number_of_nodes_with_begin_backwards(my_vector& st, index_type ro
 
 TEST_F(sparse_tree_test, non_const_at) {
     my_vector st;
+    tree_init(st);
     tree_insert(st, my_struct(11));
     auto& node = st.at(0); // This tests the non-const version of at())
     ASSERT_EQ(node.m_val, 11);
@@ -320,6 +324,7 @@ TEST_F(sparse_tree_test, non_const_at) {
 TEST_F(sparse_tree_test, iteration) {
     // build initial tree
     my_vector st;
+    tree_init(st);
     tree_insert(st, my_struct(0));
     tree_insert(st, my_struct(1), 0);
     tree_insert(st, my_struct(2), 1);
@@ -340,6 +345,7 @@ TEST_F(sparse_tree_test, iteration) {
 TEST_F(sparse_tree_test, clear) {
     // build initial tree
     my_vector st;
+    tree_init(st);
     tree_insert(st, my_struct(0));
     tree_insert(st, my_struct(1), 0);
     tree_insert(st, my_struct(2), 1);
@@ -358,6 +364,7 @@ TEST_F(sparse_tree_test, clear) {
 TEST_F(sparse_tree_test, dereference) {
     // build initial tree
     my_vector st;
+    tree_init(st);
     tree_insert(st, my_struct(0));
     tree_insert(st, my_struct(1), 0);
     tree_insert(st, my_struct(2), 1);
@@ -374,6 +381,7 @@ TEST_F(sparse_tree_test, dereference) {
 TEST_F(sparse_tree_test, swap) {
     // build initial tree
     my_vector st;
+    tree_init(st);
     tree_insert(st, my_struct(0));
     tree_insert(st, my_struct(1), 0);
     tree_insert(st, my_struct(2), 1);
@@ -393,6 +401,7 @@ TEST_F(sparse_tree_test, swap) {
 TEST_F(sparse_tree_test, assignment) {
     // build initial tree
     my_vector st1;
+    tree_init(st1);
     tree_insert(st1, my_struct(0));
     tree_insert(st1, my_struct(1), 0);
     tree_insert(st1, my_struct(2), 1);
@@ -405,6 +414,7 @@ TEST_F(sparse_tree_test, assignment) {
     ASSERT_EQ(get_number_of_nodes_with_begin(st1, 0), 9U);
 
     my_vector st2;
+    tree_init(st2);
     st2 = st1;
     ASSERT_EQ(get_number_of_nodes_with_begin(st2, 0), 9U);
 }

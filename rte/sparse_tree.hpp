@@ -328,6 +328,12 @@ namespace rte
     };
 
     template<typename V>
+    void tree_init(V& tree)
+    {
+        tree.clear();
+    }
+
+    template<typename V>
     index_type tree_allocate_node(V& tree, const std::set<index_type>& previously_allocated_indexes)
     {
         index_type ret = tree.size();
