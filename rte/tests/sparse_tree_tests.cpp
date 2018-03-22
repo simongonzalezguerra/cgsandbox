@@ -6,7 +6,7 @@
 
 using namespace rte;
 
-struct my_struct : public tree_node
+struct my_struct : public sparse_node
 {
     my_struct() : m_val(0) {}
     my_struct(int val) : m_val(val) {}
