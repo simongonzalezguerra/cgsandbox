@@ -1,2 +1,5 @@
 add_executable(sparse_tree_tests sparse_tree_tests.cpp)
 target_link_libraries(sparse_tree_tests libgtest.a pthread)
+
+add_executable(sparse_list_tests sparse_list_tests.cpp)
+target_link_libraries(sparse_list_tests libgtest.a pthread)

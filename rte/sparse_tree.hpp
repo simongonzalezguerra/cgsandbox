@@ -5,6 +5,7 @@
 
 namespace rte
 {
+    // Erases all nodes in a sparse_vector
     template<typename V>
     void tree_init(V& tree)
     {
@@ -181,6 +182,7 @@ namespace rte
         return new_root_index;
     }
 
+    // Removes a tree node and all its descendants recursively
     template<typename V>
     void tree_erase(V& tree, index_type erase_index)
     {
