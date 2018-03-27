@@ -44,7 +44,6 @@ TEST_F(sparse_list_test, empty_list) {
 unsigned int get_number_of_elements(const my_vector& v, index_type head_index)
 {
     unsigned int ret = 0U;
-    // TODO implemen list_begin and list_end methods
     for (auto it = list_begin(v, head_index); it != list_end(v, head_index); ++it) {
         ret++;
     }
@@ -52,7 +51,8 @@ unsigned int get_number_of_elements(const my_vector& v, index_type head_index)
     return ret;
 }
 
-TEST_F(sparse_list_test, insert) {
+TEST_F(sparse_list_test, insert)
+{
     my_vector sl;
     list_init(sl);
     auto list_head = list_empty_list(sl);
@@ -61,6 +61,36 @@ TEST_F(sparse_list_test, insert) {
     list_insert(sl, list_head, my_struct(3));
     list_insert(sl, list_head, my_struct(4));
     list_insert(sl, list_head, my_struct(5));
+}
+
+TEST_F(sparse_list_test, count_number_of_elements)
+{
+    my_vector sl;
+    list_init(sl);
+    auto list_head = list_empty_list(sl);
+    list_insert(sl, list_head, my_struct(1));
+    list_insert(sl, list_head, my_struct(2));
+    list_insert(sl, list_head, my_struct(3));
+    list_insert(sl, list_head, my_struct(4));
+    list_insert(sl, list_head, my_struct(5));
+    ASSERT_EQ(get_number_of_elements(sl, list_head), 5U);
+}
+
+TEST_F(sparse_list_test, erase)
+{
+    my_vector sl;
+    list_init(sl);
+    auto list_head = list_empty_list(sl);
+    list_insert(sl, list_head, my_struct(1));
+    list_insert(sl, list_head, my_struct(2));
+    list_insert(sl, list_head, my_struct(3));
+    list_insert(sl, list_head, my_struct(4));
+    list_insert(sl, list_head, my_struct(5));
+    ASSERT_EQ(get_number_of_elements(sl, list_head), 5U);
+    list_erase(sl, 1);
+    ASSERT_EQ(get_number_of_elements(sl, list_head), 4U);
+    list_erase(sl, 2);
+    ASSERT_EQ(get_number_of_elements(sl, list_head), 3U);
 }
 
 int main(int argc, char** argv)

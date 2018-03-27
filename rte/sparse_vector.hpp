@@ -52,7 +52,7 @@ namespace rte
     };
 
     template <typename T, bool isconst = false>
-    class tree_node_iterator
+    class sparse_node_iterator
     {
     public:
         template <bool flag, typename IsTrue, typename IsFalse>
@@ -74,14 +74,14 @@ namespace rte
         typedef typename std::ptrdiff_t difference_type;
         typedef T value_type;
     
-        tree_node_iterator() :
+        sparse_node_iterator() :
             m_begin(nullptr),
             m_previous(0U),
             m_current(0U),
             m_next(0U),
             m_size(0U) {}
 
-        tree_node_iterator(pointer begin,
+        sparse_node_iterator(pointer begin,
                 index_type previous,
                 index_type current,
                 index_type next,
@@ -92,25 +92,25 @@ namespace rte
             m_next(next),
             m_size(size) {}
 
-        tree_node_iterator(const tree_node_iterator<T, false>& spi) :
+        sparse_node_iterator(const sparse_node_iterator<T, false>& spi) :
             m_begin(spi.get_begin()),
             m_previous(spi.get_previous()),
             m_current(spi.get_current()),
             m_next(spi.get_next()),
             m_size(spi.get_size()) {}
 
-        ~tree_node_iterator() {}
+        ~sparse_node_iterator() {}
 
-        tree_node_iterator& operator=(const tree_node_iterator&) = default;
+        sparse_node_iterator& operator=(const sparse_node_iterator&) = default;
 
-        bool operator==(const tree_node_iterator& spi) const
+        bool operator==(const sparse_node_iterator& spi) const
         {
             return (m_begin == spi.m_begin && m_current == spi.m_current);
         }
 
-        bool operator!=(const tree_node_iterator& spi) const { return !(*this == spi); }
+        bool operator!=(const sparse_node_iterator& spi) const { return !(*this == spi); }
 
-        tree_node_iterator& operator++()
+        sparse_node_iterator& operator++()
         {
             m_current = m_next;
             m_previous = m_begin[m_current].m_previous_sibling;
@@ -118,14 +118,14 @@ namespace rte
             return (*this);
         }
 
-        tree_node_iterator operator++(int)
+        sparse_node_iterator operator++(int)
         {
-            tree_node_iterator tmp(*this);
+            sparse_node_iterator tmp(*this);
             ++*this;
             return tmp;
         }
 
-        tree_node_iterator& operator--()
+        sparse_node_iterator& operator--()
         {
             m_current = m_previous;
             m_previous = m_begin[m_current].m_previous_sibling;
@@ -133,9 +133,9 @@ namespace rte
             return (*this);
         }
 
-        tree_node_iterator operator--(int)
+        sparse_node_iterator operator--(int)
         {
-            tree_node_iterator tmp(*this);
+            sparse_node_iterator tmp(*this);
             --*this;
             return tmp;
         }
@@ -144,12 +144,12 @@ namespace rte
         {
             assert(m_current < m_size);
             if (!(m_current < m_size)) {
-                throw std::out_of_range("tree_node_iterator::operator*: invalid index");
+                throw std::out_of_range("sparse_node_iterator::operator*: invalid index");
             }
 
             assert(m_begin[m_current].m_used);
             if (!m_begin[m_current].m_used) {
-                throw std::domain_error("tree_node_iterator::operator*: entry has been erased");
+                throw std::domain_error("sparse_node_iterator::operator*: entry has been erased");
             }
 
             return m_begin[m_current];
@@ -159,12 +159,12 @@ namespace rte
         {
             assert(m_current < m_size);
             if (!(m_current < m_size)) {
-                throw std::out_of_range("tree_node_iterator::operator->: invalid index");
+                throw std::out_of_range("sparse_node_iterator::operator->: invalid index");
             }
 
             assert(m_begin[m_current].m_used);
             if (!m_begin[m_current].m_used) {
-                throw std::domain_error("tree_node_iterator::operator->: entry has been erased");
+                throw std::domain_error("sparse_node_iterator::operator->: entry has been erased");
             }
 
             return m_begin + m_current;
@@ -188,7 +188,7 @@ namespace rte
     };
 
     template<typename T, bool isconst>
-    index_type index(const tree_node_iterator<T, isconst>& it)
+    index_type index(const sparse_node_iterator<T, isconst>& it)
     {
         return it.get_current();
     }
@@ -212,8 +212,8 @@ namespace rte
         typedef std::vector<value_type> container;
         typedef typename container::difference_type difference_type;
         typedef typename container::allocator_type allocator_type;
-        typedef tree_node_iterator<value_type, false> iterator;
-        typedef tree_node_iterator<value_type, true> const_iterator;
+        typedef sparse_node_iterator<value_type, false> iterator;
+        typedef sparse_node_iterator<value_type, true> const_iterator;
         typedef std::reverse_iterator<iterator> reverse_iterator;
         typedef std::reverse_iterator<const_iterator> const_reverse_iterator;
     
