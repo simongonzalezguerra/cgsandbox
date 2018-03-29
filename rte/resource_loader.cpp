@@ -71,7 +71,7 @@ namespace rte
                 mat.m_specular_color = color_specular;
                 mat.m_smoothness = smoothness;
                 mat.m_texture_path = texture_path;
-                material_indices[i] = db.m_materials.insert(mat);
+                material_indices[i] = list_insert(db.m_materials, 0, mat);
             }
         }
 
@@ -81,7 +81,7 @@ namespace rte
                 aiMesh* ai_mesh = scene->mMeshes[i_mesh];
 
                 if (material_indices.find(ai_mesh->mMaterialIndex) == material_indices.end()) continue;
-                auto new_mesh_index = db.m_meshes.insert(mesh());
+                auto new_mesh_index = list_insert(db.m_meshes, 0, mesh());
                 auto& new_mesh = db.m_meshes.at(new_mesh_index);
 
                 mesh_indices[i_mesh] = new_mesh_index;
@@ -89,21 +89,21 @@ namespace rte
                 if (ai_mesh->HasPositions()) {
                     for (std::size_t i_vertices = 0; i_vertices < ai_mesh->mNumVertices; i_vertices++) {
                         aiVector3D vertex = ai_mesh->mVertices[i_vertices];
-                        new_mesh.m_elem.m_vertices.push_back(glm::vec3(vertex.x, vertex.y, vertex.z));
+                        new_mesh.m_vertices.push_back(glm::vec3(vertex.x, vertex.y, vertex.z));
                     }
                 }
 
                 if (ai_mesh->HasTextureCoords(0)) {
                     for (std::size_t i_vertices = 0; i_vertices < ai_mesh->mNumVertices; i_vertices++) {
                         aiVector3D tex_coords = ai_mesh->mTextureCoords[0][i_vertices];
-                        new_mesh.m_elem.m_texture_coords.push_back(glm::vec2(tex_coords.x, tex_coords.y));
+                        new_mesh.m_texture_coords.push_back(glm::vec2(tex_coords.x, tex_coords.y));
                     }
                 }
 
                 if (ai_mesh->HasNormals()) {
                     for (std::size_t i_normals = 0; i_normals < ai_mesh->mNumVertices; i_normals++) {
                         aiVector3D normal = ai_mesh->mNormals[i_normals];
-                        new_mesh.m_elem.m_normals.push_back(glm::vec3(normal.x, normal.y, normal.z));
+                        new_mesh.m_normals.push_back(glm::vec3(normal.x, normal.y, normal.z));
                     }
                 }
 
@@ -111,18 +111,18 @@ namespace rte
                     for (std::size_t i_faces = 0; i_faces < ai_mesh->mNumFaces; i_faces++) {
                         aiFace face = ai_mesh->mFaces[i_faces];
                         for (std::size_t i_indices = 0; i_indices < face.mNumIndices; i_indices++) {
-                            new_mesh.m_elem.m_indices.push_back(face.mIndices[i_indices]);
+                            new_mesh.m_indices.push_back(face.mIndices[i_indices]);
                         }
                     }
                 }
             }
         }
 
-        void create_resources(const struct aiScene* scene, resource_database::size_type& root_out, view_database& db)
+        void create_resources(const struct aiScene* scene, index_type& root_out, view_database& db)
         {
             resource_database new_resource_db;
-            resource_database::size_type new_resource_index = new_resource_db.insert(resource());
-            struct context{ resource_database::size_type added_resource_index; aiNode* ai_node; };
+            index_type new_resource_index = tree_insert(new_resource_db, resource());
+            struct context{ index_type added_resource_index; aiNode* ai_node; };
             std::vector<context> pending_nodes;
             pending_nodes.push_back({new_resource_index, scene->mRootNode});
             while (!pending_nodes.empty()) {
@@ -133,10 +133,10 @@ namespace rte
 
                 // Fill resource mesh and material
                 if (current.ai_node->mNumMeshes > 0 && mesh_indices.find(current.ai_node->mMeshes[0]) != mesh_indices.end()) {
-                    added_resource.m_elem.m_mesh = mesh_indices[current.ai_node->mMeshes[0]]; 
+                    added_resource.m_mesh = mesh_indices[current.ai_node->mMeshes[0]]; 
                     unsigned int material_index = scene->mMeshes[current.ai_node->mMeshes[0]]->mMaterialIndex;
                     if (material_indices.find(material_index) != material_indices.end()) {
-                        added_resource.m_elem.m_material = material_indices.at(material_index);
+                        added_resource.m_material = material_indices.at(material_index);
                     }
                 }
 
@@ -146,7 +146,7 @@ namespace rte
                 // and we need column-major.
                 aiMatrix4x4 local_transform = current.ai_node->mTransformation;
                 aiTransposeMatrix4(&local_transform);
-                added_resource.m_elem.m_local_transform = glm::make_mat4((float *) &local_transform);
+                added_resource.m_local_transform = glm::make_mat4((float *) &local_transform);
 
                 // Assimp creates a structure with several meshes by node, and each mesh has a
                 // material. In practice though most models have one mesh by node. Our model has one
@@ -156,34 +156,34 @@ namespace rte
                 // each mesh to a new node, hanging them as descendants of current.added_resource_index as a vertical branch,
                 // not siblings. All these node have identity as their transform, so that they will
                 // in effect use the same transform as current.added_resource_index.
-                resource_database::size_type last_parent_index = current.added_resource_index;
+                index_type last_parent_index = current.added_resource_index;
                 unsigned int ai_mesh = 1;
                 while (ai_mesh < current.ai_node->mNumMeshes) {
                     resource res;
-                    last_parent_index = new_resource_db.insert(res, last_parent_index);
+                    last_parent_index = tree_insert(new_resource_db, res, last_parent_index);
                     auto& last_parent = new_resource_db.at(last_parent_index);
-                    last_parent.m_elem.m_mesh = mesh_indices.at(current.ai_node->mMeshes[ai_mesh]);
-                    last_parent.m_elem.m_material = material_indices.at(scene->mMeshes[current.ai_node->mMeshes[ai_mesh]]->mMaterialIndex);
-                    last_parent.m_elem.m_local_transform = glm::mat4(1.0f);
+                    last_parent.m_mesh = mesh_indices.at(current.ai_node->mMeshes[ai_mesh]);
+                    last_parent.m_material = material_indices.at(scene->mMeshes[current.ai_node->mMeshes[ai_mesh]]->mMaterialIndex);
+                    last_parent.m_local_transform = glm::mat4(1.0f);
                     ai_mesh++;
                 }
 
                 // Push the children to be processed next
                 for (unsigned int i = 0; i < current.ai_node->mNumChildren; ++i) {
                     resource res;
-                    resource_database::size_type child_index = new_resource_db.insert(res, last_parent_index);
+                    index_type child_index = tree_insert(new_resource_db, res, last_parent_index);
                     pending_nodes.push_back({child_index, current.ai_node->mChildren[i]});
                 }
             }
 
-            root_out = db.m_resources.insert(new_resource_db, new_resource_index, resource_database::value_type::root);
+            root_out = tree_insert(new_resource_db, new_resource_index, db.m_resources);
         }
     } // anonymous namespace
 
     //-----------------------------------------------------------------------------------------------
     // Public functions
     //-----------------------------------------------------------------------------------------------
-    void load_resources(const std::string& file_name, resource_database::size_type& root_out, view_database& db)
+    void load_resources(const std::string& file_name, index_type& root_out, view_database& db)
     {
         if (!(file_name.size() > 0)) {
             throw std::domain_error("load_resources error: empty file name");

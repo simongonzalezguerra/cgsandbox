@@ -18,10 +18,10 @@ namespace rte
 {
     namespace
     {
-        typedef std::map<user_id, material_database::size_type> material_map;
-        typedef std::map<user_id, mesh_database::size_type>     mesh_map;
-        typedef std::map<user_id, resource_database::size_type> resource_map;
-        typedef std::map<user_id, cubemap_database::size_type>  cubemap_map;
+        typedef std::map<user_id, index_type> material_map;
+        typedef std::map<user_id, index_type>     mesh_map;
+        typedef std::map<user_id, index_type> resource_map;
+        typedef std::map<user_id, index_type>  cubemap_map;
 
         //---------------------------------------------------------------------------------------------
         // Internal data structures
@@ -43,18 +43,18 @@ namespace rte
         void load_materials(material_database& db)
         {
             for (auto& m : document.at("materials")) {
-                material_database::size_type new_index = db.insert(material());
+                index_type new_index = list_insert(db, 0, material());
                 auto& new_material = db.at(new_index);
                 user_id material_user_id = m.value("user_id", nuser_id);
-                new_material.m_elem.m_diffuse_color = array_to_vec3(m.at("diffuse_color"));
-                new_material.m_elem.m_specular_color = array_to_vec3(m.at("specular_color"));
-                new_material.m_elem.m_smoothness = m.value("smoothness", 1.0f);
-                new_material.m_elem.m_texture_path = m.value("texture_path", std::string(""));
-                new_material.m_elem.m_reflectivity = m.value("reflectivity", 0.0f);
-                new_material.m_elem.m_translucency = m.value("translucency", 0.0f);
-                new_material.m_elem.m_refractive_index = m.value("refractive_index", 1.0f);
-                new_material.m_elem.m_name = m.value("name", std::string(""));
-                new_material.m_elem.m_user_id = material_user_id;
+                new_material.m_diffuse_color = array_to_vec3(m.at("diffuse_color"));
+                new_material.m_specular_color = array_to_vec3(m.at("specular_color"));
+                new_material.m_smoothness = m.value("smoothness", 1.0f);
+                new_material.m_texture_path = m.value("texture_path", std::string(""));
+                new_material.m_reflectivity = m.value("reflectivity", 0.0f);
+                new_material.m_translucency = m.value("translucency", 0.0f);
+                new_material.m_refractive_index = m.value("refractive_index", 1.0f);
+                new_material.m_name = m.value("name", std::string(""));
+                new_material.m_user_id = material_user_id;
                 if (material_user_id != nuser_id) {
                     material_ids[material_user_id] = new_index;
                 }
@@ -112,57 +112,56 @@ namespace rte
         void load_meshes(mesh_database& db)
         {
             for (auto& m : document.at("meshes")) {
-                mesh_database::size_type new_index = db.insert(mesh());
+                index_type new_index = list_insert(db, 0, mesh());
                 auto& new_mesh = db.at(new_index);
                 user_id mesh_user_id = m.value("user_id", nuser_id);
-                new_mesh.m_elem.m_user_id = mesh_user_id;
-                fill_3d_vector(m, new_mesh.m_elem.m_vertices, "vertices");
-                fill_2d_vector(m, new_mesh.m_elem.m_texture_coords, "texture_coords");
-                fill_3d_vector(m, new_mesh.m_elem.m_normals, "normals");
-                fill_index_vector(m, new_mesh.m_elem.m_indices, "indices");
+                new_mesh.m_user_id = mesh_user_id;
+                fill_3d_vector(m, new_mesh.m_vertices, "vertices");
+                fill_2d_vector(m, new_mesh.m_texture_coords, "texture_coords");
+                fill_3d_vector(m, new_mesh.m_normals, "normals");
+                fill_index_vector(m, new_mesh.m_indices, "indices");
                 if (mesh_user_id != nuser_id) {
                     mesh_ids[mesh_user_id] = new_index;
                 }
             }
         }
 
-        bool resource_has_child(resource_database::size_type resource_index,
+        bool resource_has_child(index_type resource_index,
                                 unsigned int child_index,
-                                resource_database::size_type& child_index_out,
+                                index_type& child_index_out,
                                 const resource_database& db)
         {
-            auto& res = db.at(resource_index);
-            auto it = res.begin();
+            auto it = tree_begin(db, resource_index);
             unsigned int n_child = 0U;
-            while (it != res.end() && n_child < child_index) {
+            while (it != tree_end(db, resource_index) && n_child < child_index) {
                 ++it;
                 ++n_child;
             }
 
             child_index_out = index(it);
-            return (it != res.end());
+            return (it != tree_end(db, resource_index));
         }
 
         void create_resource(const json& resource_document,
-                            resource_database::size_type parent_index,
-                            resource_database::size_type& new_root_index_out,
+                            index_type parent_index,
+                            index_type& new_root_index_out,
                             view_database& db)
         {
-            resource_database::size_type new_root_index = resource_database::value_type::npos;
+            index_type new_root_index = npos;
             if (resource_document.count("from_file")) {
                 load_resources(resource_document.value("from_file", std::string()), new_root_index, db);
             } else {
-                new_root_index = db.m_resources.insert(resource(), parent_index);
+                new_root_index = tree_insert(db.m_resources, resource(), parent_index);
                 user_id mesh_user_id = resource_document.value("mesh", nuser_id);
                 mesh_map::iterator mit;
                 if ((mit = mesh_ids.find(mesh_user_id)) != mesh_ids.end()) {
-                    db.m_resources.at(new_root_index).m_elem.m_mesh = mit->second;
+                    db.m_resources.at(new_root_index).m_mesh = mit->second;
                 }
                 // materials are set later in a second traversal
             }
             auto& new_resource = db.m_resources.at(new_root_index);
-            new_resource.m_elem.m_name = resource_document.value("name", std::string());
-            new_resource.m_elem.m_user_id = resource_document.value("user_id", nuser_id);
+            new_resource.m_name = resource_document.value("name", std::string());
+            new_resource.m_user_id = resource_document.value("user_id", nuser_id);
             if (resource_document.count("user_id")) {
                 resource_ids[resource_document.at("user_id").get<user_id>()] = new_root_index;
             }
@@ -171,19 +170,19 @@ namespace rte
         }
 
         void create_resource_tree(const json& resource_document,
-                                    resource_database::size_type& new_root_index_out,
+                                    index_type& new_root_index_out,
                                     view_database& db)
         {
-            resource_database::size_type new_root_index = resource_database::value_type::npos;
+            index_type new_root_index = npos;
             bool root_set = false;
-            struct json_context { const json& doc; resource_database::size_type parent_index; unsigned int local_child_index; };
+            struct json_context { const json& doc; index_type parent_index; unsigned int local_child_index; };
             std::vector<json_context> pending_nodes;
-            pending_nodes.push_back({resource_document, resource_database::value_type::root, 0U});
+            pending_nodes.push_back({resource_document, 0, 0U});
             while (!pending_nodes.empty()) {
                 auto current = pending_nodes.back();
                 pending_nodes.pop_back();
-                resource_database::size_type current_resource = resource_database::value_type::npos;
-                if (current.parent_index == resource_database::value_type::root
+                index_type current_resource = npos;
+                if (current.parent_index == 0
                     || !resource_has_child(current.parent_index, current.local_child_index, current_resource, db.m_resources)) {
                     create_resource(current.doc, current.parent_index, current_resource, db);
                     if (!root_set) {
@@ -207,9 +206,9 @@ namespace rte
             new_root_index_out = new_root_index;
         }
 
-        void set_resource_tree_materials_and_names(const json& resource_document, resource_database::size_type root_index, resource_database& db)
+        void set_resource_tree_materials_and_names(const json& resource_document, index_type root_index, resource_database& db)
         {
-            struct json_context { const json& doc; resource_database::size_type resource_index; };
+            struct json_context { const json& doc; index_type resource_index; };
             std::vector<json_context> pending_nodes;
             pending_nodes.push_back({resource_document, root_index });
             while (!pending_nodes.empty()) {
@@ -220,11 +219,11 @@ namespace rte
                 user_id material_user_id = current.doc.value("material", nuser_id);
                 material_map::iterator mit;
                 if ((mit = material_ids.find(material_user_id)) != material_ids.end()) {
-                    res.m_elem.m_material = mit->second;
+                    res.m_material = mit->second;
                 }
 
                 if (current.doc.count("name")) {
-                    res.m_elem.m_name = current.doc.at("name").get<std::string>();
+                    res.m_name = current.doc.at("name").get<std::string>();
                 }
 
                 // Note that in this case it's not relevant in what order the children are processed,
@@ -243,7 +242,7 @@ namespace rte
         void load_resources(view_database& db)
         {
             for (auto& r : document.at("resources")) {
-                resource_database::size_type added_root;
+                index_type added_root;
                 create_resource_tree(r, added_root, db);
                 set_resource_tree_materials_and_names(r, added_root, db.m_resources);
             }
@@ -252,10 +251,10 @@ namespace rte
         void load_cubemaps(cubemap_database& db)
         {
             for (auto& cubemap_doc : document.at("cubemaps")) {
-                auto new_cubemap_index = db.insert(cubemap());
+                auto new_cubemap_index = list_insert(db, 0, cubemap());
                 auto& new_cubemap = db.at(new_cubemap_index);
                 for (auto& face_doc : cubemap_doc.at("faces")) {
-                    new_cubemap.m_elem.m_faces.push_back(face_doc.get<std::string>());
+                    new_cubemap.m_faces.push_back(face_doc.get<std::string>());
                 }
 
                 if (cubemap_doc.count("user_id")) {
@@ -264,36 +263,35 @@ namespace rte
             }
         }
 
-        bool node_has_child(node_database::size_type node_index,
+        bool node_has_child(index_type node_index,
                             unsigned int child_index,
-                            node_database::size_type& child_index_out,
+                            index_type& child_index_out,
                             const node_database& db)
         {
-            auto& res = db.at(node_index);
-            auto it = res.begin();
+            auto it = tree_begin(db, node_index);
             unsigned int n_child = 0U;
-            while (it != res.end() && n_child < child_index) {
+            while (it != tree_end(db, node_index) && n_child < child_index) {
                 ++it;
                 ++n_child;
             }
 
             child_index_out = index(it);
-            return (it != res.end());
+            return (it != tree_end(db, node_index));
         }
 
         void create_node(const json& node_document,
-                        node_database::size_type parent_index,
-                        node_database::size_type& new_root_index_out,
+                        index_type parent_index,
+                        index_type& new_root_index_out,
                         view_database& db)
         {
             user_id resource_user_id = node_document.value("resource", nuser_id);
-            resource_database::size_type resource_index = (resource_user_id == nuser_id ? resource_database::value_type::npos : resource_ids.at(resource_user_id));
-            // resource_index can be resource_database::value_type::npos, in that case make_node() creates an empty node
-            node_database::size_type new_node_index = node_database::value_type::npos;
+            index_type resource_index = (resource_user_id == nuser_id ? npos : resource_ids.at(resource_user_id));
+            // resource_index can be npos, in that case make_node() creates an empty node
+            index_type new_node_index = npos;
             insert_node_tree(resource_index, parent_index, new_node_index, db);
             auto& new_node = db.m_nodes.at(new_node_index);
-            new_node.m_elem.m_name = node_document.value("name", std::string());
-            new_node.m_elem.m_user_id = node_document.value("user_id", nuser_id);
+            new_node.m_name = node_document.value("name", std::string());
+            new_node.m_user_id = node_document.value("user_id", nuser_id);
 
             // The transform inherited from the resource_index is only overwritten if the document includes all required properties
             if (node_document.count("scale")
@@ -304,7 +302,7 @@ namespace rte
                 glm::mat4 scale = glm::scale(array_to_vec3(node_document.at("scale")));
                 glm::mat4 rotation = glm::rotate(node_document.at("rotation_angle").get<float>(), array_to_vec3(node_document.at("rotation_axis")));;
                 glm::mat4 translation = glm::translate(array_to_vec3(node_document.at("translation")));
-                new_node.m_elem.m_local_transform = translation * rotation * scale;
+                new_node.m_local_transform = translation * rotation * scale;
             }
             // materials are set later in a second traversal
 
@@ -312,19 +310,19 @@ namespace rte
         }
 
         void create_node_tree(const json& node_document,
-                            node_database::size_type scene_root_index,
-                            node_database::size_type& new_root_index_out,
+                            index_type scene_root_index,
+                            index_type& new_root_index_out,
                             view_database& db)
         {
             bool root_set = false;
-            node_database::size_type new_root_index = node_database::value_type::npos;
-            struct json_context { const json& doc; node_database::size_type parent; unsigned int index; };
+            index_type new_root_index = npos;
+            struct json_context { const json& doc; index_type parent; unsigned int index; };
             std::vector<json_context> pending_nodes;
             pending_nodes.push_back({node_document, scene_root_index, 0U});
             while (!pending_nodes.empty()) {
                 auto current = pending_nodes.back();
                 pending_nodes.pop_back();
-                node_database::size_type current_node_index = node_database::value_type::npos;
+                index_type current_node_index = npos;
                 if (current.parent == scene_root_index || !node_has_child(current.parent, current.index, current_node_index, db.m_nodes)) {
                     create_node(current.doc, current.parent, current_node_index, db);
                     if (!root_set) {
@@ -348,9 +346,9 @@ namespace rte
             new_root_index_out = new_root_index;
         }
 
-        void set_node_tree_materials_and_names(const json& node_document, node_database::size_type root_index, node_database& db)
+        void set_node_tree_materials_and_names(const json& node_document, index_type root_index, node_database& db)
         {
-            struct json_context { const json& doc; node_database::size_type node_index; };
+            struct json_context { const json& doc; index_type node_index; };
             std::vector<json_context> pending_nodes;
             pending_nodes.push_back({node_document, root_index });
             while (!pending_nodes.empty()) {
@@ -361,11 +359,11 @@ namespace rte
                 user_id material_user_id = current.doc.value("material", nuser_id);
                 material_map::iterator mit;
                 if ((mit = material_ids.find(material_user_id)) != material_ids.end()) {
-                    current_node.m_elem.m_material = mit->second;
+                    current_node.m_material = mit->second;
                 }
 
                 if (current.doc.count("name")) {
-                    current_node.m_elem.m_name = current.doc.at("name").get<std::string>();
+                    current_node.m_name = current.doc.at("name").get<std::string>();
                 }
 
                 // Note that in this case it's not relevant in what order the children are processed,
@@ -381,10 +379,10 @@ namespace rte
             }
         }
 
-        void load_nodes(const json& scene_doc, node_database::size_type scene_root_index, view_database& db)
+        void load_nodes(const json& scene_doc, index_type scene_root_index, view_database& db)
         {
             for (auto& node_document : scene_doc.at("nodes")) {
-                node_database::size_type added_root = node_database::value_type::npos;
+                index_type added_root = npos;
                 create_node_tree(node_document, scene_root_index, added_root, db);
                 set_node_tree_materials_and_names(node_document, added_root, db.m_nodes);
             }
@@ -392,16 +390,16 @@ namespace rte
 
         void create_point_light(const json& point_light_document, view_database& db)
         {
-             auto new_point_light_index = db.m_point_lights.insert(point_light(), point_light_database::value_type::root);
+             auto new_point_light_index = list_insert(db.m_point_lights, 0, point_light());
              auto& new_point_light = db.m_point_lights.at(new_point_light_index);
-             new_point_light.m_elem.m_user_id = point_light_document.value("user_id", nuser_id);
-             new_point_light.m_elem.m_position = array_to_vec3(point_light_document.at("position"));
-             new_point_light.m_elem.m_ambient_color = array_to_vec3(point_light_document.at("ambient_color"));
-             new_point_light.m_elem.m_diffuse_color = array_to_vec3(point_light_document.at("diffuse_color"));
-             new_point_light.m_elem.m_specular_color = array_to_vec3(point_light_document.at("specular_color"));
-             new_point_light.m_elem.m_constant_attenuation = point_light_document.at("constant_attenuation").get<float>();
-             new_point_light.m_elem.m_linear_attenuation = point_light_document.at("linear_attenuation").get<float>();
-             new_point_light.m_elem.m_quadratic_attenuation = point_light_document.at("quadratic_attenuation").get<float>();
+             new_point_light.m_user_id = point_light_document.value("user_id", nuser_id);
+             new_point_light.m_position = array_to_vec3(point_light_document.at("position"));
+             new_point_light.m_ambient_color = array_to_vec3(point_light_document.at("ambient_color"));
+             new_point_light.m_diffuse_color = array_to_vec3(point_light_document.at("diffuse_color"));
+             new_point_light.m_specular_color = array_to_vec3(point_light_document.at("specular_color"));
+             new_point_light.m_constant_attenuation = point_light_document.at("constant_attenuation").get<float>();
+             new_point_light.m_linear_attenuation = point_light_document.at("linear_attenuation").get<float>();
+             new_point_light.m_quadratic_attenuation = point_light_document.at("quadratic_attenuation").get<float>();
         }
 
         void load_point_lights(const json& scene_doc, view_database& db)
@@ -414,29 +412,32 @@ namespace rte
         void load_scenes(view_database& db)
         {
             for (auto& scene_doc : document.at("scenes")) {
-                auto new_scene_index = db.m_scenes.insert(scene(), scene_database::value_type::root);
+                auto new_scene_index = list_insert(db.m_scenes, 0, scene());
                 auto& new_scene = db.m_scenes.at(new_scene_index);
 
-                auto scene_root_node_index = db.m_nodes.insert(node(), node_database::value_type::root);
-                new_scene.m_elem.m_root_node = scene_root_node_index;
+                auto scene_root_node_index = tree_insert(db.m_nodes, node());
+                new_scene.m_root_node = scene_root_node_index;
 
-                new_scene.m_elem.m_user_id = scene_doc.value("user_id", nuser_id);
+                new_scene.m_user_id = scene_doc.value("user_id", nuser_id);
 
                 user_id skybox_user_id = scene_doc.value("skybox", nuser_id);
                 cubemap_map::iterator mit;
                 if ((mit = cubemap_ids.find(skybox_user_id)) != cubemap_ids.end()) {
-                    new_scene.m_elem.m_skybox = mit->second;
+                    new_scene.m_skybox = mit->second;
                 }
 
-                new_scene.m_elem.m_dirlight.m_ambient_color = array_to_vec3(scene_doc.at("directional_light").at("ambient_color"));
-                new_scene.m_elem.m_dirlight.m_diffuse_color = array_to_vec3(scene_doc.at("directional_light").at("diffuse_color"));
-                new_scene.m_elem.m_dirlight.m_specular_color = array_to_vec3(scene_doc.at("directional_light").at("specular_color"));
-                new_scene.m_elem.m_dirlight.m_direction = array_to_vec3(scene_doc.at("directional_light").at("direction"));
+                new_scene.m_dirlight.m_ambient_color = array_to_vec3(scene_doc.at("directional_light").at("ambient_color"));
+                new_scene.m_dirlight.m_diffuse_color = array_to_vec3(scene_doc.at("directional_light").at("diffuse_color"));
+                new_scene.m_dirlight.m_specular_color = array_to_vec3(scene_doc.at("directional_light").at("specular_color"));
+                new_scene.m_dirlight.m_direction = array_to_vec3(scene_doc.at("directional_light").at("direction"));
 
                 load_nodes(scene_doc, scene_root_node_index, db);
+
+                list_init(db.m_point_lights);
+                list_empty_list(db.m_point_lights);
                 load_point_lights(scene_doc, db);
 
-                new_scene.m_elem.m_point_lights = scene_database::value_type::root;
+                new_scene.m_point_lights = 0;
             }
         }
     } // anonymous namespace
@@ -470,10 +471,23 @@ namespace rte
         document = json();
         ifs >> document;
 
+        list_init(tmp_db.m_materials);
+        list_empty_list(tmp_db.m_materials);
         load_materials(tmp_db.m_materials);
+
+        list_init(tmp_db.m_meshes);
+        list_empty_list(tmp_db.m_meshes);
         load_meshes(tmp_db.m_meshes);
+
+        tree_init(tmp_db.m_resources);
         load_resources(tmp_db);
+
+        list_init(tmp_db.m_cubemaps);
+        list_empty_list(tmp_db.m_cubemaps);
         load_cubemaps(tmp_db.m_cubemaps);
+
+        list_init(tmp_db.m_scenes);
+        list_empty_list(tmp_db.m_scenes);
         load_scenes(tmp_db);
 
         db = std::move(tmp_db);

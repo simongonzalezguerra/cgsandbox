@@ -9,7 +9,7 @@
 
 namespace rte
 {
-    struct material
+    struct material : public sparse_node
     {
         material() :
             m_diffuse_color({1.0f, 1.0f, 1.0f}),
@@ -35,9 +35,9 @@ namespace rte
         std::string        m_name;
     };
 
-    typedef sparse_tree<material> material_database;
+    typedef sparse_vector<material> material_database;
 
-    struct mesh
+    struct mesh : public sparse_node
     {
         mesh() :
             m_vertices(),
@@ -97,9 +97,9 @@ namespace rte
         std::string                 m_name;                //!< name of this mesh
     };
 
-    typedef sparse_tree<mesh> mesh_database;
+    typedef sparse_vector<mesh> mesh_database;
 
-    struct resource
+    struct resource : public sparse_node
     {
         resource() :
             m_mesh(mesh_database::value_type::npos),
@@ -108,16 +108,16 @@ namespace rte
             m_user_id(nuser_id),
             m_name() {}
      
-        mesh_database::size_type          m_mesh;               //!< mesh contained in this resource
-        material_database::size_type      m_material;           //!< material of this resource
-        glm::mat4                         m_local_transform;    //!< resource transform relative to the parent's reference frame
-        user_id                           m_user_id;            //!< user id of this resource
-        std::string                       m_name;               //!< name of this resource
+        index_type       m_mesh;               //!< mesh contained in this resource
+        index_type       m_material;           //!< material of this resource
+        glm::mat4        m_local_transform;    //!< resource transform relative to the parent's reference frame
+        user_id          m_user_id;            //!< user id of this resource
+        std::string      m_name;               //!< name of this resource
     };
 
-    typedef sparse_tree<resource> resource_database;
+    typedef sparse_vector<resource> resource_database;
 
-    struct cubemap
+    struct cubemap : public sparse_node
     {
         cubemap() :
             m_faces(),
@@ -131,9 +131,9 @@ namespace rte
         std::string                   m_name;           //!< name of this resource
     };
 
-    typedef sparse_tree<cubemap> cubemap_database;
+    typedef sparse_vector<cubemap> cubemap_database;
 
-    struct node 
+    struct node : public sparse_node
     {    
         node() :
             m_mesh(mesh_database::value_type::npos),
@@ -144,18 +144,18 @@ namespace rte
             m_user_id(nuser_id),
             m_name() {}
     
-        mesh_database::size_type          m_mesh;             //!< mesh contained in this node
-        material_database::size_type      m_material;         //!< material of this node
-        glm::mat4                         m_local_transform;  //!< node transform relative to the parent
-        glm::mat4                         m_accum_transform;  //!< node transform relative to the root
-        bool                              m_enabled;          //!< is this node enabled? (if it is not, all descendants are ignored when rendering)
-        user_id                           m_user_id;          //!< user id of this node
-        std::string                       m_name;             //!< name of this node
+        index_type       m_mesh;             //!< mesh contained in this node
+        index_type       m_material;         //!< material of this node
+        glm::mat4        m_local_transform;  //!< node transform relative to the parent
+        glm::mat4        m_accum_transform;  //!< node transform relative to the root
+        bool             m_enabled;          //!< is this node enabled? (if it is not, all descendants are ignored when rendering)
+        user_id          m_user_id;          //!< user id of this node
+        std::string      m_name;             //!< name of this node
     };
 
-    typedef sparse_tree<node> node_database;
+    typedef sparse_vector<node> node_database;
 
-    struct point_light
+    struct point_light : public sparse_node
     {
         point_light() :
             m_position(0.0f),
@@ -178,9 +178,9 @@ namespace rte
         std::string      m_name;
     };
 
-    typedef sparse_tree<point_light> point_light_database;
+    typedef sparse_vector<point_light> point_light_database;
 
-    struct dirlight
+    struct dirlight : public sparse_node
     {
         dirlight() :
             m_ambient_color(),
@@ -194,7 +194,7 @@ namespace rte
         glm::vec3      m_direction;      //!< direction of the directional light
     };
 
-    struct scene
+    struct scene : public sparse_node
     {
         scene() :
             m_point_lights(point_light_database::value_type::npos),
@@ -207,20 +207,20 @@ namespace rte
             m_user_id(nuser_id),
             m_name() {}
     
-        point_light_database::size_type      m_point_lights;                     //!< list of point lights in the scene
-        node_database::size_type             m_root_node;                        //!< handle to the root node of this scene
-        glm::mat4                            m_view_transform;                   //!< the view transform used to render all objects in the scene
-        glm::mat4                            m_projection_transform;             //!< the projection transform used to render all objects in the scene
-        cubemap_database::size_type          m_skybox;                           //!< the id of the cubemap to use as skybox (can be cubemap_database::value_type::npos)
-        bool                                 m_enabled;                          //!< is this scene enabled?
-        dirlight                             m_dirlight;                         //!< directional light
-        user_id                              m_user_id;                          //!< user id of this scene
-        std::string                          m_name;                             //!< name of this scene
+        index_type       m_point_lights;                     //!< list of point lights in the scene
+        index_type       m_root_node;                        //!< handle to the root node of this scene
+        glm::mat4        m_view_transform;                   //!< the view transform used to render all objects in the scene
+        glm::mat4        m_projection_transform;             //!< the projection transform used to render all objects in the scene
+        index_type       m_skybox;                           //!< the id of the cubemap to use as skybox (can be cubemap_database::value_type::npos)
+        bool             m_enabled;                          //!< is this scene enabled?
+        dirlight         m_dirlight;                         //!< directional light
+        user_id          m_user_id;                          //!< user id of this scene
+        std::string      m_name;                             //!< name of this scene
     };
 
-    typedef sparse_tree<scene> scene_database;
+    typedef sparse_vector<scene> scene_database;
 
-    struct view_database
+    struct view_database : public sparse_node
     {
         view_database() = default;
 
@@ -267,12 +267,12 @@ namespace rte
     void log_cubemaps(const view_database& db);
     void log_scenes(const view_database& db);
     // resource_index can be resource_database::value_type::npos, in that case insert_node_tree() creates a tree with a single, empty node
-    void insert_node_tree(resource_database::size_type resource_index,
-                        node_database::size_type parent_index,
-                        node_database::size_type& node_index_out,
+    void insert_node_tree(index_type resource_index,
+                        index_type parent_index,
+                        index_type& node_index_out,
                         view_database& db);
-    void get_descendant_nodes(node_database::size_type node_index,
-                        std::vector<node_database::size_type>& nodes_out,
+    void get_descendant_nodes(index_type node_index,
+                        std::vector<index_type>& nodes_out,
                         const view_database& db);
 } // namespace rte
 

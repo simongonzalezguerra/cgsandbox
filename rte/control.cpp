@@ -21,7 +21,7 @@ namespace rte
     public:
         fps_camera_controller_impl(view_database& db) :
             m_db(db),
-            m_scene_index(rte::scene_database::value_type::npos),
+            m_scene_index(rte::npos),
             m_position{0.0f},
             m_yaw(0.0f),
             m_pitch(0.0f),
@@ -111,7 +111,7 @@ namespace rte
             }
     
             auto& current_scene = m_db.m_scenes.at(m_scene_index);
-            current_scene.m_elem.m_view_transform = glm::lookAt(m_position, m_position + direction, up);
+            current_scene.m_view_transform = glm::lookAt(m_position, m_position + direction, up);
         }
 
         void log_position()
@@ -122,17 +122,17 @@ namespace rte
             // rte::log(rte::LOG_LEVEL_DEBUG, oss.str());
         }
 
-        view_database&                 m_db;
-        scene_database::size_type      m_scene_index;
-        glm::vec3                      m_position;
-        float                          m_yaw;
-        float                          m_pitch;
-        float                          m_speed;
-        float                          m_mouse_speed;
-        bool                           m_moving_forward;
-        bool                           m_moving_backward;
-        bool                           m_moving_right;
-        bool                           m_moving_left;
+        view_database&      m_db;
+        index_type          m_scene_index;
+        glm::vec3           m_position;
+        float               m_yaw;
+        float               m_pitch;
+        float               m_speed;
+        float               m_mouse_speed;
+        bool                m_moving_forward;
+        bool                m_moving_backward;
+        bool                m_moving_right;
+        bool                m_moving_left;
     };
 
     fps_camera_controller::fps_camera_controller(view_database& db) :
@@ -140,7 +140,7 @@ namespace rte
 
     fps_camera_controller::~fps_camera_controller() {}
 
-    void fps_camera_controller::set_scene(rte::scene_database::size_type scene)
+    void fps_camera_controller::set_scene(rte::index_type scene)
     {
         m_impl->m_scene_index = scene;
     }
@@ -170,7 +170,7 @@ namespace rte
         m_impl->m_mouse_speed = m_mouse_speed;
     }
 
-    rte::scene_database::size_type fps_camera_controller::get_scene()
+    rte::index_type fps_camera_controller::get_scene()
     {
         return m_impl->m_scene_index;
     }
@@ -216,7 +216,7 @@ namespace rte
     public:
         perspective_controller_impl(view_database& db) :
             m_db(db),
-            m_scene_index(scene_database::value_type::npos),
+            m_scene_index(npos),
             m_window_width(0.0f),
             m_window_height(0.0f),
             m_increasing_fov(false),
@@ -275,20 +275,20 @@ namespace rte
             // This is why our utility function fov_to_fovy takes radians and returns radians
             float fovy_radians = rte::fov_to_fovy(m_fov_radians, m_window_width, m_window_height);
             auto& current_scene = m_db.m_scenes.at(m_scene_index);
-            current_scene.m_elem.m_projection_transform = glm::perspective(fovy_radians, m_window_width / m_window_height, m_near, m_far);
+            current_scene.m_projection_transform = glm::perspective(fovy_radians, m_window_width / m_window_height, m_near, m_far);
         }
 
         // Member variables
-        view_database&                 m_db;
-        scene_database::size_type      m_scene_index;
-        float                          m_window_width;
-        float                          m_window_height;
-        bool                           m_increasing_fov;
-        bool                           m_decreasing_fov;
-        float                          m_fov_speed;
-        float                          m_fov_radians;
-        float                          m_near;
-        float                          m_far;
+        view_database&      m_db;
+        index_type          m_scene_index;
+        float               m_window_width;
+        float               m_window_height;
+        bool                m_increasing_fov;
+        bool                m_decreasing_fov;
+        float               m_fov_speed;
+        float               m_fov_radians;
+        float               m_near;
+        float               m_far;
     };
 
     perspective_controller::perspective_controller(view_database& db) :
@@ -296,7 +296,7 @@ namespace rte
 
     perspective_controller::~perspective_controller() {}
 
-    void perspective_controller::set_scene(rte::scene_database::size_type scene)
+    void perspective_controller::set_scene(rte::index_type scene)
     {
         m_impl->m_scene_index = scene;
     }
@@ -341,7 +341,7 @@ namespace rte
         return m_impl->m_fov_radians;
     }
 
-    rte::scene_database::size_type perspective_controller::get_scene()
+    rte::index_type perspective_controller::get_scene()
     {
         return m_impl->m_scene_index;
     }

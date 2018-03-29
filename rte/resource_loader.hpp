@@ -10,7 +10,7 @@
 
 namespace rte
 {
-    void load_resources(const std::string& file_name, resource_database::size_type& root_index_out, view_database& db);
+    void load_resources(const std::string& file_name, index_type& root_index_out, view_database& db);
 } // namespace rte
 
 #endif // RESOURCE_LOADER_HPP

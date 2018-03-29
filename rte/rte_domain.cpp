@@ -13,7 +13,7 @@ namespace rte
 {
     namespace
     {
-        std::string format_mesh_id(mesh_database::size_type m)
+        std::string format_mesh_id(index_type m)
         {    
             std::ostringstream oss; 
             if (m != mesh_database::value_type::npos) {
@@ -25,7 +25,7 @@ namespace rte
             return oss.str();
         }
 
-        std::string format_material_id(material_database::size_type m)
+        std::string format_material_id(index_type m)
         {
             std::ostringstream oss;
             if (m != material_database::value_type::npos) {
@@ -63,7 +63,7 @@ namespace rte
             oss << " ]";
         }
 
-        void log_mesh(mesh_database::size_type mesh_index, const view_database& db)
+        void log_mesh(index_type mesh_index, const view_database& db)
         {
             auto& m = db.m_meshes.at(mesh_index).m_elem;
             std::ostringstream oss;
@@ -108,10 +108,10 @@ namespace rte
             log(LOG_LEVEL_DEBUG, oss.str().c_str());
         }
 
-        void log_resource(resource_database::size_type root_index, const resource_database& db)
+        void log_resource(index_type root_index, const resource_database& db)
         {
             // Iterate the resource tree with a depth-first search printing resources
-            struct context{ resource_database::size_type resource_index; unsigned int indentation; };
+            struct context{ index_type resource_index; unsigned int indentation; };
             std::vector<context> pending_nodes;
             pending_nodes.push_back({root_index, 1U});
             while (!pending_nodes.empty()) {
@@ -145,7 +145,7 @@ namespace rte
             }
         }
 
-        struct node_context{ node_database::size_type node_index; };
+        struct node_context{ index_type node_index; };
         typedef std::vector<node_context> node_context_vector;
 
         //---------------------------------------------------------------------------------------------
@@ -231,10 +231,10 @@ namespace rte
         log(LOG_LEVEL_DEBUG, "resource_database: cubemaps end");
     }
 
-    void log_node(node_database::size_type root, const node_database& db)
+    void log_node(index_type root, const node_database& db)
     {
         // Iterate the node tree with a depth-first search printing nodes
-        struct context{ node_database::size_type node_index; unsigned int indentation; };
+        struct context{ index_type node_index; unsigned int indentation; };
         std::vector<context> pending_nodes;
         pending_nodes.push_back({root, 3U});
         while (!pending_nodes.empty()) {
@@ -281,7 +281,7 @@ namespace rte
         log(LOG_LEVEL_DEBUG, oss.str().c_str());
     }
 
-    void log_point_light(point_light_database::size_type point_light_index, const point_light_database& db)
+    void log_point_light(index_type point_light_index, const point_light_database& db)
     {
         auto& pl = db.at(point_light_index);
         std::ostringstream oss;
@@ -299,7 +299,7 @@ namespace rte
         log(LOG_LEVEL_DEBUG, oss.str().c_str());
     }
 
-    void log_scene(scene_database::size_type scene_index, const view_database& db)
+    void log_scene(index_type scene_index, const view_database& db)
     {
         auto& s = db.m_scenes.at(scene_index);
 
@@ -324,11 +324,11 @@ namespace rte
         }
 
         oss.str("");
-        node_database::size_type root = s.m_elem.m_root_node;
+        index_type root = s.m_elem.m_root_node;
         oss << "        root node :";
         log(LOG_LEVEL_DEBUG, oss.str().c_str());
 
-        node_database::size_type root_node_index = s.m_elem.m_root_node;
+        index_type root_node_index = s.m_elem.m_root_node;
         if (root_node_index != node_database::value_type::npos) {
             log_node(root_node_index, db.m_nodes);
         }
@@ -345,9 +345,9 @@ namespace rte
         log(LOG_LEVEL_DEBUG, "scenegraph: scenes end");
     }
 
-    void insert_node_tree(resource_database::size_type root_resource_index,
-                        node_database::size_type parent_index,
-                        node_database::size_type& node_index_out,
+    void insert_node_tree(index_type root_resource_index,
+                        index_type parent_index,
+                        index_type& node_index_out,
                         view_database& db)
     {
         if (root_resource_index == resource_database::value_type::npos) {
@@ -356,15 +356,15 @@ namespace rte
         }
 
         node_database tmp_db;
-        node_database::size_type new_tmp_root_node = node_database::value_type::npos;
-        struct context{ resource_database::size_type resource_index; node_database::size_type parent_node; };
+        index_type new_tmp_root_node = node_database::value_type::npos;
+        struct context{ index_type resource_index; index_type parent_node; };
         std::vector<context> pending_nodes;
         pending_nodes.push_back({root_resource_index, node_database::value_type::root});
         while (!pending_nodes.empty()) {
             auto current = pending_nodes.back();
             pending_nodes.pop_back();
 
-            node_database::size_type new_node_index = tmp_db.insert(node(), current.parent_node);
+            index_type new_node_index = tmp_db.insert(node(), current.parent_node);
             auto& new_node = tmp_db.at(new_node_index);
             new_tmp_root_node = (new_tmp_root_node == node_database::value_type::npos ? new_node_index : new_tmp_root_node);
             auto& res = db.m_resources.at(current.resource_index);
@@ -380,8 +380,8 @@ namespace rte
         node_index_out = db.m_nodes.insert(tmp_db, new_tmp_root_node, parent_index);
     }
 
-    void get_descendant_nodes(node_database::size_type root_index,
-                        std::vector<node_database::size_type>& nodes_out,
+    void get_descendant_nodes(index_type root_index,
+                        std::vector<index_type>& nodes_out,
                         const view_database& db)
     {
         pending_nodes.clear();

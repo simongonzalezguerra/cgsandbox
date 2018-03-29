@@ -104,7 +104,7 @@ namespace rte
     // input_index is the index of the root of the subtree to read nodes from.
     // output_parent_index the index of the node in this sparse_vector to insert the subtree under.
     template<typename V>
-    index_type tree_insert(const V& input_tree, index_type input_index, V& output_tree, index_type output_parent_index)
+    index_type tree_insert(const V& input_tree, index_type input_index, V& output_tree, index_type output_parent_index = npos)
     {
         assert(output_parent_index == npos || output_parent_index < output_tree.size());
         if (!(output_parent_index == npos || output_parent_index < output_tree.size())) {
