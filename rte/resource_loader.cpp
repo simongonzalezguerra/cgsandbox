@@ -23,8 +23,8 @@ namespace rte
         //---------------------------------------------------------------------------------------------
         // Internal declarations
         //---------------------------------------------------------------------------------------------
-        std::map<std::size_t, mat_id>  material_indices;  //!< Map from index in assimp's material array to material index in the database
-        std::map<std::size_t, mesh_id> mesh_indices;      //!< Map from index in assimp's mesh array to mesh index in the database
+        std::map<std::size_t, index_type>  material_indices;  //!< Map from index in assimp's material array to material index in the database
+        std::map<std::size_t, index_type> mesh_indices;      //!< Map from index in assimp's mesh array to mesh index in the database
 
         //---------------------------------------------------------------------------------------------
         // Helper functions

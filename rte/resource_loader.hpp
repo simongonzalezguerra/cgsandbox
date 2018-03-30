@@ -1,7 +1,6 @@
 #ifndef RESOURCE_LOADER_HPP
 #define RESOURCE_LOADER_HPP
 
-#include "resource_database.hpp"
 #include "rte_domain.hpp"
 
 #include <cstddef> // for size_t

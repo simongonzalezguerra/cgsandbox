@@ -3,7 +3,6 @@
 
 #include "gl_driver_util.hpp"
 #include "rte_domain.hpp"
-#include "scenegraph.hpp"
 
 namespace rte
 {

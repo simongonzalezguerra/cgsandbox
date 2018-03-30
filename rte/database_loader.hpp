@@ -1,8 +1,6 @@
 #ifndef DATABASE_LOADER_HPP
 #define DATABASE_LOADER_HPP
 
-#include "resource_database.hpp"
-#include "scenegraph.hpp"
 #include "rte_domain.hpp"
 
 namespace rte

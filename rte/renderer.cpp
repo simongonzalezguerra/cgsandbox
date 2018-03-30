@@ -1,4 +1,3 @@
-#include "resource_database.hpp"
 #include "sparse_list.hpp"
 #include "math_utils.hpp"
 #include "renderer.hpp"

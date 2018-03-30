@@ -1,4 +1,3 @@
-#include "resource_database.hpp"
 #include "glm/gtx/transform.hpp"
 #include "real_time_engine.hpp"
 #include "database_loader.hpp"
@@ -6,7 +5,6 @@
 #include "cmd_line_args.hpp"
 #include "opengl_driver.hpp"
 #include "sparse_list.hpp"
-#include "scenegraph.hpp"
 #include "rte_domain.hpp"
 #include "renderer.hpp"
 #include "control.hpp"
@@ -60,8 +58,6 @@ namespace rte
             if (!cmd_line_args_has_option("-config")) {
                 throw std::logic_error("Usage: ./real_time_engine -config <config_file>");
             }
-
-            resource_database_init();
 
             system_initialize();
 
