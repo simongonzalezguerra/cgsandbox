@@ -102,8 +102,8 @@ namespace rte
     struct resource : public sparse_node
     {
         resource() :
-            m_mesh(mesh_database::value_type::npos),
-            m_material(material_database::value_type::npos),
+            m_mesh(npos),
+            m_material(npos),
             m_local_transform(1.0f),
             m_user_id(nuser_id),
             m_name() {}
@@ -136,8 +136,8 @@ namespace rte
     struct node : public sparse_node
     {    
         node() :
-            m_mesh(mesh_database::value_type::npos),
-            m_material(material_database::value_type::npos),
+            m_mesh(npos),
+            m_material(npos),
             m_local_transform(1.0f),
             m_accum_transform(1.0f),
             m_enabled(true),
@@ -197,11 +197,11 @@ namespace rte
     struct scene : public sparse_node
     {
         scene() :
-            m_point_lights(point_light_database::value_type::npos),
-            m_root_node(node_database::value_type::npos),
+            m_point_lights(npos),
+            m_root_node(npos),
             m_view_transform(glm::mat4(1.0f)),
             m_projection_transform(glm::mat4(1.0f)),
-            m_skybox(cubemap_database::value_type::npos),
+            m_skybox(npos),
             m_enabled(false),
             m_dirlight(),
             m_user_id(nuser_id),
@@ -211,7 +211,7 @@ namespace rte
         index_type       m_root_node;                        //!< handle to the root node of this scene
         glm::mat4        m_view_transform;                   //!< the view transform used to render all objects in the scene
         glm::mat4        m_projection_transform;             //!< the projection transform used to render all objects in the scene
-        index_type       m_skybox;                           //!< the id of the cubemap to use as skybox (can be cubemap_database::value_type::npos)
+        index_type       m_skybox;                           //!< the id of the cubemap to use as skybox (can be npos)
         bool             m_enabled;                          //!< is this scene enabled?
         dirlight         m_dirlight;                         //!< directional light
         user_id          m_user_id;                          //!< user id of this scene
@@ -266,7 +266,7 @@ namespace rte
     void log_resources(const view_database& db);
     void log_cubemaps(const view_database& db);
     void log_scenes(const view_database& db);
-    // resource_index can be resource_database::value_type::npos, in that case insert_node_tree() creates a tree with a single, empty node
+    // resource_index can be npos, in that case insert_node_tree() creates a tree with a single, empty node
     void insert_node_tree(index_type resource_index,
                         index_type parent_index,
                         index_type& node_index_out,

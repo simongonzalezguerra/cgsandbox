@@ -1,5 +1,6 @@
 #include "serialization_utils.hpp"
 #include "glm/gtc/type_ptr.hpp"
+#include "sparse_list.hpp"
 #include "rte_domain.hpp"
 #include "glm/glm.hpp"
 #include "log.hpp"
@@ -16,7 +17,7 @@ namespace rte
         std::string format_mesh_id(index_type m)
         {    
             std::ostringstream oss; 
-            if (m != mesh_database::value_type::npos) {
+            if (m != npos) {
                 oss << m;
             } else {
                 oss << "nmesh";
@@ -28,7 +29,7 @@ namespace rte
         std::string format_material_id(index_type m)
         {
             std::ostringstream oss;
-            if (m != material_database::value_type::npos) {
+            if (m != npos) {
                 oss << m;
             } else {
                 oss << "nmat";
@@ -65,7 +66,7 @@ namespace rte
 
         void log_mesh(index_type mesh_index, const view_database& db)
         {
-            auto& m = db.m_meshes.at(mesh_index).m_elem;
+            auto& m = db.m_meshes.at(mesh_index);
             std::ostringstream oss;
             oss << std::setprecision(2) << std::fixed;
             oss << "    " << "index: " << mesh_index;
@@ -128,18 +129,18 @@ namespace rte
     
                 oss << "[ ";
                 oss << "index: " << current.resource_index;
-                oss << ", user id: " << format_user_id(res.m_elem.m_user_id);
-                oss << ", name: " << res.m_elem.m_name;
-                oss << ", mesh: " << format_mesh_id(res.m_elem.m_mesh);
-                oss << ", material: " << format_material_id(res.m_elem.m_material);
-                oss << ", local transform: " << res.m_elem.m_local_transform;
+                oss << ", user id: " << format_user_id(res.m_user_id);
+                oss << ", name: " << res.m_name;
+                oss << ", mesh: " << format_mesh_id(res.m_mesh);
+                oss << ", material: " << format_material_id(res.m_material);
+                oss << ", local transform: " << res.m_local_transform;
                 oss << " ]";
                 log(LOG_LEVEL_DEBUG, oss.str().c_str());
 
                 // We are using a stack to process depth-first, so in order for the children to be
                 // processed in the order in which they appear we must push them in reverse order,
                 // otherwise the last child will be processed first    
-                for (auto it = res.rbegin(); it != res.rend(); ++it) {
+                for (auto it = tree_begin(db, current.resource_index); it != tree_end(db, current.resource_index); ++it) {
                     pending_nodes.push_back({index(it), current.indentation + 1});
                 }
             }
@@ -161,9 +162,8 @@ namespace rte
     {    
         log(LOG_LEVEL_DEBUG, "---------------------------------------------------------------------------------------------------");
         log(LOG_LEVEL_DEBUG, "resource_database: materials begin");
-        auto& material_list = db.m_materials.at(material_database::value_type::root);
-        for (auto it = material_list.begin(); it != material_list.end(); ++it) {
-            auto& mat = it->m_elem;
+        for (auto it = list_begin(db.m_materials, 0); it != list_end(db.m_materials, 0); ++it) {
+            auto& mat = *it;
             std::ostringstream oss; 
             oss << std::setprecision(2) << std::fixed;
             oss << "    index: " << index(it);
@@ -185,8 +185,7 @@ namespace rte
     {
         log(LOG_LEVEL_DEBUG, "---------------------------------------------------------------------------------------------------");
         log(LOG_LEVEL_DEBUG, "resource_database: meshes begin");
-        auto& mesh_list = db.m_meshes.at(0);
-        for (auto it = mesh_list.begin(); it != mesh_list.end(); ++it) {
+        for (auto it = list_begin(db.m_meshes, 0); it != list_end(db.m_meshes, 0); ++it) {
             log_mesh(index(it), db);
         }
 
@@ -197,8 +196,7 @@ namespace rte
     {
         log(LOG_LEVEL_DEBUG, "---------------------------------------------------------------------------------------------------");
         log(LOG_LEVEL_DEBUG, "resource_database: resources begin");
-        auto& resource_list = db.m_resources.at(0);
-        for (auto it = resource_list.begin(); it != resource_list.end(); ++it) {
+        for (auto it = tree_begin(db.m_resources, 0); it != tree_end(db.m_resources, 0); ++it) {
             log_resource(index(it), db.m_resources);
         }
 
@@ -209,8 +207,7 @@ namespace rte
     {
         log(LOG_LEVEL_DEBUG, "---------------------------------------------------------------------------------------------------");
         log(LOG_LEVEL_DEBUG, "resource_database: cubemaps begin");
-        auto& cubemap_list = db.m_cubemaps.at(0);
-        for (auto it = cubemap_list.begin(); it != cubemap_list.end(); ++it) {
+        for (auto it = list_begin(db.m_cubemaps, 0); it != list_end(db.m_cubemaps, 0); ++it) {
             auto& cube = *it;
             std::ostringstream oss;
 
@@ -222,7 +219,7 @@ namespace rte
             oss << "    faces:";
             log(LOG_LEVEL_DEBUG, oss.str().c_str());
 
-            for (auto& f : cube.m_elem.m_faces) {
+            for (auto& f : cube.m_faces) {
                 oss.str("");
                 oss << "        " << f;
                 log(LOG_LEVEL_DEBUG, oss.str().c_str());
@@ -251,18 +248,18 @@ namespace rte
 
             oss << "[ ";
             oss << "index: " << current.node_index;
-            oss << ", user id: " << format_user_id(n.m_elem.m_user_id);
-            oss << ", name: " << n.m_elem.m_name;
-            oss << ", mesh: " << format_mesh_id(n.m_elem.m_mesh);
-            oss << ", material: " << format_material_id(n.m_elem.m_material);
-            oss << ", local transform: " << n.m_elem.m_local_transform;
+            oss << ", user id: " << format_user_id(n.m_user_id);
+            oss << ", name: " << n.m_name;
+            oss << ", mesh: " << format_mesh_id(n.m_mesh);
+            oss << ", material: " << format_material_id(n.m_material);
+            oss << ", local transform: " << n.m_local_transform;
             oss << " ]";
             log(LOG_LEVEL_DEBUG, oss.str().c_str());
 
             // We are using a stack to process depth-first, so in order for the children to be
             // processed in the order in which they appear we must push them in reverse order,
             // otherwise the last child will be processed first
-            for (auto it = n.rbegin(); it != n.rend(); ++it) {
+            for (auto it = tree_begin(db, current.node_index); it != tree_end(db, current.node_index); ++it) {
                 pending_nodes.push_back({index(it), current.indentation + 1});
             }
         }
@@ -273,10 +270,10 @@ namespace rte
         std::ostringstream oss;
         oss << std::setprecision(2) << std::fixed;
         oss << "        directional light: ";
-        oss << "[ ambient color : " << s.m_elem.m_dirlight.m_ambient_color;
-        oss << ", diffuse color : " << s.m_elem.m_dirlight.m_diffuse_color;
-        oss << ", specular color : " << s.m_elem.m_dirlight.m_specular_color;
-        oss << ", direction : " << s.m_elem.m_dirlight.m_direction;
+        oss << "[ ambient color : " << s.m_dirlight.m_ambient_color;
+        oss << ", diffuse color : " << s.m_dirlight.m_diffuse_color;
+        oss << ", specular color : " << s.m_dirlight.m_specular_color;
+        oss << ", direction : " << s.m_dirlight.m_direction;
         oss << " ]";
         log(LOG_LEVEL_DEBUG, oss.str().c_str());
     }
@@ -287,14 +284,14 @@ namespace rte
         std::ostringstream oss;
         oss << std::setprecision(2) << std::fixed;
         oss << "            [ index: " << point_light_index;
-        oss << ", user_id : " << format_user_id(pl.m_elem.m_user_id);
-        oss << ", position : " << pl.m_elem.m_position;
-        oss << ", ambient color : " << pl.m_elem.m_ambient_color;
-        oss << ", diffuse color : " << pl.m_elem.m_diffuse_color;
-        oss << ", specular color : " << pl.m_elem.m_specular_color;
-        oss << ", constant_attenuation : " << pl.m_elem.m_constant_attenuation;
-        oss << ", linear_attenuation : " << pl.m_elem.m_linear_attenuation;
-        oss << ", quadratic_attenuation : " << pl.m_elem.m_quadratic_attenuation;
+        oss << ", user_id : " << format_user_id(pl.m_user_id);
+        oss << ", position : " << pl.m_position;
+        oss << ", ambient color : " << pl.m_ambient_color;
+        oss << ", diffuse color : " << pl.m_diffuse_color;
+        oss << ", specular color : " << pl.m_specular_color;
+        oss << ", constant_attenuation : " << pl.m_constant_attenuation;
+        oss << ", linear_attenuation : " << pl.m_linear_attenuation;
+        oss << ", quadratic_attenuation : " << pl.m_quadratic_attenuation;
         oss << " ]";
         log(LOG_LEVEL_DEBUG, oss.str().c_str());
     }
@@ -309,7 +306,7 @@ namespace rte
         log(LOG_LEVEL_DEBUG, oss.str().c_str());
 
         oss.str("");
-        oss << "        user_id : " << format_user_id(s.m_elem.m_user_id);
+        oss << "        user_id : " << format_user_id(s.m_user_id);
         log(LOG_LEVEL_DEBUG, oss.str().c_str());
 
         log_directional_light(s);
@@ -318,18 +315,16 @@ namespace rte
         oss << "        point lights :";
         log(LOG_LEVEL_DEBUG, oss.str().c_str());
 
-        auto& point_light_list = db.m_point_lights.at(s.m_elem.m_point_lights);
-        for (auto it = point_light_list.begin(); it != point_light_list.end(); ++it) {
+        for (auto it = list_begin(db.m_point_lights, 0); it != list_end(db.m_point_lights, 0); ++it) {
             log_point_light(index(it), db.m_point_lights);
         }
 
         oss.str("");
-        index_type root = s.m_elem.m_root_node;
         oss << "        root node :";
         log(LOG_LEVEL_DEBUG, oss.str().c_str());
 
-        index_type root_node_index = s.m_elem.m_root_node;
-        if (root_node_index != node_database::value_type::npos) {
+        index_type root_node_index = s.m_root_node;
+        if (root_node_index != npos) {
             log_node(root_node_index, db.m_nodes);
         }
     }
@@ -338,8 +333,7 @@ namespace rte
     {
         log(LOG_LEVEL_DEBUG, "---------------------------------------------------------------------------------------------------");
         log(LOG_LEVEL_DEBUG, "scenegraph: scenes begin");
-        auto& scene_list = db.m_scenes.at(0);
-        for (auto it = scene_list.begin(); it != scene_list.end(); ++it) {
+        for (auto it = list_begin(db.m_scenes, 0); it != list_end(db.m_scenes, 0); ++it) {
             log_scene(index(it), db);
         }
         log(LOG_LEVEL_DEBUG, "scenegraph: scenes end");
@@ -350,34 +344,34 @@ namespace rte
                         index_type& node_index_out,
                         view_database& db)
     {
-        if (root_resource_index == resource_database::value_type::npos) {
-            node_index_out = db.m_nodes.insert(node(), parent_index);
+        if (root_resource_index == npos) {
+            node_index_out = tree_insert(db.m_nodes, node(), parent_index);
             return;
         }
 
         node_database tmp_db;
-        index_type new_tmp_root_node = node_database::value_type::npos;
+        index_type new_tmp_root_node = npos;
         struct context{ index_type resource_index; index_type parent_node; };
         std::vector<context> pending_nodes;
-        pending_nodes.push_back({root_resource_index, node_database::value_type::root});
+        pending_nodes.push_back({root_resource_index, 0});
         while (!pending_nodes.empty()) {
             auto current = pending_nodes.back();
             pending_nodes.pop_back();
 
-            index_type new_node_index = tmp_db.insert(node(), current.parent_node);
+            index_type new_node_index = tree_insert(tmp_db, node(), current.parent_node);
             auto& new_node = tmp_db.at(new_node_index);
-            new_tmp_root_node = (new_tmp_root_node == node_database::value_type::npos ? new_node_index : new_tmp_root_node);
+            new_tmp_root_node = (new_tmp_root_node == npos ? new_node_index : new_tmp_root_node);
             auto& res = db.m_resources.at(current.resource_index);
-            new_node.m_elem.m_local_transform = res.m_elem.m_local_transform;
-            new_node.m_elem.m_mesh = res.m_elem.m_mesh;
-            new_node.m_elem.m_material = res.m_elem.m_material;
+            new_node.m_local_transform = res.m_local_transform;
+            new_node.m_mesh = res.m_mesh;
+            new_node.m_material = res.m_material;
 
-            for (auto it = res.rbegin(); it != res.rend(); ++it) {
+            for (auto it = tree_begin(db.m_resources, current.resource_index); it != tree_end(db.m_resources, current.resource_index); ++it) {
                 pending_nodes.push_back({index(it), new_node_index});
             }
         }
 
-        node_index_out = db.m_nodes.insert(tmp_db, new_tmp_root_node, parent_index);
+        node_index_out = tree_insert(tmp_db, new_tmp_root_node, db.m_nodes, parent_index);
     }
 
     void get_descendant_nodes(index_type root_index,
@@ -394,14 +388,14 @@ namespace rte
             auto& current_node = db.m_nodes.at(current.node_index);
 
             // If a node is not enabled, all its subtree is pruned
-            if (current_node.m_elem.m_enabled) {
+            if (current_node.m_enabled) {
                 // If a node doesn't have any meshes or materials it is ignored, but its children are processed
-                if (current_node.m_elem.m_mesh != mesh_database::value_type::npos
-                        && current_node.m_elem.m_material != material_database::value_type::npos) {
+                if (current_node.m_mesh != npos
+                        && current_node.m_material != npos) {
                     nodes_out.push_back(current.node_index);
                 }
     
-                for (auto it = current_node.rbegin(); it != current_node.rend(); ++it) {
+                for (auto it = tree_rbegin(db.m_nodes, current.node_index); it != tree_rend(db.m_nodes, current.node_index); ++it) {
                     pending_nodes.push_back({index(it)});
                 }            
             }

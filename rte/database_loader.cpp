@@ -3,6 +3,7 @@
 #include "resource_loader.hpp"
 #include "nlohmann/json.hpp"
 #include "cmd_line_args.hpp"
+#include "sparse_list.hpp"
 #include "glm/glm.hpp"
 #include "log.hpp"
 
@@ -229,7 +230,7 @@ namespace rte
                 // Note that in this case it's not relevant in what order the children are processed,
                 // but we still push them in reverse order for consistency
                 if (current.doc.count("children")) {
-                    auto resource_it = res.rbegin();
+                    auto resource_it = tree_rbegin(db, current.resource_index);
                     auto& children_list = current.doc.at("children");
                     for (auto json_it = children_list.rbegin(); json_it != children_list.rend(); ++json_it) {
                         pending_nodes.push_back({*json_it, index(resource_it)});
@@ -370,7 +371,7 @@ namespace rte
                 // but we still push them in reverse order for consistency
                 if (current.doc.count("children")) {
                     auto& children_list = current.doc.at("children");
-                    auto node_it = current_node.rbegin();
+                    auto node_it = list_rbegin(db, current.node_index);
                     for (auto json_it = children_list.rbegin(); json_it != children_list.rend(); ++json_it) {
                         pending_nodes.push_back({*json_it, index(node_it)});
                         ++node_it;
@@ -480,6 +481,7 @@ namespace rte
         load_meshes(tmp_db.m_meshes);
 
         tree_init(tmp_db.m_resources);
+        tree_insert(tmp_db.m_resources, resource());
         load_resources(tmp_db);
 
         list_init(tmp_db.m_cubemaps);

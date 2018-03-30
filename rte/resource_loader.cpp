@@ -2,6 +2,7 @@
 #include "assimp/postprocess.h"
 #include "resource_loader.hpp"
 #include "assimp/cimport.h"
+#include "sparse_list.hpp"
 #include "assimp/scene.h"
 #include "math_utils.hpp"
 #include "glm/glm.hpp"
@@ -121,7 +122,7 @@ namespace rte
         void create_resources(const struct aiScene* scene, index_type& root_out, view_database& db)
         {
             resource_database new_resource_db;
-            index_type new_resource_index = tree_insert(new_resource_db, resource());
+            index_type new_resource_index = tree_insert(new_resource_db, resource(), 0);
             struct context{ index_type added_resource_index; aiNode* ai_node; };
             std::vector<context> pending_nodes;
             pending_nodes.push_back({new_resource_index, scene->mRootNode});

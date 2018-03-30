@@ -5,6 +5,7 @@
 #include "resource_loader.hpp"
 #include "cmd_line_args.hpp"
 #include "opengl_driver.hpp"
+#include "sparse_list.hpp"
 #include "scenegraph.hpp"
 #include "rte_domain.hpp"
 #include "renderer.hpp"
@@ -126,7 +127,7 @@ namespace rte
 
         void compute_accum_transforms(view_database& db)
         {
-            auto& current_scene = *(list_begin(db.m_scenes, 0);
+            auto& current_scene = *(list_begin(db.m_scenes, 0));
             struct context { index_type node_index; };
             std::vector<context> pending_nodes;
             pending_nodes.push_back({current_scene.m_root_node });
@@ -142,7 +143,7 @@ namespace rte
                 current_node.m_accum_transform = current_node.m_local_transform * previous_transform;
 
                 // process current
-                for (auto it = tree_rbegin(db.m_nodes, current.m_node_index); it != tree_rend(db.m_nodes, current.m_node_index); ++it) {
+                for (auto it = tree_rbegin(db.m_nodes, current.node_index); it != tree_rend(db.m_nodes, current.node_index); ++it) {
                     pending_nodes.push_back({index(it)});
                 }
             }
