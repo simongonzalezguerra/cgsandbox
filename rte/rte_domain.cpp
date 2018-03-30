@@ -350,17 +350,16 @@ namespace rte
         }
 
         node_database tmp_db;
-        index_type new_tmp_root_node = npos;
+        tree_init(tmp_db);
         struct context{ index_type resource_index; index_type parent_node; };
         std::vector<context> pending_nodes;
-        pending_nodes.push_back({root_resource_index, 0});
+        pending_nodes.push_back({root_resource_index, npos});
         while (!pending_nodes.empty()) {
             auto current = pending_nodes.back();
             pending_nodes.pop_back();
 
             index_type new_node_index = tree_insert(tmp_db, node(), current.parent_node);
             auto& new_node = tmp_db.at(new_node_index);
-            new_tmp_root_node = (new_tmp_root_node == npos ? new_node_index : new_tmp_root_node);
             auto& res = db.m_resources.at(current.resource_index);
             new_node.m_local_transform = res.m_local_transform;
             new_node.m_mesh = res.m_mesh;
@@ -371,7 +370,7 @@ namespace rte
             }
         }
 
-        node_index_out = tree_insert(tmp_db, new_tmp_root_node, db.m_nodes, parent_index);
+        node_index_out = tree_insert(tmp_db, 0, db.m_nodes, parent_index);
     }
 
     void get_descendant_nodes(index_type root_index,

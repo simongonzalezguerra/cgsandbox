@@ -122,7 +122,7 @@ namespace rte
         void create_resources(const struct aiScene* scene, index_type& root_out, view_database& db)
         {
             resource_database new_resource_db;
-            index_type new_resource_index = tree_insert(new_resource_db, resource(), 0);
+            index_type new_resource_index = tree_insert(new_resource_db, resource());
             struct context{ index_type added_resource_index; aiNode* ai_node; };
             std::vector<context> pending_nodes;
             pending_nodes.push_back({new_resource_index, scene->mRootNode});
@@ -177,7 +177,7 @@ namespace rte
                 }
             }
 
-            root_out = tree_insert(new_resource_db, new_resource_index, db.m_resources);
+            root_out = tree_insert(new_resource_db, new_resource_index, db.m_resources, 0);
         }
     } // anonymous namespace
 
