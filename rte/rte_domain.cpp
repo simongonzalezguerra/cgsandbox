@@ -265,15 +265,27 @@ namespace rte
         }
     }
 
-    void log_directional_light(const scene_database::value_type& s)
+    void log_nodes(const view_database& db)
+    {
+        std::ostringstream oss;
+        oss << "        root node :";
+        log(LOG_LEVEL_DEBUG, oss.str().c_str());
+
+        index_type root_node_index = db.m_root_node;
+        if (root_node_index != npos) {
+            log_node(root_node_index, db.m_nodes);
+        }
+    }
+
+    void log_directional_light(const view_database& db)
     {
         std::ostringstream oss;
         oss << std::setprecision(2) << std::fixed;
         oss << "        directional light: ";
-        oss << "[ ambient color : " << s.m_dirlight.m_ambient_color;
-        oss << ", diffuse color : " << s.m_dirlight.m_diffuse_color;
-        oss << ", specular color : " << s.m_dirlight.m_specular_color;
-        oss << ", direction : " << s.m_dirlight.m_direction;
+        oss << "[ ambient color : " << db.m_dirlight.m_ambient_color;
+        oss << ", diffuse color : " << db.m_dirlight.m_diffuse_color;
+        oss << ", specular color : " << db.m_dirlight.m_specular_color;
+        oss << ", direction : " << db.m_dirlight.m_direction;
         oss << " ]";
         log(LOG_LEVEL_DEBUG, oss.str().c_str());
     }
@@ -296,47 +308,25 @@ namespace rte
         log(LOG_LEVEL_DEBUG, oss.str().c_str());
     }
 
-    void log_scene(index_type scene_index, const view_database& db)
+    void log_point_lights(const view_database& db)
     {
-        auto& s = db.m_scenes.at(scene_index);
-
         std::ostringstream oss;
-        oss << std::setprecision(2) << std::fixed;
-        oss << "    index: " << scene_index;
-        log(LOG_LEVEL_DEBUG, oss.str().c_str());
-
-        oss.str("");
-        oss << "        user_id : " << format_user_id(s.m_user_id);
-        log(LOG_LEVEL_DEBUG, oss.str().c_str());
-
-        log_directional_light(s);
-
-        oss.str("");
         oss << "        point lights :";
         log(LOG_LEVEL_DEBUG, oss.str().c_str());
-
         for (auto it = list_begin(db.m_point_lights, 0); it != list_end(db.m_point_lights, 0); ++it) {
             log_point_light(index(it), db.m_point_lights);
-        }
-
-        oss.str("");
-        oss << "        root node :";
-        log(LOG_LEVEL_DEBUG, oss.str().c_str());
-
-        index_type root_node_index = s.m_root_node;
-        if (root_node_index != npos) {
-            log_node(root_node_index, db.m_nodes);
-        }
+        }        
     }
 
-    void log_scenes(const view_database& db)
+    void log_database(const view_database& db)
     {
-        log(LOG_LEVEL_DEBUG, "---------------------------------------------------------------------------------------------------");
-        log(LOG_LEVEL_DEBUG, "scenegraph: scenes begin");
-        for (auto it = list_begin(db.m_scenes, 0); it != list_end(db.m_scenes, 0); ++it) {
-            log_scene(index(it), db);
-        }
-        log(LOG_LEVEL_DEBUG, "scenegraph: scenes end");
+        log_materials(db);
+        log_meshes(db);
+        log_resources(db);
+        log_cubemaps(db);
+        log_directional_light(db);
+        log_point_lights(db);
+        log_nodes(db);
     }
 
     void insert_node_tree(index_type root_resource_index,

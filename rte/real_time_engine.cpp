@@ -73,15 +73,12 @@ namespace rte
 
             m_last_time = get_time();
 
-            auto current_scene_index = index(list_begin(m_view_db.m_scenes, 0));
-            m_fps_camera_controller.set_scene(current_scene_index);
             m_fps_camera_controller.set_position(glm::vec3(-14.28f, 13.71f, 29.35f));
             m_fps_camera_controller.set_yaw(-41.50f);
             m_fps_camera_controller.set_pitch(-20.37f);
             m_fps_camera_controller.set_speed(40.0f);
             m_fps_camera_controller.set_mouse_speed(0.1f);
 
-            m_perspective_controller.set_scene(current_scene_index);
             m_perspective_controller.set_window_width(1920.0f);
             m_perspective_controller.set_window_height(1080.0f);
             m_perspective_controller.set_fov_speed(0.5f);
@@ -123,10 +120,9 @@ namespace rte
 
         void compute_accum_transforms(view_database& db)
         {
-            auto& current_scene = *(list_begin(db.m_scenes, 0));
             struct context { index_type node_index; };
             std::vector<context> pending_nodes;
-            pending_nodes.push_back({current_scene.m_root_node });
+            pending_nodes.push_back({db.m_root_node});
             while (!pending_nodes.empty()) {
                 auto current = pending_nodes.back();
                 pending_nodes.pop_back();
@@ -167,7 +163,7 @@ namespace rte
 
             compute_accum_transforms(m_view_db);
 
-            // Render the scene
+            // Render the frame
             render(m_view_db);
             swap_buffers(m_window.get());
 

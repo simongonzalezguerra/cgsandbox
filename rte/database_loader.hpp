@@ -8,7 +8,6 @@ namespace rte
     void database_loader_initialize();
     // Any existing data in db is removed
     void load_database(view_database& db);
-    void log_database(const view_database& db);
     void database_loader_finalize();
 } // namespace rte
 

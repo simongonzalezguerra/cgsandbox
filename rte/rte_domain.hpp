@@ -194,32 +194,6 @@ namespace rte
         glm::vec3      m_direction;      //!< direction of the directional light
     };
 
-    struct scene : public sparse_node
-    {
-        scene() :
-            m_point_lights(npos),
-            m_root_node(npos),
-            m_view_transform(glm::mat4(1.0f)),
-            m_projection_transform(glm::mat4(1.0f)),
-            m_skybox(npos),
-            m_enabled(false),
-            m_dirlight(),
-            m_user_id(nuser_id),
-            m_name() {}
-    
-        index_type       m_point_lights;                     //!< list of point lights in the scene
-        index_type       m_root_node;                        //!< handle to the root node of this scene
-        glm::mat4        m_view_transform;                   //!< the view transform used to render all objects in the scene
-        glm::mat4        m_projection_transform;             //!< the projection transform used to render all objects in the scene
-        index_type       m_skybox;                           //!< the id of the cubemap to use as skybox (can be npos)
-        bool             m_enabled;                          //!< is this scene enabled?
-        dirlight         m_dirlight;                         //!< directional light
-        user_id          m_user_id;                          //!< user id of this scene
-        std::string      m_name;                             //!< name of this scene
-    };
-
-    typedef sparse_vector<scene> scene_database;
-
     struct view_database : public sparse_node
     {
         view_database() = default;
@@ -233,7 +207,11 @@ namespace rte
             m_cubemaps(std::move(vdb.m_cubemaps)),
             m_nodes(std::move(vdb.m_nodes)),
             m_point_lights(std::move(vdb.m_point_lights)),
-            m_scenes(std::move(vdb.m_scenes)) {}
+            m_root_node(std::move(vdb.m_root_node)),
+            m_view_transform(std::move(vdb.m_view_transform)),
+            m_projection_transform(std::move(vdb.m_projection_transform)),
+            m_skybox(std::move(vdb.m_skybox)),
+            m_dirlight(std::move(vdb.m_dirlight)) {}
 
         view_database& operator=(const view_database&) = default;
 
@@ -246,7 +224,11 @@ namespace rte
                 m_cubemaps = std::move(vdb.m_cubemaps);
                 m_nodes = std::move(vdb.m_nodes);
                 m_point_lights = std::move(vdb.m_point_lights);
-                m_scenes = std::move(vdb.m_scenes);            
+                m_root_node = std::move(vdb.m_root_node);
+                m_view_transform = std::move(vdb.m_view_transform);
+                m_projection_transform = std::move(vdb.m_projection_transform);
+                m_skybox = std::move(vdb.m_skybox);
+                m_dirlight = std::move(vdb.m_dirlight);
             }
 
             return *this;
@@ -258,14 +240,21 @@ namespace rte
         cubemap_database          m_cubemaps;
         node_database             m_nodes;
         point_light_database      m_point_lights;
-        scene_database            m_scenes;
+        index_type                m_root_node;
+        glm::mat4                 m_view_transform;                   //!< the view transform used to render all objects in the scene
+        glm::mat4                 m_projection_transform;             //!< the projection transform used to render all objects in the scene
+        index_type                m_skybox;                           //!< the id of the cubemap to use as skybox (can be npos)
+        dirlight                  m_dirlight;                         //!< directional light
     };
 
     void log_materials(const view_database& db);
     void log_meshes(const view_database& db);
     void log_resources(const view_database& db);
     void log_cubemaps(const view_database& db);
-    void log_scenes(const view_database& db);
+    void log_nodes(const view_database& db);
+    void log_directional_light(const view_database& db);
+    void log_point_lights(const view_database& db);
+    void log_database(const view_database& db);
     // resource_index can be npos, in that case insert_node_tree() creates a tree with a single, empty node
     void insert_node_tree(index_type resource_index,
                         index_type parent_index,

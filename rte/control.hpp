@@ -15,13 +15,11 @@ namespace rte
     public:
         fps_camera_controller(view_database& db);
         ~fps_camera_controller();
-        void set_scene(index_type scene);
         void set_position(glm::vec3 position);
         void set_yaw(float yaw);
         void set_pitch(float pitch);
         void set_speed(float speed);
         void set_mouse_speed(float mouse_speed);
-        index_type get_scene();
         glm::vec3 get_position();
         float get_yaw();
         float get_pitch();
@@ -39,7 +37,6 @@ namespace rte
     public:
         perspective_controller(view_database& db);
         ~perspective_controller();
-        void set_scene(index_type scene);
         void set_window_width(float window_width);
         void set_window_height(float window_height);
         void set_fov_speed(float fov_speed);
@@ -48,7 +45,6 @@ namespace rte
         void set_far(float far);
         float get_fov_speed();
         float get_fov_radians();
-        index_type get_scene();
         float get_window_width();
         float get_window_height();
         float get_near();

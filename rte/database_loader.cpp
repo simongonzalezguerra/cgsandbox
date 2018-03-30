@@ -311,7 +311,7 @@ namespace rte
         }
 
         void create_node_tree(const json& node_document,
-                            index_type scene_root_index,
+                            index_type root_node_index,
                             index_type& new_root_index_out,
                             view_database& db)
         {
@@ -319,12 +319,12 @@ namespace rte
             index_type new_root_index = npos;
             struct json_context { const json& doc; index_type parent; unsigned int index; };
             std::vector<json_context> pending_nodes;
-            pending_nodes.push_back({node_document, scene_root_index, 0U});
+            pending_nodes.push_back({node_document, root_node_index, 0U});
             while (!pending_nodes.empty()) {
                 auto current = pending_nodes.back();
                 pending_nodes.pop_back();
                 index_type current_node_index = npos;
-                if (current.parent == scene_root_index || !node_has_child(current.parent, current.index, current_node_index, db.m_nodes)) {
+                if (current.parent == root_node_index || !node_has_child(current.parent, current.index, current_node_index, db.m_nodes)) {
                     create_node(current.doc, current.parent, current_node_index, db);
                     if (!root_set) {
                         new_root_index  = current_node_index; // only the first node created is saved into new_root_index
@@ -380,11 +380,11 @@ namespace rte
             }
         }
 
-        void load_nodes(const json& scene_doc, index_type scene_root_index, view_database& db)
+        void load_nodes(const json& doc, index_type root_node_index, view_database& db)
         {
-            for (auto& node_document : scene_doc.at("nodes")) {
+            for (auto& node_document : doc.at("nodes")) {
                 index_type added_root = npos;
-                create_node_tree(node_document, scene_root_index, added_root, db);
+                create_node_tree(node_document, root_node_index, added_root, db);
                 set_node_tree_materials_and_names(node_document, added_root, db.m_nodes);
             }
         }
@@ -403,44 +403,13 @@ namespace rte
              new_point_light.m_quadratic_attenuation = point_light_document.at("quadratic_attenuation").get<float>();
         }
 
-        void load_point_lights(const json& scene_doc, view_database& db)
+        void load_point_lights(const json& doc, view_database& db)
         {
-            for (auto& point_light_document : scene_doc.at("point_lights")) {
+            for (auto& point_light_document : doc.at("point_lights")) {
                 create_point_light(point_light_document, db);
             }
         }
 
-        void load_scenes(view_database& db)
-        {
-            for (auto& scene_doc : document.at("scenes")) {
-                auto new_scene_index = list_insert(db.m_scenes, 0, scene());
-                auto& new_scene = db.m_scenes.at(new_scene_index);
-
-                auto scene_root_node_index = tree_insert(db.m_nodes, node());
-                new_scene.m_root_node = scene_root_node_index;
-
-                new_scene.m_user_id = scene_doc.value("user_id", nuser_id);
-
-                user_id skybox_user_id = scene_doc.value("skybox", nuser_id);
-                cubemap_map::iterator mit;
-                if ((mit = cubemap_ids.find(skybox_user_id)) != cubemap_ids.end()) {
-                    new_scene.m_skybox = mit->second;
-                }
-
-                new_scene.m_dirlight.m_ambient_color = array_to_vec3(scene_doc.at("directional_light").at("ambient_color"));
-                new_scene.m_dirlight.m_diffuse_color = array_to_vec3(scene_doc.at("directional_light").at("diffuse_color"));
-                new_scene.m_dirlight.m_specular_color = array_to_vec3(scene_doc.at("directional_light").at("specular_color"));
-                new_scene.m_dirlight.m_direction = array_to_vec3(scene_doc.at("directional_light").at("direction"));
-
-                load_nodes(scene_doc, scene_root_node_index, db);
-
-                list_init(db.m_point_lights);
-                list_empty_list(db.m_point_lights);
-                load_point_lights(scene_doc, db);
-
-                new_scene.m_point_lights = 0;
-            }
-        }
     } // anonymous namespace
 
     //-----------------------------------------------------------------------------------------------
@@ -486,25 +455,32 @@ namespace rte
 
         list_init(tmp_db.m_cubemaps);
         list_empty_list(tmp_db.m_cubemaps);
-        load_cubemaps(tmp_db.m_cubemaps);
+        load_cubemaps(tmp_db.m_cubemaps);;
 
-        list_init(tmp_db.m_scenes);
-        list_empty_list(tmp_db.m_scenes);
-        load_scenes(tmp_db);
+        auto root_node_index = tree_insert(tmp_db.m_nodes, node());
+        tmp_db.m_root_node = root_node_index;
+
+        user_id skybox_user_id = document.value("skybox", nuser_id);
+        cubemap_map::iterator mit;
+        if ((mit = cubemap_ids.find(skybox_user_id)) != cubemap_ids.end()) {
+            tmp_db.m_skybox = mit->second;
+        }
+
+        tmp_db.m_dirlight.m_ambient_color = array_to_vec3(document.at("directional_light").at("ambient_color"));
+        tmp_db.m_dirlight.m_diffuse_color = array_to_vec3(document.at("directional_light").at("diffuse_color"));
+        tmp_db.m_dirlight.m_specular_color = array_to_vec3(document.at("directional_light").at("specular_color"));
+        tmp_db.m_dirlight.m_direction = array_to_vec3(document.at("directional_light").at("direction"));
+
+        load_nodes(document, root_node_index, tmp_db);
+
+        list_init(tmp_db.m_point_lights);
+        list_empty_list(tmp_db.m_point_lights);
+        load_point_lights(document, tmp_db);
 
         db = std::move(tmp_db);
 
         document = json();
         log(LOG_LEVEL_DEBUG, "database_loader: database loaded successfully");
-    }
-
-    void log_database(const view_database& db)
-    {
-        log_materials(db);
-        log_meshes(db);
-        log_resources(db);
-        log_cubemaps(db);
-        log_scenes(db);
     }
 
     void database_loader_finalize()

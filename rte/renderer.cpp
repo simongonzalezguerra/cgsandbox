@@ -225,24 +225,21 @@ namespace rte
         skybox_programs.clear();
     }
 
-    void get_scene_properties(const view_database& db)
+    void get_view_properties(const view_database& db)
     {
-        // Set view and projection matrices for the scene
-        auto& current_scene = *(list_begin(db.m_scenes, 0));
-
         // Set projection and view transforms
-        driver_context.m_projection = current_scene.m_projection_transform;
-        driver_context.m_view = current_scene.m_view_transform;
+        driver_context.m_projection = db.m_projection_transform;
+        driver_context.m_view = db.m_view_transform;
 
         // Set directional light properties
-        driver_context.m_dirlight.m_ambient_color = current_scene.m_dirlight.m_ambient_color;
-        driver_context.m_dirlight.m_diffuse_color = current_scene.m_dirlight.m_diffuse_color;
-        driver_context.m_dirlight.m_specular_color = current_scene.m_dirlight.m_specular_color;
-        driver_context.m_dirlight.m_direction_cameraspace = from_homogenous_coords(driver_context.m_view * direction_to_homogenous_coords(current_scene.m_dirlight.m_direction));
+        driver_context.m_dirlight.m_ambient_color = db.m_dirlight.m_ambient_color;
+        driver_context.m_dirlight.m_diffuse_color = db.m_dirlight.m_diffuse_color;
+        driver_context.m_dirlight.m_specular_color = db.m_dirlight.m_specular_color;
+        driver_context.m_dirlight.m_direction_cameraspace = from_homogenous_coords(driver_context.m_view * direction_to_homogenous_coords(db.m_dirlight.m_direction));
 
         // Set the cubemap texture to use
         driver_context.m_gl_cubemap = 0U;
-        skybox_id = current_scene.m_skybox;
+        skybox_id = db.m_skybox;
         if (skybox_id != npos) {
             driver_context.m_gl_cubemap = db.m_cubemaps.at(skybox_id).m_gl_cubemap_id;
         }
@@ -344,10 +341,9 @@ namespace rte
         driver.initialize_frame();
         // Convert tree into list and filter out non-enabled nodes
         nodes_to_render.clear();
-        auto& current_scene = *(list_begin(db.m_scenes, 0));
-        get_descendant_nodes(current_scene.m_root_node, nodes_to_render, db);
+        get_descendant_nodes(db.m_root_node, nodes_to_render, db);
         driver_context = gl_driver_context();
-        get_scene_properties(db);
+        get_view_properties(db);
         render_phong_nodes(db);
         render_environment_mapping_nodes(db);
         render_skybox();
