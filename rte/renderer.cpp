@@ -93,10 +93,15 @@ namespace rte
             for (auto it = list_begin(db.m_meshes, 0); it != list_end(db.m_meshes, 0); ++it) {
                 auto& m = *it;
 
-                auto position_buffer = make_3d_buffer(driver, m.m_vertices);
-                auto uv_buffer = make_2d_buffer(driver, m.m_texture_coords);
-                auto normal_buffer = make_3d_buffer(driver, m.m_normals);
-                auto index_buffer = make_index_buffer(driver, m.m_indices);
+                auto mesh_buffer_it = std::find_if(list_begin(db.m_mesh_buffers, 0), list_end(db.m_mesh_buffers, 0), [it](const mesh_buffer& mf) {
+                    return mf.m_mesh == index(it);
+                });
+                auto& mf = *mesh_buffer_it;
+
+                auto position_buffer = make_3d_buffer(driver, mf.m_vertices);
+                auto uv_buffer = make_2d_buffer(driver, mf.m_texture_coords);
+                auto normal_buffer = make_3d_buffer(driver, mf.m_normals);
+                auto index_buffer = make_index_buffer(driver, mf.m_indices);
 
                 m.m_position_buffer_id = position_buffer.get();
                 m.m_uv_buffer_id = uv_buffer.get();
@@ -274,7 +279,7 @@ namespace rte
         driver_context.m_node.m_texture_coords_buffer = current_mesh.m_uv_buffer_id;
         driver_context.m_node.m_normal_buffer = current_mesh.m_normal_buffer_id;
         driver_context.m_node.m_index_buffer = current_mesh.m_index_buffer_id;
-        driver_context.m_node.m_num_indices = current_mesh.m_indices.size();
+        driver_context.m_node.m_num_indices = current_mesh.m_num_vertices;
 
         driver_context.m_node.m_material.m_diffuse_color = current_material.m_diffuse_color;
         driver_context.m_node.m_material.m_specular_color = current_material.m_specular_color;

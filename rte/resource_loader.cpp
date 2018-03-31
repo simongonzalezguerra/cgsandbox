@@ -24,7 +24,7 @@ namespace rte
         // Internal declarations
         //---------------------------------------------------------------------------------------------
         std::map<std::size_t, index_type>  material_indices;  //!< Map from index in assimp's material array to material index in the database
-        std::map<std::size_t, index_type> mesh_indices;      //!< Map from index in assimp's mesh array to mesh index in the database
+        std::map<std::size_t, index_type>  mesh_indices;      //!< Map from index in assimp's mesh array to mesh index in the database
 
         //---------------------------------------------------------------------------------------------
         // Helper functions
@@ -87,24 +87,28 @@ namespace rte
 
                 mesh_indices[i_mesh] = new_mesh_index;
 
+                auto new_mesh_buffer_index = list_insert(db.m_mesh_buffers, 0, mesh_buffer());
+                auto& new_mesh_buffer = db.m_mesh_buffers.at(new_mesh_buffer_index);
+                new_mesh_buffer.m_mesh = new_mesh_index;
+
                 if (ai_mesh->HasPositions()) {
                     for (std::size_t i_vertices = 0; i_vertices < ai_mesh->mNumVertices; i_vertices++) {
                         aiVector3D vertex = ai_mesh->mVertices[i_vertices];
-                        new_mesh.m_vertices.push_back(glm::vec3(vertex.x, vertex.y, vertex.z));
+                        new_mesh_buffer.m_vertices.push_back(glm::vec3(vertex.x, vertex.y, vertex.z));
                     }
                 }
 
                 if (ai_mesh->HasTextureCoords(0)) {
                     for (std::size_t i_vertices = 0; i_vertices < ai_mesh->mNumVertices; i_vertices++) {
                         aiVector3D tex_coords = ai_mesh->mTextureCoords[0][i_vertices];
-                        new_mesh.m_texture_coords.push_back(glm::vec2(tex_coords.x, tex_coords.y));
+                        new_mesh_buffer.m_texture_coords.push_back(glm::vec2(tex_coords.x, tex_coords.y));
                     }
                 }
 
                 if (ai_mesh->HasNormals()) {
                     for (std::size_t i_normals = 0; i_normals < ai_mesh->mNumVertices; i_normals++) {
                         aiVector3D normal = ai_mesh->mNormals[i_normals];
-                        new_mesh.m_normals.push_back(glm::vec3(normal.x, normal.y, normal.z));
+                        new_mesh_buffer.m_normals.push_back(glm::vec3(normal.x, normal.y, normal.z));
                     }
                 }
 
@@ -112,10 +116,12 @@ namespace rte
                     for (std::size_t i_faces = 0; i_faces < ai_mesh->mNumFaces; i_faces++) {
                         aiFace face = ai_mesh->mFaces[i_faces];
                         for (std::size_t i_indices = 0; i_indices < face.mNumIndices; i_indices++) {
-                            new_mesh.m_indices.push_back(face.mIndices[i_indices]);
+                            new_mesh_buffer.m_indices.push_back(face.mIndices[i_indices]);
                         }
                     }
                 }
+
+                new_mesh.m_num_vertices = new_mesh_buffer.m_indices.size();
             }
         }
 

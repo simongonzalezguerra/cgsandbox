@@ -40,28 +40,22 @@ namespace rte
     struct mesh : public sparse_node
     {
         mesh() :
-            m_vertices(),
-            m_texture_coords(),
-            m_normals(),
-            m_indices(),
             m_position_buffer_id(0U),
             m_uv_buffer_id(0U),
             m_normal_buffer_id(0U),
             m_index_buffer_id(0U),
+            m_num_vertices(0U),
             m_user_id(nuser_id),
             m_name() {}
     
         mesh(const mesh& m) = default;
 
         mesh(mesh&& m) :
-            m_vertices(std::move(m.m_vertices)),
-            m_texture_coords(std::move(m.m_texture_coords)),
-            m_normals(std::move(m.m_normals)),
-            m_indices(std::move(m.m_indices)),
             m_position_buffer_id(std::move(m.m_position_buffer_id)),
             m_uv_buffer_id(std::move(m.m_uv_buffer_id)),
             m_normal_buffer_id(std::move(m.m_normal_buffer_id)),
             m_index_buffer_id(std::move(m.m_index_buffer_id)),
+            m_num_vertices(std::move(m.m_num_vertices)),
             m_user_id(std::move(m.m_user_id)),
             m_name(std::move(m.m_name)) {}
 
@@ -70,14 +64,11 @@ namespace rte
         mesh& operator=(mesh&& m)
         {
             if (&m != this) {
-                m_vertices = std::move(m.m_vertices);
-                m_texture_coords = std::move(m.m_texture_coords);
-                m_normals = std::move(m.m_normals);
-                m_indices = std::move(m.m_indices);
                 m_position_buffer_id = std::move(m.m_position_buffer_id);
                 m_uv_buffer_id = std::move(m.m_uv_buffer_id);
                 m_normal_buffer_id = std::move(m.m_normal_buffer_id);
                 m_index_buffer_id = std::move(m.m_index_buffer_id);
+                m_num_vertices = std::move(m.m_num_vertices);
                 m_user_id = std::move(m.m_user_id);
                 m_name = std::move(m.m_name);            
             }
@@ -85,19 +76,58 @@ namespace rte
             return *this;            
         }
 
-        std::vector<glm::vec3>      m_vertices;            //!< vertex coordinates
-        std::vector<glm::vec2>      m_texture_coords;      //!< texture coordinates for each vertex
-        std::vector<glm::vec3>      m_normals;             //!< normals of the mesh
-        std::vector<vindex>         m_indices;             //!< faces, as a sequence of indexes over the logical vertex array
         gl_buffer_id                m_position_buffer_id;  //!< id of the position buffer in the graphics API
         gl_buffer_id                m_uv_buffer_id;        //!< id of the uv buffer in the graphics API
         gl_buffer_id                m_normal_buffer_id;    //!< id of the normal buffer in the graphics API
         gl_buffer_id                m_index_buffer_id;     //!< id of the index buffer in the graphics API
+        unsigned int                m_num_vertices;        //!< number of vertices of this mesh
         user_id                     m_user_id;             //!< user id of this mesh
         std::string                 m_name;                //!< name of this mesh
     };
 
     typedef sparse_vector<mesh> mesh_database;
+
+    struct mesh_buffer : public sparse_node
+    {
+        mesh_buffer() :
+            m_mesh(npos),
+            m_vertices(),
+            m_texture_coords(),
+            m_normals(),
+            m_indices() {}
+    
+        mesh_buffer(const mesh_buffer& m) = default;
+
+        mesh_buffer(mesh_buffer&& m) :
+            m_mesh(std::move(m.m_mesh)),
+            m_vertices(std::move(m.m_vertices)),
+            m_texture_coords(std::move(m.m_texture_coords)),
+            m_normals(std::move(m.m_normals)),
+            m_indices(std::move(m.m_indices)) {}
+
+        mesh_buffer& operator=(const mesh_buffer& m) = default;
+
+        mesh_buffer& operator=(mesh_buffer&& m)
+        {
+            if (&m != this) {
+                m_mesh = std::move(m.m_mesh);
+                m_vertices = std::move(m.m_vertices);
+                m_texture_coords = std::move(m.m_texture_coords);
+                m_normals = std::move(m.m_normals);
+                m_indices = std::move(m.m_indices);
+            }
+
+            return *this;            
+        }
+
+        index_type                  m_mesh;                //!< index of the mesh these buffers belong to
+        std::vector<glm::vec3>      m_vertices;            //!< vertex coordinates
+        std::vector<glm::vec2>      m_texture_coords;      //!< texture coordinates for each vertex
+        std::vector<glm::vec3>      m_normals;             //!< normals of the mesh
+        std::vector<vindex>         m_indices;             //!< faces, as a sequence of indexes over the logical vertex array
+    };
+
+    typedef sparse_vector<mesh_buffer> mesh_buffer_database;
 
     struct resource : public sparse_node
     {
@@ -203,6 +233,7 @@ namespace rte
         view_database(view_database&& vdb) :
             m_materials(std::move(vdb.m_materials)),
             m_meshes(std::move(vdb.m_meshes)),
+            m_mesh_buffers(std::move(vdb.m_mesh_buffers)),
             m_resources(std::move(vdb.m_resources)),
             m_cubemaps(std::move(vdb.m_cubemaps)),
             m_nodes(std::move(vdb.m_nodes)),
@@ -220,6 +251,7 @@ namespace rte
             if (&vdb != this) {
                 m_materials = std::move(vdb.m_materials);
                 m_meshes = std::move(vdb.m_meshes);
+                m_mesh_buffers = std::move(vdb.m_mesh_buffers);
                 m_resources = std::move(vdb.m_resources);
                 m_cubemaps = std::move(vdb.m_cubemaps);
                 m_nodes = std::move(vdb.m_nodes);
@@ -236,6 +268,7 @@ namespace rte
 
         material_database         m_materials;
         mesh_database             m_meshes;
+        mesh_buffer_database      m_mesh_buffers;
         resource_database         m_resources;
         cubemap_database          m_cubemaps;
         node_database             m_nodes;

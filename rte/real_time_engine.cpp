@@ -71,6 +71,9 @@ namespace rte
 
             initialize_renderer(m_view_db);
 
+            // After all mesh buffers have been loaded in the graphics API, free the buffers
+            m_view_db.m_mesh_buffers.clear();
+
             m_last_time = get_time();
 
             m_fps_camera_controller.set_position(glm::vec3(-14.28f, 13.71f, 29.35f));

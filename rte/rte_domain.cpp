@@ -72,8 +72,13 @@ namespace rte
             oss << "    " << "index: " << mesh_index;
             log(LOG_LEVEL_DEBUG, oss.str().c_str());
     
+            auto mesh_buffer_it = std::find_if(list_begin(db.m_mesh_buffers, 0), list_end(db.m_mesh_buffers, 0), [mesh_index](const mesh_buffer& mf) {
+                return mf.m_mesh == mesh_index;
+            });
+            auto& mf = *mesh_buffer_it;
+
             oss.str("");
-            oss << "        vertices: " << m.m_vertices.size();
+            oss << "        vertices: " << mf.m_vertices.size();
             log(LOG_LEVEL_DEBUG, oss.str().c_str());
     
             oss.str("");
@@ -82,29 +87,29 @@ namespace rte
     
             oss.str("");
             oss << "        vertex base: ";
-            if (m.m_vertices.size()) {
-                preview_sequence(&m.m_vertices[0][0], 3 * m.m_vertices.size(), oss);
+            if (mf.m_vertices.size()) {
+                preview_sequence(&mf.m_vertices[0][0], 3 * mf.m_vertices.size(), oss);
             }
             log(LOG_LEVEL_DEBUG, oss.str().c_str());
     
             oss.str("");
             oss << "        texture coords: ";
-            if (m.m_texture_coords.size()) {
-                preview_sequence(&m.m_texture_coords[0][0], 2 * m.m_texture_coords.size(), oss);
+            if (mf.m_texture_coords.size()) {
+                preview_sequence(&mf.m_texture_coords[0][0], 2 * mf.m_texture_coords.size(), oss);
             }
             log(LOG_LEVEL_DEBUG, oss.str().c_str());
     
             oss.str("");
             oss << "        indices: ";
-            if (m.m_indices.size()) {
-                preview_sequence(&m.m_indices[0], m.m_indices.size(), oss);
+            if (mf.m_indices.size()) {
+                preview_sequence(&mf.m_indices[0], mf.m_indices.size(), oss);
             }
             log(LOG_LEVEL_DEBUG, oss.str().c_str());
     
             oss.str("");
             oss << "        normals: ";
-            if (m.m_normals.size()) {
-                preview_sequence(&m.m_normals[0][0], 3 * m.m_normals.size(), oss);
+            if (mf.m_normals.size()) {
+                preview_sequence(&mf.m_normals[0][0], 3 * mf.m_normals.size(), oss);
             }
             log(LOG_LEVEL_DEBUG, oss.str().c_str());
         }

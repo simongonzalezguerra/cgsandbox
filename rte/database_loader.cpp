@@ -110,20 +110,26 @@ namespace rte
             }
         }
 
-        void load_meshes(mesh_database& db)
+        void load_meshes(view_database& db)
         {
             for (auto& m : document.at("meshes")) {
-                index_type new_index = list_insert(db, 0, mesh());
-                auto& new_mesh = db.at(new_index);
+                index_type new_mesh_index = list_insert(db.m_meshes, 0, mesh());
+                auto& new_mesh = db.m_meshes.at(new_mesh_index);
                 user_id mesh_user_id = m.value("user_id", nuser_id);
                 new_mesh.m_user_id = mesh_user_id;
-                fill_3d_vector(m, new_mesh.m_vertices, "vertices");
-                fill_2d_vector(m, new_mesh.m_texture_coords, "texture_coords");
-                fill_3d_vector(m, new_mesh.m_normals, "normals");
-                fill_index_vector(m, new_mesh.m_indices, "indices");
                 if (mesh_user_id != nuser_id) {
-                    mesh_ids[mesh_user_id] = new_index;
+                    mesh_ids[mesh_user_id] = new_mesh_index;
                 }
+
+                auto new_mesh_buffer_index = list_insert(db.m_mesh_buffers, 0, mesh_buffer());
+                auto& new_mesh_buffer = db.m_mesh_buffers.at(new_mesh_buffer_index);
+                new_mesh_buffer.m_mesh = new_mesh_index;
+                fill_3d_vector(m, new_mesh_buffer.m_vertices, "vertices");
+                fill_2d_vector(m, new_mesh_buffer.m_texture_coords, "texture_coords");
+                fill_3d_vector(m, new_mesh_buffer.m_normals, "normals");
+                fill_index_vector(m, new_mesh_buffer.m_indices, "indices");
+
+                new_mesh.m_num_vertices = new_mesh_buffer.m_indices.size();
             }
         }
 
@@ -447,7 +453,9 @@ namespace rte
 
         list_init(tmp_db.m_meshes);
         list_empty_list(tmp_db.m_meshes);
-        load_meshes(tmp_db.m_meshes);
+        list_init(tmp_db.m_mesh_buffers);
+        list_empty_list(tmp_db.m_mesh_buffers);
+        load_meshes(tmp_db);
 
         tree_init(tmp_db.m_resources);
         tree_insert(tmp_db.m_resources, resource());
